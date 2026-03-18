@@ -20,6 +20,9 @@ export class PartnerAgency {
   @Property({ name: 'agency_organization_id', type: 'uuid' })
   agencyOrganizationId!: string
 
+  @Property({ type: 'text', nullable: true })
+  name?: string | null
+
   @Property({ type: 'text', default: 'active' })
   status: string = 'active'
 
@@ -174,7 +177,7 @@ export type RfpCampaignStatus = 'draft' | 'published' | 'closed' | 'withdrawn'
 @Entity({ tableName: 'partner_rfp_campaigns' })
 @Index({ name: 'idx_partner_rfp_campaigns_tenant_org', properties: ['tenantId', 'organizationId'] })
 export class PartnerRfpCampaign {
-  [OptionalProps]?: 'status' | 'createdAt' | 'updatedAt' | 'deletedAt'
+  [OptionalProps]?: 'status' | 'audience' | 'createdAt' | 'updatedAt' | 'deletedAt'
 
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid()' })
   id!: string
@@ -187,6 +190,18 @@ export class PartnerRfpCampaign {
 
   @Property({ type: 'text' })
   title!: string
+
+  @Property({ type: 'text', nullable: true })
+  description?: string | null
+
+  @Property({ type: 'text', default: 'all' })
+  audience: 'all' | 'selected' = 'all'
+
+  @Property({ type: 'jsonb', nullable: true })
+  invitedAgencyIds?: string[] | null
+
+  @Property({ type: Date, nullable: true })
+  deadline?: Date | null
 
   @Property({ name: 'customer_id', type: 'uuid', nullable: true })
   customerId?: string | null
@@ -233,6 +248,9 @@ export class PartnerRfpResponse {
 
   @Property({ type: 'text', default: 'invited' })
   status: RfpResponseStatus = 'invited'
+
+  @Property({ type: 'text', nullable: true })
+  content?: string | null
 
   @Property({ type: 'numeric', nullable: true })
   score?: number | null
