@@ -36,6 +36,89 @@ async function seedTierDefaults(em: EntityManager, scope: SeedScope) {
   await em.flush()
 }
 
+const PARTNER_ROLES = [
+  {
+    name: 'Partner Admin',
+    slug: 'partner_admin',
+    description: 'Full partner portal access including team management',
+    isDefault: false,
+    isSystem: true,
+    customerAssignable: false,
+    isPortalAdmin: false,
+    features: ['portal.partner.*', 'portal.users.manage', 'portal.users.view'],
+  },
+  {
+    name: 'Partner Member',
+    slug: 'partner_member',
+    description: 'Can view KPIs, respond to RFPs, and view case studies',
+    isDefault: true,
+    isSystem: true,
+    customerAssignable: true,
+    isPortalAdmin: false,
+    features: [
+      'portal.partner.access',
+      'portal.partner.kpi.view',
+      'portal.partner.rfp.view',
+      'portal.partner.rfp.respond',
+      'portal.partner.profile.view',
+    ],
+  },
+  {
+    name: 'Partner Viewer',
+    slug: 'partner_viewer',
+    description: 'Read-only access to KPIs and case studies',
+    isDefault: false,
+    isSystem: true,
+    customerAssignable: true,
+    isPortalAdmin: false,
+    features: [
+      'portal.partner.access',
+      'portal.partner.kpi.view',
+      'portal.partner.profile.view',
+    ],
+  },
+] as const
+
+async function seedPartnerRoles(em: EntityManager, scope: SeedScope) {
+  const { CustomerRole, CustomerRoleAcl } = await import(
+    '@open-mercato/core/modules/customer_accounts/data/entities'
+  )
+
+  for (const roleDef of PARTNER_ROLES) {
+    const existing = await em.findOne(CustomerRole, {
+      tenantId: scope.tenantId,
+      organizationId: scope.organizationId,
+      slug: roleDef.slug,
+      deletedAt: null,
+    })
+    if (existing) continue
+
+    const role = em.create(CustomerRole, {
+      tenantId: scope.tenantId,
+      organizationId: scope.organizationId,
+      name: roleDef.name,
+      slug: roleDef.slug,
+      description: roleDef.description,
+      isSystem: roleDef.isSystem,
+      customerAssignable: roleDef.customerAssignable,
+      isDefault: roleDef.isDefault,
+      createdAt: new Date(),
+    })
+    em.persist(role)
+
+    const acl = em.create(CustomerRoleAcl, {
+      role,
+      tenantId: scope.tenantId,
+      featuresJson: [...roleDef.features],
+      isPortalAdmin: roleDef.isPortalAdmin,
+      createdAt: new Date(),
+    })
+    em.persist(acl)
+  }
+
+  await em.flush()
+}
+
 export const setup: ModuleSetupConfig = {
   defaultRoleFeatures: {
     superadmin: ['partnerships.*'],
@@ -53,8 +136,7 @@ export const setup: ModuleSetupConfig = {
   seedDefaults: async (ctx) => {
     const scope = { tenantId: ctx.tenantId, organizationId: ctx.organizationId }
     await seedTierDefaults(ctx.em, scope)
-    // Phase 1a: dictionaries and custom fields seeded via API in future iteration
-    // For now, tier definitions are the critical seed
+    await seedPartnerRoles(ctx.em, scope)
   },
 }
 
