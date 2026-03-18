@@ -1,18 +1,56 @@
-import { type APIRequestContext } from '@playwright/test'
+import type { APIRequestContext, APIResponse } from '@playwright/test'
+import { DEFAULT_CREDENTIALS, type Role } from './auth'
 
-const BASE = process.env.BASE_URL || 'http://localhost:3000'
+const BASE_URL = process.env.BASE_URL?.trim() || null
+
+function resolveUrl(path: string): string {
+  return BASE_URL ? `${BASE_URL}${path}` : path
+}
 
 export async function getAuthToken(
   request: APIRequestContext,
-  email = 'admin@acme.com',
-  password = 'secret',
+  roleOrEmail: Role | string = 'admin',
+  password?: string,
 ): Promise<string> {
-  const res = await request.post(`${BASE}/api/auth/login`, {
-    data: { email, password },
-  })
-  if (!res.ok()) throw new Error(`Login failed: ${res.status()}`)
-  const body = await res.json()
-  return body.token ?? body.accessToken ?? body.data?.token
+  const role = roleOrEmail in DEFAULT_CREDENTIALS ? (roleOrEmail as Role) : null
+  const attempts: Array<{ email: string; password: string }> = []
+
+  if (role) {
+    const configured = DEFAULT_CREDENTIALS[role]
+    attempts.push({ email: configured.email, password: password ?? configured.password })
+    if (!password) {
+      attempts.push({ email: `${role}@acme.com`, password: 'secret' })
+    }
+  } else {
+    attempts.push({ email: roleOrEmail, password: password ?? 'secret' })
+  }
+
+  let lastStatus = 0
+  for (const attempt of attempts) {
+    const form = new URLSearchParams()
+    form.set('email', attempt.email)
+    form.set('password', attempt.password)
+
+    const response = await request.post(resolveUrl('/api/auth/login'), {
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      data: form.toString(),
+    })
+
+    const raw = await response.text()
+    let body: Record<string, unknown> | null = null
+    try {
+      body = raw ? JSON.parse(raw) : null
+    } catch {
+      body = null
+    }
+
+    lastStatus = response.status()
+    if (response.ok() && body && typeof body.token === 'string' && body.token) {
+      return body.token
+    }
+  }
+
+  throw new Error(`Failed to obtain auth token (status ${lastStatus})`)
 }
 
 export async function apiRequest(
@@ -20,12 +58,10 @@ export async function apiRequest(
   method: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE',
   path: string,
   options: { token: string; data?: unknown },
-) {
-  const url = `${BASE}${path}`
-  const headers = { Authorization: `Bearer ${options.token}` }
-  const res = await request[method.toLowerCase() as 'get'](url, {
-    headers,
-    ...(options.data ? { data: options.data } : {}),
-  })
-  return res
+): Promise<APIResponse> {
+  const headers = {
+    Authorization: `Bearer ${options.token}`,
+    'Content-Type': 'application/json',
+  }
+  return request.fetch(resolveUrl(path), { method, headers, data: options.data })
 }
