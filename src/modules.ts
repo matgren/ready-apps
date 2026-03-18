@@ -1,0 +1,46 @@
+// Central place to enable modules and their source.
+// - id: module id (plural snake_case; special cases: 'auth')
+// - from: '@open-mercato/core' | '@app' | custom alias/path in future
+import { parseBooleanWithDefault } from '@open-mercato/shared/lib/boolean'
+
+export type ModuleEntry = { id: string; from?: '@open-mercato/core' | '@app' | string }
+
+export const enabledModules: ModuleEntry[] = [
+  // Core infrastructure
+  { id: 'directory', from: '@open-mercato/core' },
+  { id: 'auth', from: '@open-mercato/core' },
+  { id: 'entities', from: '@open-mercato/core' },
+  { id: 'configs', from: '@open-mercato/core' },
+  { id: 'query_index', from: '@open-mercato/core' },
+  // Customer identity & portal
+  { id: 'customer_accounts', from: '@open-mercato/core' },
+  { id: 'portal', from: '@open-mercato/core' },
+  { id: 'customers', from: '@open-mercato/core' },
+  { id: 'notifications', from: '@open-mercato/core' },
+  // Operations support
+  { id: 'dashboards', from: '@open-mercato/core' },
+  { id: 'workflows', from: '@open-mercato/core' },
+  { id: 'attachments', from: '@open-mercato/core' },
+  { id: 'audit_logs', from: '@open-mercato/core' },
+  { id: 'dictionaries', from: '@open-mercato/core' },
+  { id: 'feature_toggles', from: '@open-mercato/core' },
+  { id: 'business_rules', from: '@open-mercato/core' },
+  { id: 'events', from: '@open-mercato/events' },
+  { id: 'scheduler', from: '@open-mercato/scheduler' },
+  // PRM domain
+  { id: 'partnerships', from: '@app' },
+]
+
+const enterpriseModulesEnabled = parseBooleanWithDefault(process.env.OM_ENABLE_ENTERPRISE_MODULES, false)
+const enterpriseSsoEnabled = parseBooleanWithDefault(process.env.OM_ENABLE_ENTERPRISE_MODULES_SSO, false)
+
+if (enterpriseModulesEnabled) {
+  enabledModules.push(
+    { id: 'record_locks', from: '@open-mercato/enterprise' },
+    { id: 'system_status_overlays', from: '@open-mercato/enterprise' },
+  )
+}
+
+if (enterpriseModulesEnabled && enterpriseSsoEnabled) {
+  enabledModules.push({ id: 'sso', from: '@open-mercato/enterprise' })
+}
