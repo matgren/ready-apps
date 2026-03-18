@@ -1,101 +1,68 @@
-# B2B PRM Starter
+# B2B PRM Example — Open Mercato
 
-A complete Partner Relationship Management starter for Open Mercato, built on SPEC-053 (B2B PRM family).
+A complete, runnable B2B Partner Relationship Management application built on the Open Mercato platform. This example demonstrates how to build a vertical PRM solution using UMES (Universal Mercato Extension System).
+
+Aligned with [SPEC-053](https://github.com/open-mercato/open-mercato/blob/main/.ai/specs/SPEC-053-2026-03-02-b2b-prm-starter.md) and the [Use-Case Examples Framework (SPEC-068)](https://github.com/open-mercato/open-mercato/blob/main/.ai/specs/SPEC-068-2026-03-02-use-case-examples-framework.md).
+
+## What's Included
+
+- **Partnerships module** (`src/modules/partnerships/`) — agencies, tier governance, KPIs (WIC/WIP/MIN), RFP campaigns, partner portal
+- **18 core modules** from `@open-mercato/core` and ecosystem packages
+- **Docker Compose** setup for PostgreSQL, Redis, and Meilisearch
+- **Seed data** for demo agencies, tier definitions, and partner roles
+
+## Prerequisites
+
+- Node.js >= 24 (via [corepack](https://nodejs.org/api/corepack.html))
+- Docker & Docker Compose
 
 ## Quick Start
 
 ```bash
-# Create a new app from this starter
-npx create-mercato-app --example b2b-prm my-prm-app
-cd my-prm-app
-
-# Start infrastructure
+# Start infrastructure services
 docker compose up -d
 
-# Initialize and run
+# Install dependencies
+yarn install
+
+# Initialize database (migrations + seed data)
 yarn initialize
+
+# Start development server
 yarn dev
 ```
 
-## What's Included
+Open http://localhost:3000
 
-### 13 Core Modules
+## Seed Configuration
 
-| Category | Modules |
-|----------|---------|
-| **Infrastructure** | `directory`, `auth`, `entities`, `query_index` |
-| **Customer Identity & Portal** | `customer_accounts`, `portal`, `customers`, `notifications` |
-| **Operations** | `dashboards`, `workflows`, `attachments`, `audit_logs`, `dictionaries` |
+| Env Var | Purpose | Default |
+|---------|---------|---------|
+| `OM_PRM_SEED_PROFILE` | Which demo fixtures to seed (`demo_agency`) | `demo_agency` |
+| `OM_SEED_EXAMPLES` | Seed demo data during `yarn initialize` | `true` |
 
-### Partnerships Module (`@app`)
+Set `OM_SEED_EXAMPLES=false` in `.env` to skip demo data and seed only structural defaults (tier definitions, partner roles).
 
-The PRM domain module providing:
+## Development
 
-**Staff Backend** (`/backend/partnerships`):
-- Agency management — onboard, list, and manage partner agencies
-- Tier definitions — define Bronze/Silver/Gold tiers with KPI thresholds
-- Tier assignments — assign and downgrade partner tiers with history
-- KPI dashboard — WIC/WIP/MIN metrics, snapshot import, WIC run management
-- RFP campaigns — create, publish, close campaigns; view responses
-- MIN attribution — attribute license deals to partner agencies
-
-**Partner Portal** (`/portal/partnerships`):
-- Dashboard — tier status, KPI summary, active RFP count
-- KPI details — WIC contributions, MIN license deals, metric history
-- RFP inbox — view campaigns, submit responses
-- Case studies — placeholder (pending SPEC-053a data foundation)
-- Team management — placeholder (pending customer_accounts integration)
-
-**Partner RBAC** (3 roles seeded automatically):
-- **Partner Admin** — full portal access + team management
-- **Partner Member** — KPIs, RFPs, profile (default, auto-assigned on CRM linking)
-- **Partner Viewer** — read-only KPIs and profile
-
-**Event Subscribers**:
-- Auto-assign Partner Member role when a customer user links to a partner agency's CRM company
-- Notify all agency users when an RFP campaign is issued
-
-## Module Architecture
-
-```
-src/modules/partnerships/
-├── api/                    # Staff + portal API routes
-│   ├── agencies/           # Agency CRUD
-│   ├── tiers/              # Tier definitions CRUD
-│   ├── kpi/                # KPI dashboard, snapshots, WIC runs
-│   ├── min/                # MIN license deal attribution
-│   └── portal/             # Partner-facing API routes
-│       ├── dashboard/      # GET — tier + KPI summary
-│       ├── kpi/            # GET — detailed KPI breakdown
-│       ├── rfp/            # GET list, GET [id], POST [id]/respond
-│       └── case-studies/   # GET/POST, PUT/DELETE [id] (skeleton)
-├── backend/                # Staff backend pages
-├── frontend/               # Portal frontend pages
-│   └── [orgSlug]/portal/partnerships/
-│       ├── page.tsx        # Dashboard
-│       ├── kpi/            # KPI detail
-│       ├── rfp/            # RFP inbox + [id] response
-│       ├── case-studies/   # Placeholder
-│       └── team/           # Placeholder
-├── subscribers/            # Event subscribers
-├── widgets/                # Portal nav injection
-├── data/entities.ts        # MikroORM entities
-├── setup.ts                # Tier + role seeding
-└── events.ts               # Event declarations
+```bash
+yarn dev          # Start dev server
+yarn generate     # Regenerate .mercato/generated/ files
+yarn db:generate  # Generate new migration
+yarn db:migrate   # Run pending migrations
+yarn typecheck    # Type check
+yarn lint         # Lint
+yarn test         # Run tests
 ```
 
-## Known Limitations
+## Docker (Full App)
 
-- **Case studies**: Route skeletons return 501 — pending SPEC-053a custom entities implementation
-- **Team management**: Placeholder page — will integrate with `customer_accounts` portal user management
-- **Agency-to-user linking**: Depends on CRM company match; agencies without existing CRM records need manual linking
-- **RFP `all` distribution**: Resolves all active agencies + their users; may be slow with large agency pools
+Run the entire stack (app + services) in Docker:
 
-## Related Specs
+```bash
+docker compose -f docker-compose.fullapp.yml up
+```
 
-- [SPEC-053](/.ai/specs/SPEC-053-2026-03-02-b2b-prm-starter.md) — B2B PRM main spec
-- [SPEC-053a](/.ai/specs/SPEC-053a-2026-03-02-b2b-prm-matching-data-phase0-api-only.md) — Data foundation
-- [SPEC-053b](/.ai/specs/SPEC-053b-2026-03-02-b2b-prm-operations-kpi-rfp.md) — Operations, KPI, RFP
-- SPEC-053c — Partner portal & module slimming (this implementation)
-- [SPEC-060](/.ai/specs/) — Customer Identity & Portal Auth
-- [SPEC-062](/.ai/specs/) — Use-Case Starters Framework
+## License
+
+See the Open Mercato license terms.
