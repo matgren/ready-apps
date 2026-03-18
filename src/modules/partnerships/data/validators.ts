@@ -83,3 +83,61 @@ export const submitRfpResponseSchema = z.object({
 })
 
 export type SubmitRfpResponseInput = z.infer<typeof submitRfpResponseSchema>
+
+// ── License Deal (MIN) ─────────────────────────────────────
+
+export const createLicenseDealSchema = z.object({
+  customerId: uuid(),
+  dealType: z.string().trim().min(1).max(100),
+  status: z.enum(['pending', 'won', 'lost']).default('pending'),
+  isRenewal: z.boolean().default(false),
+})
+
+export const updateLicenseDealSchema = z.object({
+  id: uuid(),
+  status: z.enum(['pending', 'won', 'lost']).optional(),
+  isRenewal: z.boolean().optional(),
+})
+
+export const attributeLicenseDealSchema = z.object({
+  id: uuid(),
+  partnerAgencyId: uuid(),
+})
+
+export type CreateLicenseDealInput = z.infer<typeof createLicenseDealSchema>
+export type UpdateLicenseDealInput = z.infer<typeof updateLicenseDealSchema>
+export type AttributeLicenseDealInput = z.infer<typeof attributeLicenseDealSchema>
+
+// ── WIC Run Import ─────────────────────────────────────────
+
+export const importWicRunSchema = z.object({
+  periodStart: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  periodEnd: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  scriptVersion: z.string().trim().min(1).max(50),
+  rawOutput: z.string().trim().min(1),
+  units: z.array(z.object({
+    ghProfile: z.string().trim().min(1),
+    monthKey: z.string().regex(/^\d{4}-\d{2}$/),
+    featureKey: z.string().trim().optional(),
+    baseScore: z.number().min(0),
+    impactBonus: z.number().min(0).default(0),
+    bountyMultiplier: z.number().min(1).default(1),
+    wicFinal: z.number().min(0),
+    wicLevel: z.string().optional(),
+    bountyBonus: z.number().min(0).default(0),
+    includedReason: z.string().optional(),
+    excludedReason: z.string().optional(),
+  })),
+})
+
+export type ImportWicRunInput = z.infer<typeof importWicRunSchema>
+
+// ── Tier Downgrade ─────────────────────────────────────────
+
+export const downgradeTierSchema = z.object({
+  partnerAgencyId: uuid(),
+  newTierKey: z.string().trim().min(1).max(50),
+  reason: z.string().trim().min(1).max(500),
+})
+
+export type DowngradeTierInput = z.infer<typeof downgradeTierSchema>
