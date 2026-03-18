@@ -1,5 +1,9 @@
 import type { NextRequest } from 'next/server'
 import { CrudHttpError } from '@open-mercato/shared/lib/crud/errors'
+import { createRequestContainer } from '@open-mercato/shared/lib/di/container'
+import { CommandBus } from '@open-mercato/shared/lib/commands/command-bus'
+import type { CommandRuntimeContext } from '@open-mercato/shared/lib/commands'
+import { resolveOrganizationScopeForRequest } from '@open-mercato/core/modules/directory/utils/organizationScope'
 import { PartnerAgency } from '../../../../data/entities'
 
 export const metadata = {
@@ -8,7 +12,7 @@ export const metadata = {
 
 export async function POST(req: NextRequest, ctx: any) {
   const tenantId = ctx.auth?.tenantId
-  const organizationId = ctx.selectedOrganizationId
+  const organizationId = ctx.auth?.orgId
   if (!tenantId || !organizationId) {
     throw new CrudHttpError(403, { error: 'Missing context' })
   }
@@ -18,7 +22,8 @@ export async function POST(req: NextRequest, ctx: any) {
     throw new CrudHttpError(400, { error: 'Missing organizationId param' })
   }
 
-  const em = ctx.container.resolve('em') as any
+  const container = await createRequestContainer()
+  const em = container.resolve('em') as any
 
   const agency = await em.findOne(PartnerAgency, {
     tenantId, organizationId, agencyOrganizationId: agencyOrgId, deletedAt: null,
@@ -28,11 +33,20 @@ export async function POST(req: NextRequest, ctx: any) {
   }
 
   const body = await req.json()
-  const executeCommand = ctx.container.resolve('executeCommand') as any
-  const result = await executeCommand('partnerships.partner_tier.downgrade', {
-    ...body,
-    partnerAgencyId: agency.id,
-  }, ctx)
+  const commandBus = container.resolve('commandBus') as CommandBus
+  const scope = await resolveOrganizationScopeForRequest({ container, auth: ctx.auth, request: req })
+  const runtimeCtx: CommandRuntimeContext = {
+    container,
+    auth: ctx.auth,
+    organizationScope: scope,
+    selectedOrganizationId: scope.selectedId,
+    organizationIds: scope.filterIds,
+    request: req,
+  }
+  const { result } = await commandBus.execute('partnerships.partner_tier.downgrade', {
+    input: { ...body, partnerAgencyId: agency.id },
+    ctx: runtimeCtx,
+  })
 
   return Response.json({
     ok: true,

@@ -1,5 +1,6 @@
 import type { NextRequest } from 'next/server'
 import { CrudHttpError } from '@open-mercato/shared/lib/crud/errors'
+import { createRequestContainer } from '@open-mercato/shared/lib/di/container'
 import { PartnerWicRun, PartnerWicContributionUnit } from '../../../../data/entities'
 
 export const metadata = {
@@ -8,11 +9,12 @@ export const metadata = {
 
 export async function GET(req: NextRequest, ctx: any) {
   const tenantId = ctx.auth?.tenantId
-  const organizationId = ctx.selectedOrganizationId
+  const organizationId = ctx.auth?.orgId
   const runId = ctx.params?.runId
   if (!tenantId || !organizationId || !runId) throw new CrudHttpError(403, { error: 'Missing context' })
 
-  const em = ctx.container.resolve('em') as any
+  const container = await createRequestContainer()
+  const em = container.resolve('em') as any
 
   const run = await em.findOne(PartnerWicRun, {
     id: runId, tenantId, organizationId,

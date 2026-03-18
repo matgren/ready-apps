@@ -1,5 +1,6 @@
 import type { NextRequest } from 'next/server'
 import { CrudHttpError } from '@open-mercato/shared/lib/crud/errors'
+import { createRequestContainer } from '@open-mercato/shared/lib/di/container'
 import { PartnerLicenseDeal } from '../../../data/entities'
 
 export const metadata = {
@@ -8,10 +9,11 @@ export const metadata = {
 
 export async function GET(req: NextRequest, ctx: any) {
   const tenantId = ctx.auth?.tenantId
-  const organizationId = ctx.selectedOrganizationId
+  const organizationId = ctx.auth?.orgId
   if (!tenantId || !organizationId) throw new CrudHttpError(403, { error: 'Missing context' })
 
-  const em = ctx.container.resolve('em') as any
+  const container = await createRequestContainer()
+  const em = container.resolve('em') as any
   const url = new URL(req.url)
   const year = parseInt(url.searchParams.get('year') || new Date().getFullYear().toString(), 10)
 

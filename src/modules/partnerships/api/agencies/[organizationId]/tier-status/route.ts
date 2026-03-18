@@ -1,5 +1,6 @@
 import type { NextRequest } from 'next/server'
 import { CrudHttpError } from '@open-mercato/shared/lib/crud/errors'
+import { createRequestContainer } from '@open-mercato/shared/lib/di/container'
 import { PartnerAgency } from '../../../../data/entities'
 import { getCurrentTierAssignment, computeEligibility } from '../../../../lib/tier-lifecycle'
 
@@ -9,7 +10,7 @@ export const metadata = {
 
 export async function GET(_req: NextRequest, ctx: any) {
   const tenantId = ctx.auth?.tenantId
-  const organizationId = ctx.selectedOrganizationId
+  const organizationId = ctx.auth?.orgId
   if (!tenantId || !organizationId) {
     throw new CrudHttpError(403, { error: 'Missing context' })
   }
@@ -19,7 +20,8 @@ export async function GET(_req: NextRequest, ctx: any) {
     throw new CrudHttpError(400, { error: 'Missing organizationId param' })
   }
 
-  const em = ctx.container.resolve('em') as any
+  const container = await createRequestContainer()
+  const em = container.resolve('em') as any
 
   const agency = await em.findOne(PartnerAgency, {
     tenantId, organizationId, agencyOrganizationId: agencyOrgId, deletedAt: null,

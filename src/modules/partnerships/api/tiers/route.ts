@@ -1,5 +1,9 @@
 import type { NextRequest } from 'next/server'
 import { CrudHttpError } from '@open-mercato/shared/lib/crud/errors'
+import { createRequestContainer } from '@open-mercato/shared/lib/di/container'
+import { CommandBus } from '@open-mercato/shared/lib/commands/command-bus'
+import type { CommandRuntimeContext } from '@open-mercato/shared/lib/commands'
+import { resolveOrganizationScopeForRequest } from '@open-mercato/core/modules/directory/utils/organizationScope'
 import { PartnerTierDefinition } from '../../data/entities'
 
 export const metadata = {
@@ -9,12 +13,13 @@ export const metadata = {
 
 export async function GET(req: NextRequest, ctx: any) {
   const tenantId = ctx.auth?.tenantId
-  const organizationId = ctx.selectedOrganizationId
+  const organizationId = ctx.auth?.orgId
   if (!tenantId || !organizationId) {
     throw new CrudHttpError(403, { error: 'Missing context' })
   }
 
-  const em = ctx.container.resolve('em') as any
+  const container = await createRequestContainer()
+  const em = container.resolve('em') as any
   const url = new URL(req.url)
   const includeInactive = url.searchParams.get('includeInactive') === 'true'
 
@@ -44,8 +49,18 @@ export async function GET(req: NextRequest, ctx: any) {
 
 export async function POST(req: NextRequest, ctx: any) {
   const body = await req.json()
-  const executeCommand = ctx.container.resolve('executeCommand') as any
-  const result = await executeCommand('partnerships.partner_tier.define', body, ctx)
+  const container = await createRequestContainer()
+  const commandBus = container.resolve('commandBus') as CommandBus
+  const scope = await resolveOrganizationScopeForRequest({ container, auth: ctx.auth, request: req })
+  const runtimeCtx: CommandRuntimeContext = {
+    container,
+    auth: ctx.auth,
+    organizationScope: scope,
+    selectedOrganizationId: scope.selectedId,
+    organizationIds: scope.filterIds,
+    request: req,
+  }
+  const { result } = await commandBus.execute('partnerships.partner_tier.define', { input: body, ctx: runtimeCtx })
   return Response.json({ ok: true, data: { id: result.id, key: result.key } }, { status: 201 })
 }
 
