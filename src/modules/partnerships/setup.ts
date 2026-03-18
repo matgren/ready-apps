@@ -1,6 +1,6 @@
 import type { ModuleSetupConfig } from '@open-mercato/shared/modules/setup'
 import type { EntityManager } from '@mikro-orm/postgresql'
-import { PartnerTierDefinition } from './data/entities'
+import { PartnerTierDefinition, PartnerAgency } from './data/entities'
 
 interface SeedScope {
   tenantId: string
@@ -119,6 +119,32 @@ async function seedPartnerRoles(em: EntityManager, scope: SeedScope) {
   await em.flush()
 }
 
+async function seedExampleAgencies(em: EntityManager, scope: SeedScope) {
+  const profile = process.env.OM_PRM_SEED_PROFILE || 'demo_agency'
+  if (profile !== 'demo_agency') return
+
+  const existing = await em.count(PartnerAgency, {
+    tenantId: scope.tenantId,
+    organizationId: scope.organizationId,
+  })
+  if (existing > 0) return
+
+  // PartnerAgency requires agencyOrganizationId (UUID referencing a CRM organization).
+  // For demo seeding, we generate a random UUID.
+  const { randomUUID } = await import('node:crypto')
+  const demoAgencyOrgId = randomUUID()
+
+  const demoAgency = em.create(PartnerAgency, {
+    tenantId: scope.tenantId,
+    organizationId: scope.organizationId,
+    agencyOrganizationId: demoAgencyOrgId,
+    name: 'Demo Agency',
+    status: 'active',
+  })
+  em.persist(demoAgency)
+  await em.flush()
+}
+
 export const setup: ModuleSetupConfig = {
   defaultRoleFeatures: {
     superadmin: ['partnerships.*'],
@@ -135,8 +161,15 @@ export const setup: ModuleSetupConfig = {
 
   seedDefaults: async (ctx) => {
     const scope = { tenantId: ctx.tenantId, organizationId: ctx.organizationId }
+    // Structural defaults always seed (tiers + roles are required for PRM to function)
     await seedTierDefaults(ctx.em, scope)
     await seedPartnerRoles(ctx.em, scope)
+
+    // Example data only seeds when OM_SEED_EXAMPLES is not explicitly false
+    const seedExamples = process.env.OM_SEED_EXAMPLES !== 'false'
+    if (seedExamples) {
+      await seedExampleAgencies(ctx.em, scope)
+    }
   },
 }
 
