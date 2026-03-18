@@ -5,7 +5,7 @@ import { DataTable } from '@open-mercato/ui/backend/DataTable'
 import { RowActions } from '@open-mercato/ui/backend/RowActions'
 import { fetchCrudList } from '@open-mercato/ui/backend/utils/crud'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useOrganizationScopeVersion } from '@open-mercato/ui/backend/utils/scope'
+import { useOrganizationScopeVersion } from '@open-mercato/shared/lib/frontend/useOrganizationScope'
 import { apiCall } from '@open-mercato/ui/backend/utils/apiCall'
 import React from 'react'
 

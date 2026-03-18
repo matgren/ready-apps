@@ -4,7 +4,7 @@ import { useT } from '@open-mercato/shared/lib/i18n/context'
 import { DataTable } from '@open-mercato/ui/backend/DataTable'
 import { fetchCrudList } from '@open-mercato/ui/backend/utils/crud'
 import { useQuery } from '@tanstack/react-query'
-import { useOrganizationScopeVersion } from '@open-mercato/ui/backend/utils/scope'
+import { useOrganizationScopeVersion } from '@open-mercato/shared/lib/frontend/useOrganizationScope'
 import React from 'react'
 
 type AgencyRow = {

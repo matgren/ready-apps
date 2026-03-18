@@ -1,7 +1,7 @@
 'use client'
 import { Page, PageBody } from '@open-mercato/ui/backend/Page'
 import { CrudForm, type CrudField, type CrudFormGroup } from '@open-mercato/ui/backend/CrudForm'
-import { fetchCrudDetail, patchCrud } from '@open-mercato/ui/backend/utils/crud'
+import { fetchCrudList, updateCrud } from '@open-mercato/ui/backend/utils/crud'
 import { useT } from '@open-mercato/shared/lib/i18n/context'
 import React from 'react'
 
@@ -29,7 +29,8 @@ export default function EditTierPage({ params }: { params?: { id?: string } }) {
     async function load() {
       if (!id) return
       try {
-        const item = await fetchCrudDetail(`partnerships/tiers/${id}`)
+        const data = await fetchCrudList('partnerships/tiers')
+        const item = data?.items?.find((t: any) => t.id === id)
         if (item) setInitial({ id: item.id, label: item.label, wicThreshold: item.wicThreshold, wipThreshold: item.wipThreshold, minThreshold: item.minThreshold, isActive: item.isActive })
       } finally { setLoading(false) }
     }
@@ -49,7 +50,7 @@ export default function EditTierPage({ params }: { params?: { id?: string } }) {
           submitLabel={t('save', 'Save')}
           cancelHref="/backend/partnerships/tiers"
           successRedirect={`/backend/partnerships/tiers?flash=${encodeURIComponent(t('saved', 'Saved'))}&type=success`}
-          onSubmit={async (vals) => { await patchCrud(`partnerships/tiers/${id}`, vals) }}
+          onSubmit={async (vals) => { await updateCrud('partnerships/tiers', { ...vals, id }) }}
         />
       </PageBody>
     </Page>
