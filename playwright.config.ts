@@ -2,7 +2,6 @@ import { defineConfig } from '@playwright/test'
 
 export default defineConfig({
   testDir: 'src/modules/partnerships/__integration__',
-  baseURL: process.env.BASE_URL || 'http://localhost:3000',
   timeout: 20_000,
   expect: {
     timeout: 20_000,

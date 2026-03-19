@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test'
-import { getAuthToken, apiRequest } from '@open-mercato/core/testing'
+import { getAuthToken, apiRequest } from './helpers/api'
 
 test.describe('TC-PRM-008: Agency self-onboarding', () => {
   let token: string
