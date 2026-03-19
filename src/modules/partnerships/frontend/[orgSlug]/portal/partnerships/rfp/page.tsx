@@ -91,7 +91,7 @@ export default function RfpInboxPage({ params }: { params: { orgSlug: string } }
       <PortalCard>
         <PortalCardHeader title={t('partnerships.rfp.title', 'RFP Campaigns')} />
         {data.items.length === 0 ? (
-          <PortalEmptyState title="No RFP campaigns available" description="New campaigns will appear here when published." />
+          <PortalEmptyState title={t('partnerships.portal.rfp.noRfps', 'No RFP campaigns available')} description={t('partnerships.portal.rfp.noRfpsDescription', 'New campaigns will appear here when published.')} />
         ) : (
           <div className="divide-y">
             {data.items.map((rfp) => (

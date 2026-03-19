@@ -57,7 +57,7 @@ export default function RfpResponsePage({ params }: { params: { orgSlug: string;
           setContent(result.data.response.content)
         }
       } else {
-        setError('Failed to load RFP details')
+        setError(t('partnerships.portal.rfp.loadError', 'Failed to load RFP details'))
       }
       setLoading(false)
     }
@@ -79,7 +79,7 @@ export default function RfpResponsePage({ params }: { params: { orgSlug: string;
       setSubmitted(true)
       setData((prev) => prev ? { ...prev, response: result!.data } : prev)
     } else {
-      setSubmitError('Failed to submit response. Please try again.')
+      setSubmitError(t('partnerships.portal.rfp.submitError', 'Failed to submit response. Please try again.'))
     }
   }
 
@@ -109,7 +109,7 @@ export default function RfpResponsePage({ params }: { params: { orgSlug: string;
 
       {data.description && (
         <PortalCard>
-          <PortalCardHeader title="Campaign Details" />
+          <PortalCardHeader title={t('partnerships.portal.rfp.campaignDetails', 'Campaign Details')} />
           <p className="text-sm text-muted-foreground whitespace-pre-wrap">{data.description}</p>
         </PortalCard>
       )}
@@ -119,7 +119,7 @@ export default function RfpResponsePage({ params }: { params: { orgSlug: string;
 
         {alreadySubmitted && !submitted && (
           <div className="mb-4 rounded-lg bg-muted px-4 py-3">
-            <p className="text-sm font-medium">Response submitted</p>
+            <p className="text-sm font-medium">{t('partnerships.portal.rfp.responseSubmitted', 'Response submitted')}</p>
             {data.response?.submittedAt && (
               <p className="text-xs text-muted-foreground mt-0.5">
                 Submitted {new Date(data.response.submittedAt).toLocaleString()}
@@ -130,12 +130,12 @@ export default function RfpResponsePage({ params }: { params: { orgSlug: string;
 
         {submitted && (
           <div className="mb-4 rounded-lg bg-green-50 border border-green-200 px-4 py-3">
-            <p className="text-sm font-medium text-green-800">Your response has been submitted successfully.</p>
+            <p className="text-sm font-medium text-green-800">{t('partnerships.portal.rfp.submitSuccess', 'Your response has been submitted successfully.')}</p>
           </div>
         )}
 
         {isClosed ? (
-          <p className="text-sm text-muted-foreground">This campaign is closed and no longer accepting responses.</p>
+          <p className="text-sm text-muted-foreground">{t('partnerships.portal.rfp.campaignClosed', 'This campaign is closed and no longer accepting responses.')}</p>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <textarea
@@ -150,7 +150,7 @@ export default function RfpResponsePage({ params }: { params: { orgSlug: string;
             )}
             <div className="flex justify-end">
               <Button type="submit" disabled={submitting || !content.trim()}>
-                {submitting ? <Spinner /> : alreadySubmitted ? 'Update Response' : 'Submit Response'}
+                {submitting ? <Spinner /> : alreadySubmitted ? t('partnerships.portal.rfp.updateResponse', 'Update Response') : t('partnerships.portal.rfp.submitResponse', 'Submit Response')}
               </Button>
             </div>
           </form>

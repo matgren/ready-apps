@@ -11,15 +11,15 @@ export default function ImportKpiPage() {
   const fields = React.useMemo<CrudField[]>(() => [
     { id: 'partnerAgencyId', label: t('partnerships.kpi.agencyId', 'Agency ID'), type: 'text', required: true },
     { id: 'metricKey', label: t('partnerships.kpi.metricKey', 'Metric'), type: 'select', required: true, options: [
-      { value: 'wic', label: 'WIC' },
-      { value: 'min', label: 'MIN' },
+      { value: 'wic', label: t('partnerships.kpi.metricType.wic', 'WIC') },
+      { value: 'min', label: t('partnerships.kpi.metricType.min', 'MIN') },
     ] },
     { id: 'periodStart', label: t('partnerships.kpi.periodStart', 'Period Start'), type: 'date', required: true },
     { id: 'periodEnd', label: t('partnerships.kpi.periodEnd', 'Period End'), type: 'date', required: true },
     { id: 'value', label: t('partnerships.kpi.value', 'Value'), type: 'number', required: true },
     { id: 'source', label: t('partnerships.kpi.source', 'Source'), type: 'select', options: [
-      { value: 'manual', label: 'Manual' },
-      { value: 'ingest', label: 'Ingest' },
+      { value: 'manual', label: t('partnerships.kpi.source.manual', 'Manual') },
+      { value: 'ingest', label: t('partnerships.kpi.source.ingest', 'Ingest') },
     ] },
   ], [t])
 

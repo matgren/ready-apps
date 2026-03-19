@@ -26,20 +26,6 @@ const widget: InjectionMenuItemWidget = {
       href: '/portal/partnerships/rfp',
       icon: 'FileText',
     },
-    {
-      id: 'partnerships-portal-case-studies',
-      label: 'Case Studies',
-      labelKey: 'partnerships.portal.caseStudies',
-      href: '/portal/partnerships/case-studies',
-      icon: 'BookOpen',
-    },
-    {
-      id: 'partnerships-portal-team',
-      label: 'Team Management',
-      labelKey: 'partnerships.portal.teamManagement',
-      href: '/portal/partnerships/team',
-      icon: 'Users',
-    },
   ],
 }
 
