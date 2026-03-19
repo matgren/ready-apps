@@ -29,7 +29,7 @@ export default function TierDefinitionsPage() {
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['partnerships-tiers', scopeVersion],
-    queryFn: () => fetchCrudList<TierRow>('partnerships/tiers'),
+    queryFn: () => fetchCrudList<TierRow>('partnerships/tiers', {}),
   })
 
   const columns = React.useMemo(() => [

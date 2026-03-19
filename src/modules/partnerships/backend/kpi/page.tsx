@@ -26,7 +26,7 @@ export default function KpiDashboardPage() {
 
   const { data, isLoading, isError } = useQuery({
     queryKey: ['partnerships-kpi-dashboard', scopeVersion],
-    queryFn: () => fetchCrudList<DashboardRow>('partnerships/kpi/dashboard'),
+    queryFn: () => fetchCrudList<DashboardRow>('partnerships/kpi/dashboard', {}),
   })
 
   const columns = React.useMemo(() => [

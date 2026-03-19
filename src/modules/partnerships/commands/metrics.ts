@@ -34,7 +34,7 @@ const ingestMetricCommand: CommandHandler<Record<string, unknown>, PartnerMetric
       existing.value = parsed.value
       existing.source = parsed.source
       await em.flush()
-      emitPartnershipEvent('partnerships.partner_metric.snapshot_recorded', { snapshotId: existing.id, metricKey: parsed.metricKey, tenantId, organizationId }, ctx)
+      emitPartnershipEvent('partnerships.partner_metric.snapshot_recorded', { snapshotId: existing.id, metricKey: parsed.metricKey, tenantId, organizationId })
       return existing
     }
 
@@ -49,7 +49,7 @@ const ingestMetricCommand: CommandHandler<Record<string, unknown>, PartnerMetric
     })
     em.persist(snapshot)
     await em.flush()
-    emitPartnershipEvent('partnerships.partner_metric.snapshot_recorded', { snapshotId: snapshot.id, metricKey: parsed.metricKey, tenantId, organizationId }, ctx)
+    emitPartnershipEvent('partnerships.partner_metric.snapshot_recorded', { snapshotId: snapshot.id, metricKey: parsed.metricKey, tenantId, organizationId })
     return snapshot
   },
 

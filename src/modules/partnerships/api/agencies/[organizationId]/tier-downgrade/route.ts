@@ -68,7 +68,7 @@ export async function POST(req: NextRequest, ctx: any) {
   const { result } = await commandBus.execute('partnerships.partner_tier.downgrade', {
     input: { ...body, partnerAgencyId: agency.id },
     ctx: runtimeCtx,
-  })
+  }) as { result: any }
 
   return Response.json({
     ok: true,

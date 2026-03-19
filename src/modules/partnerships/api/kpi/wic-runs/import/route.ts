@@ -41,7 +41,7 @@ export async function POST(req: NextRequest, ctx: any) {
     }
   }
 
-  const { result } = await commandBus.execute('partnerships.partner_wic_run.import', { input: body, ctx: runtimeCtx })
+  const { result } = await commandBus.execute('partnerships.partner_wic_run.import', { input: body, ctx: runtimeCtx }) as { result: any }
   return Response.json({ ok: true, data: { id: result.id } }, { status: 201 })
 }
 
