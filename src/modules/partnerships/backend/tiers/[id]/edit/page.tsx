@@ -29,7 +29,7 @@ export default function EditTierPage({ params }: { params?: { id?: string } }) {
     async function load() {
       if (!id) return
       try {
-        const data = await fetchCrudList('partnerships/tiers', {})
+        const data = await fetchCrudList<any>('partnerships/tiers', {})
         const item = data?.items?.find((t: any) => t.id === id)
         if (item) setInitial({ id: item.id, label: item.label, wicThreshold: item.wicThreshold, wipThreshold: item.wipThreshold, minThreshold: item.minThreshold, isActive: item.isActive })
       } finally { setLoading(false) }
