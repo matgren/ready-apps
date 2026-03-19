@@ -1,5 +1,6 @@
 'use client'
 import { Page, PageHeader, PageBody } from '@open-mercato/ui/backend/Page'
+import { ErrorMessage } from '@open-mercato/ui/backend/detail'
 import { useT } from '@open-mercato/shared/lib/i18n/context'
 import { DataTable } from '@open-mercato/ui/backend/DataTable'
 import { fetchCrudList } from '@open-mercato/ui/backend/utils/crud'
@@ -20,7 +21,7 @@ export default function AgenciesPage() {
   const scopeVersion = useOrganizationScopeVersion()
   const [page, setPage] = React.useState(1)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['partnerships-agencies', page, scopeVersion],
     queryFn: () => fetchCrudList<AgencyRow>('partnerships/agencies', { page: String(page), pageSize: '50' }),
   })
@@ -31,6 +32,8 @@ export default function AgenciesPage() {
     { accessorKey: 'onboardedAt', header: t('partnerships.agency.onboardedAt', 'Onboarded At') },
     { accessorKey: 'createdAt', header: t('partnerships.agency.createdAt', 'Created') },
   ], [t])
+
+  if (isError) return <ErrorMessage label="Failed to load data" />
 
   return (
     <Page>

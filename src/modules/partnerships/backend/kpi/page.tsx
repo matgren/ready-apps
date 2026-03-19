@@ -1,5 +1,6 @@
 'use client'
 import { Page, PageHeader, PageBody } from '@open-mercato/ui/backend/Page'
+import { ErrorMessage } from '@open-mercato/ui/backend/detail'
 import { useT } from '@open-mercato/shared/lib/i18n/context'
 import { DataTable } from '@open-mercato/ui/backend/DataTable'
 import { fetchCrudList } from '@open-mercato/ui/backend/utils/crud'
@@ -23,7 +24,7 @@ export default function KpiDashboardPage() {
   const t = useT()
   const scopeVersion = useOrganizationScopeVersion()
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['partnerships-kpi-dashboard', scopeVersion],
     queryFn: () => fetchCrudList<DashboardRow>('partnerships/kpi/dashboard'),
   })
@@ -36,6 +37,8 @@ export default function KpiDashboardPage() {
     { accessorKey: 'min', header: t('partnerships.kpi.min', 'MIN') },
     { accessorKey: 'status', header: t('partnerships.agency.status', 'Status') },
   ], [t])
+
+  if (isError) return <ErrorMessage label="Failed to load data" />
 
   return (
     <Page>

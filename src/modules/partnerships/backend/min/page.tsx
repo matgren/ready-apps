@@ -1,12 +1,12 @@
 'use client'
 import { Page, PageHeader, PageBody } from '@open-mercato/ui/backend/Page'
+import { ErrorMessage } from '@open-mercato/ui/backend/detail'
 import { useT } from '@open-mercato/shared/lib/i18n/context'
 import { DataTable } from '@open-mercato/ui/backend/DataTable'
 import { RowActions } from '@open-mercato/ui/backend/RowActions'
 import { fetchCrudList } from '@open-mercato/ui/backend/utils/crud'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useOrganizationScopeVersion } from '@open-mercato/shared/lib/frontend/useOrganizationScope'
-import { apiCall } from '@open-mercato/ui/backend/utils/apiCall'
 import React from 'react'
 
 type LicenseDealRow = {
@@ -26,7 +26,7 @@ export default function MinAttributionPage() {
   const queryClient = useQueryClient()
   const [page, setPage] = React.useState(1)
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['partnerships-license-deals', page, scopeVersion],
     queryFn: () => fetchCrudList<LicenseDealRow>('partnerships/min/license-deals', { page: String(page), pageSize: '50' }),
   })
@@ -39,6 +39,8 @@ export default function MinAttributionPage() {
     { accessorKey: 'partnerAgencyId', header: t('partnerships.min.attribution', 'Attributed Agency'), cell: ({ getValue }: any) => getValue() || '\u2014' },
     { accessorKey: 'attributedAt', header: t('partnerships.min.attributedAt', 'Attributed At'), cell: ({ getValue }: any) => getValue() || '\u2014' },
   ], [t])
+
+  if (isError) return <ErrorMessage label="Failed to load data" />
 
   return (
     <Page>

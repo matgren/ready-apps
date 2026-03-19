@@ -1,5 +1,6 @@
 'use client'
 import { Page, PageHeader, PageBody } from '@open-mercato/ui/backend/Page'
+import { ErrorMessage } from '@open-mercato/ui/backend/detail'
 import { useT } from '@open-mercato/shared/lib/i18n/context'
 import { DataTable } from '@open-mercato/ui/backend/DataTable'
 import { RowActions } from '@open-mercato/ui/backend/RowActions'
@@ -26,7 +27,7 @@ export default function TierDefinitionsPage() {
   const router = useRouter()
   const scopeVersion = useOrganizationScopeVersion()
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError } = useQuery({
     queryKey: ['partnerships-tiers', scopeVersion],
     queryFn: () => fetchCrudList<TierRow>('partnerships/tiers'),
   })
@@ -43,6 +44,8 @@ export default function TierDefinitionsPage() {
       cell: ({ getValue }: any) => getValue() ? '\u2713' : '\u2014',
     },
   ], [t])
+
+  if (isError) return <ErrorMessage label="Failed to load data" />
 
   return (
     <Page>
