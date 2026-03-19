@@ -1,79 +1,95 @@
-import type { NextRequest } from 'next/server'
+import { z } from 'zod'
+import { makeCrudRoute, type CrudCtx } from '@open-mercato/shared/lib/crud/factory'
 import { CrudHttpError } from '@open-mercato/shared/lib/crud/errors'
-import { createRequestContainer } from '@open-mercato/shared/lib/di/container'
+import { findOneWithDecryption } from '@open-mercato/shared/lib/encryption/find'
 import { PartnerAgency, PartnerTierAssignment } from '../../../../data/entities'
+import { tierHistoryQuerySchema } from '../../../../data/validators'
+import { E } from '@/.mercato/generated/entities.ids.generated'
+import { createPartnershipsCrudOpenApi } from '../../../openapi'
+import { createPagedListResponseSchema } from '@open-mercato/shared/lib/openapi/crud'
+import type { EntityManager } from '@mikro-orm/postgresql'
 
-export const metadata = {
+const routeMetadata = {
   GET: { requireAuth: true, requireFeatures: ['partnerships.tiers.view'] },
 }
+export const metadata = routeMetadata
 
-export async function GET(req: NextRequest, ctx: any) {
-  const tenantId = ctx.auth?.tenantId
-  const organizationId = ctx.auth?.orgId
-  if (!tenantId || !organizationId) {
-    throw new CrudHttpError(403, { error: 'Missing context' })
-  }
-
-  const agencyOrgId = ctx.params?.organizationId
-  if (!agencyOrgId) {
-    throw new CrudHttpError(400, { error: 'Missing organizationId param' })
-  }
-
-  const container = await createRequestContainer()
-  const em = container.resolve('em') as any
-
-  const agency = await em.findOne(PartnerAgency, {
-    tenantId, organizationId, agencyOrganizationId: agencyOrgId, deletedAt: null,
-  })
-  if (!agency) {
-    throw new CrudHttpError(404, { error: 'Partner agency not found' })
-  }
-
-  const url = new URL(req.url)
-  const page = parseInt(url.searchParams.get('page') || '1', 10)
-  const pageSize = Math.min(parseInt(url.searchParams.get('pageSize') || '50', 10), 100)
-
-  const [items, total] = await em.findAndCount(
-    PartnerTierAssignment,
-    { tenantId, organizationId, partnerAgencyId: agency.id },
-    {
-      limit: pageSize,
-      offset: (page - 1) * pageSize,
-      orderBy: { grantedAt: 'desc' },
-    },
-  )
-
-  return Response.json({
-    ok: true,
-    data: {
-      items: items.map((a: PartnerTierAssignment) => ({
-        id: a.id,
-        tierKey: a.tierKey,
-        grantedAt: a.grantedAt.toISOString(),
-        validUntil: a.validUntil?.toISOString() ?? null,
-        reason: a.reason ?? null,
-        assignedByUserId: a.assignedByUserId ?? null,
-        createdAt: a.createdAt.toISOString(),
-      })),
-      total,
-      page,
-      pageSize,
-      totalPages: Math.ceil(total / pageSize),
-    },
-  })
+function extractOrganizationIdFromUrl(request?: Request): string | null {
+  if (!request) return null
+  try {
+    const url = new URL(request.url)
+    // Path: /api/partnerships/agencies/<organizationId>/tier-history
+    const segments = url.pathname.split('/')
+    const agenciesIdx = segments.indexOf('agencies')
+    if (agenciesIdx >= 0 && agenciesIdx + 1 < segments.length) {
+      return segments[agenciesIdx + 1] || null
+    }
+  } catch {}
+  return null
 }
 
-export const openApi = {
-  '/api/partnerships/agencies/{organizationId}/tier-history': {
-    get: {
-      summary: 'Get tier assignment history for an agency',
-      tags: ['Partnerships'],
-      parameters: [
-        { name: 'organizationId', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
-        { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
-        { name: 'pageSize', in: 'query', schema: { type: 'integer', default: 50, maximum: 100 } },
-      ],
-      responses: { 200: { description: 'Tier history' }, 404: { description: 'Agency not found' } },
+const crud = makeCrudRoute({
+  metadata: routeMetadata,
+  orm: {
+    entity: PartnerTierAssignment,
+    idField: 'id',
+    orgField: 'organizationId',
+    tenantField: 'tenantId',
+    softDeleteField: null,
+  },
+  indexer: { entityType: E.partnerships.partner_tier_assignment },
+  list: {
+    schema: tierHistoryQuerySchema,
+    entityId: E.partnerships.partner_tier_assignment,
+    fields: [
+      'id', 'tier_key', 'granted_at', 'valid_until',
+      'reason', 'assigned_by_user_id', 'created_at', 'partner_agency_id',
+    ],
+    buildFilters: async (_query: any, ctx: CrudCtx) => {
+      const agencyOrgId = extractOrganizationIdFromUrl(ctx.request)
+      if (!agencyOrgId) {
+        throw new CrudHttpError(400, { error: 'Missing organizationId param' })
+      }
+
+      const em = ctx.container.resolve('em') as EntityManager
+      const tenantId = ctx.auth?.tenantId ?? null
+      const organizationId = ctx.selectedOrganizationId ?? ctx.auth?.orgId ?? null
+      const agency = await findOneWithDecryption(
+        em,
+        PartnerAgency as any,
+        {
+          tenantId,
+          organizationId,
+          agencyOrganizationId: agencyOrgId,
+          deletedAt: null,
+        } as any,
+        undefined,
+        { tenantId, organizationId },
+      )
+      if (!agency) {
+        throw new CrudHttpError(404, { error: 'Partner agency not found' })
+      }
+
+      return { partner_agency_id: { $eq: (agency as any).id } }
     },
   },
-}
+})
+
+export const { GET } = crud
+
+const tierHistoryItemSchema = z.object({
+  id: z.string().uuid(),
+  tier_key: z.string(),
+  granted_at: z.string(),
+  valid_until: z.string().nullable().optional(),
+  reason: z.string().nullable().optional(),
+  assigned_by_user_id: z.string().uuid().nullable().optional(),
+  created_at: z.string(),
+  partner_agency_id: z.string().uuid(),
+})
+
+export const openApi = createPartnershipsCrudOpenApi({
+  resourceName: 'Tier History',
+  querySchema: tierHistoryQuerySchema,
+  listResponseSchema: createPagedListResponseSchema(tierHistoryItemSchema),
+})
