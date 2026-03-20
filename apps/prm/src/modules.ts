@@ -1,6 +1,12 @@
 // Central place to enable modules and their source.
 // - id: module id (plural snake_case; special cases: 'auth')
 // - from: '@open-mercato/core' | '@app' | custom alias/path in future
+//
+// TODO: Full cleanup — remove unused modules (catalog, sales, payment_gateways,
+// shipping_carriers, content, planner, resources, staff, sync_akeneo, inbox_ops).
+// Requires fresh DB (migration history references their tables).
+// Tracked in App Spec §9 anti-patterns.
+
 import { parseBooleanWithDefault } from '@open-mercato/shared/lib/boolean'
 
 export type ModuleEntry = { id: string; from?: '@open-mercato/core' | '@app' | string }
@@ -37,7 +43,6 @@ export const enabledModules: ModuleEntry[] = [
   { id: 'integrations', from: '@open-mercato/core' },
   { id: 'data_sync', from: '@open-mercato/core' },
   { id: 'messages', from: '@open-mercato/core' },
-  { id: 'ai_assistant', from: '@open-mercato/ai-assistant' },
   { id: 'translations', from: '@open-mercato/core' },
   { id: 'scheduler', from: '@open-mercato/scheduler' },
   { id: 'inbox_ops', from: '@open-mercato/core' },
@@ -47,9 +52,12 @@ export const enabledModules: ModuleEntry[] = [
   { id: 'shipping_carriers', from: '@open-mercato/core' },
   { id: 'customer_accounts', from: '@open-mercato/core' },
   { id: 'portal', from: '@open-mercato/core' },
-  { id: 'example', from: '@app' },
+
+  // --- App module ---
   { id: 'partnerships', from: '@app' },
 
+  // REMOVED: { id: 'example', from: '@app' } — scaffold boilerplate
+  // REMOVED: { id: 'ai_assistant', from: '@open-mercato/ai-assistant' } — not used by PRM
 ]
 
 const enterpriseModulesEnabled = parseBooleanWithDefault(process.env.OM_ENABLE_ENTERPRISE_MODULES, false)

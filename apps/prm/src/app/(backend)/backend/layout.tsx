@@ -1,5 +1,4 @@
 import { cookies, headers } from 'next/headers'
-import Script from 'next/script'
 import type { ReactNode } from 'react'
 import { modules } from '@/.mercato/generated/modules.generated'
 import { findBackendMatch } from '@open-mercato/shared/modules/registry'
@@ -37,7 +36,6 @@ import { resolveFeatureCheckContext } from '@open-mercato/core/modules/directory
 import { profileSections, profilePathPrefixes } from '@open-mercato/core/modules/auth/lib/profile-sections'
 import { APP_VERSION } from '@open-mercato/shared/lib/version'
 import { PageInjectionBoundary } from '@open-mercato/ui/backend/injection/PageInjectionBoundary'
-import { AiAssistantIntegration, AiChatHeaderButton } from '@open-mercato/ai-assistant/frontend'
 import { CustomEntity } from '@open-mercato/core/modules/entities/data/entities'
 import { ComponentOverridesBootstrap } from '@/components/ComponentOverridesBootstrap'
 
@@ -358,7 +356,6 @@ export default async function BackendLayout({ children, params }: { children: Re
 
   const rightHeaderContent = (
     <>
-      <AiChatHeaderButton />
       <GlobalSearchDialog embeddingConfigured={embeddingConfigured} missingConfigMessage={missingConfigMessage} />
       <div className="hidden lg:contents">
         <OrganizationSwitcher />
@@ -387,13 +384,8 @@ export default async function BackendLayout({ children, params }: { children: Re
 
   return (
     <>
-      <Script async src="https://w.appzi.io/w.js?token=TtIV6" strategy="afterInteractive" />
       <I18nProvider locale={locale} dict={dict}>
         <ComponentOverridesBootstrap>
-          <AiAssistantIntegration
-            tenantId={auth?.tenantId ?? null}
-            organizationId={auth?.orgId ?? null}
-          >
             <AppShell
               key={path}
               productName={productName}
@@ -417,7 +409,6 @@ export default async function BackendLayout({ children, params }: { children: Re
                 {children}
               </PageInjectionBoundary>
             </AppShell>
-          </AiAssistantIntegration>
         </ComponentOverridesBootstrap>
       </I18nProvider>
     </>

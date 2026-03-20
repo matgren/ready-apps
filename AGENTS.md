@@ -202,12 +202,32 @@ This is a prerequisite, not a domain commit — it does not count toward the pha
     - Tests MUST be self-contained: create fixtures in setup, clean up in teardown
     - Tests MUST NOT rely on seeded/demo data
     - Run: yarn test:integration:ephemeral (spins up fresh app + DB)
+    - See §3.1 below for integration test infrastructure rules
 9.  Check acceptance criteria from the spec
 10. Invoke superpowers:verification-before-completion before claiming done
 11. Commit
 ```
 
 Use `superpowers:systematic-debugging` if any step fails. Use `superpowers:dispatching-parallel-agents` when implementing multiple independent commits within the same phase.
+
+### §3.1 Integration Test Infrastructure
+
+Do NOT create custom test helpers, fixture utilities, or playwright configs from scratch. The OM platform provides everything via canary packages and soon on stable develop and main branch.
+
+**Playwright config** — every app MUST have `.ai/qa/tests/playwright.config.ts`. The CLI hardcodes this path. Copy the pattern from OM monorepo but use canary imports:
+- `discoverIntegrationSpecFiles` from `@open-mercato/cli/lib/testing/integration-discovery`
+- Use `__dirname` directly (Playwright transpiles TS to CJS — no ESM hacks needed)
+- If `yarn test:integration:ephemeral` starts the server but never runs tests, this file is missing
+
+**Test helpers** — import from `@open-mercato/core/helpers/integration/*`:
+- `api` — `getAuthToken`, `apiRequest`
+- `generalFixtures` — `readJsonSafe`, `expectId`, `getTokenContext`, `deleteGeneralEntityIfExists`
+- `authFixtures` — `createUserFixture`, `deleteUserIfExists`
+- `crmFixtures` — `createCompanyFixture`, `createDealFixture`, `deleteEntityIfExists`
+
+**Test discovery** — place tests in `src/modules/<module>/__integration__/TC-*.spec.ts`. The CLI discovers `__integration__` directories automatically.
+
+**Never** write custom `apiRequest`, `getAuthToken`, or fixture helpers. If a helper doesn't exist in the canary build, contribute it upstream.
 
 ### Commit Message Format
 

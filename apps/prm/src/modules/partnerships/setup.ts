@@ -376,27 +376,47 @@ const DEMO_AGENCIES: DemoAgency[] = [
 // PRM roles
 // ---------------------------------------------------------------------------
 
+// Baseline features every backend user needs to not get 403 on dashboard load.
+// These come from OM core modules' employee defaults — without them, the backend
+// shell fails to render (dashboard, messages, attachments, etc. all check features).
+const BACKEND_BASELINE_FEATURES = [
+  'dashboards.view',
+  'dashboards.configure',
+  'analytics.view',
+  'messages.*',
+  'attachments.view',
+  'audit_logs.view_self',
+  'audit_logs.undo_self',
+  'dictionaries.view',
+  'perspectives.use',
+  'security.profile.manage',
+]
+
 const PRM_ROLE_FEATURES: Record<string, string[]> = {
   partner_admin: [
+    ...BACKEND_BASELINE_FEATURES,
     'customers.*',
     'partnerships.manage',
     'partnerships.widgets.onboarding-checklist',
   ],
   partner_member: [
+    ...BACKEND_BASELINE_FEATURES,
     'customers.*',
     'partnerships.widgets.wip-count',
     'partnerships.widgets.onboarding-checklist',
   ],
   partner_contributor: [
+    ...BACKEND_BASELINE_FEATURES,
     'partnerships.widgets.onboarding-checklist',
   ],
   partnership_manager: [
-    'customers.people.view',
-    'customers.companies.view',
-    'customers.deals.view',
-    'customers.pipelines.view',
+    ...BACKEND_BASELINE_FEATURES,
+    'customers.*',
     'partnerships.manage',
     'partnerships.widgets.wip-count',
+    // NOTE: PM gets full customers.* because OM RBAC doesn't support per-org
+    // feature scoping. Cross-org read-only is a Phase 2+ enhancement.
+    // For Phase 1, PM has full CRM access — procedural restriction, not technical.
   ],
 }
 
@@ -722,33 +742,10 @@ export const setup: ModuleSetupConfig = {
   // PRM partners are User roles (not CustomerUser/portal roles).
   // DefaultRoleFeatures only types superadmin/admin/employee, but the platform
   // merges any key present here into role ACLs. Cast to satisfy the type.
-  defaultRoleFeatures: {
-    partner_admin: [
-      'customers.*',
-      'partnerships.manage',
-      'partnerships.widgets.onboarding-checklist',
-      'dashboards.view',
-    ],
-    partner_member: [
-      'customers.*',
-      'partnerships.widgets.wip-count',
-      'partnerships.widgets.onboarding-checklist',
-      'dashboards.view',
-    ],
-    partner_contributor: [
-      'partnerships.widgets.onboarding-checklist',
-      'dashboards.view',
-    ],
-    partnership_manager: [
-      'customers.people.view',
-      'customers.companies.view',
-      'customers.deals.view',
-      'customers.pipelines.view',
-      'partnerships.manage',
-      'partnerships.widgets.wip-count',
-      'dashboards.view',
-    ],
-  } as Record<string, string[]>,
+  // NOTE: Until upstream PR #1040 merges, custom role keys here are IGNORED by
+  // OM core. The actual ACL seeding happens in seedPrmRoles above (workaround).
+  // Keep these in sync with PRM_ROLE_FEATURES.
+  defaultRoleFeatures: PRM_ROLE_FEATURES as Record<string, string[]>,
 }
 
 export default setup
