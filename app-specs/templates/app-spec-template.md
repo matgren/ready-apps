@@ -63,6 +63,7 @@
 > - Business rules: permissions hierarchy, data ownership, cross-org visibility
 > - Domain invariants: what must always be true
 > - Value calculations: how scores, ratings, or statuses are derived
+> - Entity field definitions with types, constraints, and relations
 
 [Document your domain model here. Use subsections as needed.]
 
@@ -73,6 +74,19 @@
 - [ ] If there are KPIs/scores: complete formulas with input source, period, anti-gaming rules
 - [ ] Access control rules documented — who sees/does what, cross-org visibility
 - [ ] Data ownership per entity — who creates, who reads, who updates, system vs user
+- [ ] **Entity fields defined precisely** — every domain entity has its fields listed with: key, type (text/select/dictionary/relation/boolean/integer/float), multi-value or not, and required-for-creation flag. Vague descriptions like "agency profile data" or "case study information" are not acceptable — implementation will guess wrong.
+
+> **Weak vs precise field definitions:**
+>
+> | Weak (will cause bugs) | Precise (implementation-ready) |
+> |----------------------|-------------------------------|
+> | "Case study has industry and tech info" | `industry` (dictionary, multi, required), `technologies` (dictionary, multi, required), `project_type` (select) |
+> | "Company profile with services" | `services` (dictionary, multi), `industries` (dictionary, multi), `tech_capabilities` (dictionary, multi), `team_size_bucket` (select) |
+> | "Budget information" | `budget_known` (boolean), `budget_bucket` (select, required), `budget_min_usd` (float), `budget_max_usd` (float) |
+> | "Track deal progress" | `wip_registered_at` (datetime, system-set, immutable once stamped, UTC) |
+> | "License deal record" | `license_identifier` (text, required), `attributed_agency_id` (relation, required), `type` (select: enterprise), `status` (select: won), `is_renewal` (boolean), `closed_at` (datetime), `industry_tag` (dictionary) — unique key: `(license_identifier, year)` |
+>
+> Rule of thumb: if a developer reading the field definition has to ask "what type is this?" or "is this required?" — the definition is too vague.
 
 ---
 
