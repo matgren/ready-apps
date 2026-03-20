@@ -186,7 +186,7 @@ MIN(org, year) = COUNT(DISTINCT license_deals)
 - Contributor sees almost nothing — only WIC score and tier level
 
 **Cross-org visibility:**
-- PM has Program Scope — sees CRM data of ALL agencies (read-only) via org switcher
+- PM has Program Scope — sees CRM data of ALL agencies via org switcher. Technically full write (`customers.*`) per OM RBAC design (tenant-wide features, orgs = data partition). Cross-org read-only is a procedural convention, not enforced.
 - Agency users see ONLY their own organization's data
 - KPI data (WIC/WIP/MIN) visible to agency users for their own org only
 - PM sees KPI dashboard across all agencies
@@ -810,7 +810,7 @@ Success: Every file follows OM conventions (auto-discovery paths, UMES patterns,
 - [ ] Every Deal has non-null `organization_id` matching BD's org at creation time
 - [ ] Company records scoped to BD's org — no cross-org CRM data leaks
 - [ ] BD cannot create or modify `wip_registered_at` directly — only the API interceptor writes it
-- [ ] PM's org switcher reads are read-only — no write operations through switched-org context
+- [ ] ~~PM's org switcher reads are read-only~~ — DEFERRED: OM RBAC is tenant-wide by design (see Decision log). Phase 1: PM has `customers.*` everywhere, cross-org read-only is procedural. Enforced read-only requires per-org feature scoping (not planned upstream).
 - [ ] Case study requires minimum fields: `title`, at least one `industry`, at least one `technologies`, `budget_bucket`, `duration_bucket` — partial saves rejected at entity level
 - [ ] WIP live-query widget scopes by authenticated user's org (or PM's switched org) — no unscoped cross-org counts
 - [ ] Onboarding checklist widget visible only to users who have incomplete onboarding steps — not shown to PM, not shown after completion
@@ -819,7 +819,7 @@ Success: Every file follows OM conventions (auto-discovery paths, UMES patterns,
 **Business criteria** `Mat`:
 - [ ] PM can onboard an agency (share link → Admin creates account → fills profile → adds case study → invites BD)
 - [ ] BD can log a deal and move it to SQL → WIP count appears on dashboard immediately
-- [ ] PM can switch between agencies and see each agency's CRM data (read-only) and WIP count
+- [ ] PM can switch between agencies and see each agency's CRM data and WIP count (technically full write per OM RBAC design — procedural read-only convention)
 - [ ] Admin logs in for the first time and sees a checklist telling them exactly what to do: fill profile, add case study, invite BD, invite Contributor
 - [ ] BD logs in for the first time and sees a checklist: add prospect company, create first deal
 - [ ] Checklist items link to the right page. Completed items show checkmark. Widget disappears when all done.
@@ -1213,6 +1213,19 @@ Vernon raised these findings. Mat disagrees with good business reason:
 ---
 
 ## Changelog
+
+### 2026-03-20 (update 7) — Module Architecture, Anti-patterns, RBAC Clarifications
+
+- Added §4.5 Module Architecture: 5 OM core modules, 0 official modules, 1 app module (partnerships)
+- Added anti-patterns: scaffold boilerplate in modules.ts, unused template modules
+- Added default user stories US-0.1 (demo users) and US-0.2 (seed examples) to template
+- Updated US-7.2/7.3/7.4 numbering to match new template default stories
+- Clarified PM cross-org access: `customers.*` everywhere per OM RBAC design (tenant-wide features, orgs = data partition). Cross-org read-only is procedural convention, not enforced.
+- Deferred Phase 1 acceptance criterion "PM org switcher reads are read-only" — not enforceable per OM architecture
+- Added Open Questions #10 (PM per-org scoping — decided: by design) and #11 (defaultRoleFeatures custom roles — PR #1040)
+- Added upstream-flags: defaultRoleFeatures PR #1040, per-org scoping (by design, no PR)
+- Added scaffold cleanup convention to AGENTS.md §3 Pre-Implementation Cleanup
+- Code: removed ai_assistant + example from modules.ts, cleaned layout.tsx, added BACKEND_BASELINE_FEATURES to setup.ts
 
 ### 2026-03-20 (update 6) — Onboarding Checklist Widget
 
