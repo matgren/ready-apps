@@ -209,13 +209,30 @@ MIN(org, year) = COUNT(DISTINCT license_deals)
 - BD must: add first prospect company, create first deal, move deal to "Contacted"
 - Both are sub-workflows tracked by the system
 
-**Case Study minimum fields (required at creation):**
-- At least one industry tag (from dictionaries)
-- At least one tech stack tag (from dictionaries)
-- Budget range (enum: small/medium/large/enterprise)
-- Duration (months)
-- Project description (free text)
-These are enforced at entity level in setup.ts seed configuration. Required for RFP comparison quality in Phase 3.
+**Company Profile and Case Study field definitions:**
+
+Source: SPEC-053a (B2B PRM Matching Data). These are the canonical field definitions — our setup.ts seeds them exactly as specified.
+
+**Company Profile** (`customers:customer_company_profile`) — 13 fields:
+- `positioning_summary` (multiline), `services` (dictionary, multi), `industries` (dictionary, multi), `tech_capabilities` (dictionary, multi)
+- `delivery_models` (select, multi), `compliance_tags` (dictionary, multi)
+- `team_size_bucket` (select), `min_project_size_bucket` (select), `hourly_rate_bucket` (select, hidden)
+- `regions` (dictionary, multi, hidden), `languages` (dictionary, multi, hidden)
+- `clutch_url` (text, hidden), `profile_confidence` (integer, hidden)
+
+**Case Study** (`user:case_study`) — 19 fields:
+- `title` (text), `summary` (multiline), `provider_company` (relation to company), `provider_company_name` (text)
+- `technologies` (dictionary, multi), `industry` (dictionary, multi), `project_type` (select)
+- `duration_bucket` (select), `duration_weeks` (integer), `budget_known` (boolean), `budget_bucket` (select)
+- `budget_min_usd` (float), `budget_max_usd` (float), `delivery_models` (select, multi)
+- `compliance_tags` (dictionary, multi), `outcome_kpis` (multiline), `source_url` (text)
+- `related_deals` (relation to deals), `confidence_score` (integer), `is_public_reference` (boolean), `completed_year` (integer)
+
+**Dictionaries** (seeded in setup.ts): `services`, `industries`, `tech_capabilities`, `compliance_tags`, `regions`, `languages`
+
+**Minimum required for creation:** `title`, at least one `industry`, at least one `technologies`, `budget_bucket`, `duration_bucket`. Other fields optional but improve RFP matching quality.
+
+See SPEC-053a for full API contracts, dictionary taxonomy, and custom field definition payloads.
 
 #### Domain Model Checklist
 - [x] Domain entities identified — PartnerAgency, tiers, KPIs, case studies, RFP, license deals, ContributionUnit, TierChangeProposal, TierEvaluationState
@@ -742,7 +759,7 @@ Success: Every file follows OM conventions (auto-discovery paths, UMES patterns,
 - [ ] Company records scoped to BD's org — no cross-org CRM data leaks
 - [ ] BD cannot create or modify `wip_registered_at` directly — only the API interceptor writes it
 - [ ] PM's org switcher reads are read-only — no write operations through switched-org context
-- [ ] Case study requires all 5 minimum fields (industry tag, tech stack tag, budget range, duration, description) — partial saves rejected at entity level
+- [ ] Case study requires minimum fields per SPEC-053a: `title`, at least one `industry`, at least one `technologies`, `budget_bucket`, `duration_bucket` — partial saves rejected at entity level
 - [ ] WIP live-query widget scopes by authenticated user's org (or PM's switched org) — no unscoped cross-org counts
 
 **Business criteria** `Mat`:
@@ -1021,7 +1038,9 @@ Each phase delivers a complete, usable increment. No phase leaves a workflow hal
 | PartnerRfpCampaign | partnerships module | SPEC-053b (RFP) |
 | PartnerRfpResponse | partnerships module | SPEC-053b (RFP) |
 | PartnerLicenseDeal (MIN source) | partnerships module | SPEC-053b (MIN) |
-| PartnerCaseStudy | entities module (custom entity) | SPEC-053b (RFP matching) |
+| PartnerCaseStudy (`user:case_study`) | entities module (custom entity) | SPEC-053a (field definitions), SPEC-053b (RFP matching) |
+| Company Profile fields | entities module (custom fields on `customers:customer_company_profile`) | SPEC-053a (field definitions) |
+| Dictionaries (services, industries, tech_capabilities, etc.) | dictionaries module (seeded) | SPEC-053a (taxonomy definitions) |
 | Pipeline stages (PRM-specific) | customers module (seeded) | SPEC-053b (WIP) |
 
 #### Checklist
@@ -1030,6 +1049,7 @@ Each phase delivers a complete, usable increment. No phase leaves a workflow hal
 - [x] Terminology consistent — glossary §1.3 is source of truth
 - [x] Shared entities owned by one spec — partnerships module owns all PRM entities
 - [x] Every conflict resolved — RFP uses workflows module
+- [x] SPEC-053a field definitions adopted — company profile (13 fields) + case study (19 fields) + 6 dictionaries
 
 ---
 
