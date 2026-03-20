@@ -50,11 +50,13 @@ Root AGENTS.md has the Task Router table — it tells you which guide to read fo
 | Currencies, exchange rates | `$OM_REPO/packages/core/src/modules/currencies/AGENTS.md` |
 | create-mercato-app template | `$OM_REPO/packages/create-app/AGENTS.md` + `template/AGENTS.md` |
 | AI assistant, MCP tools | `$OM_REPO/packages/ai-assistant/AGENTS.md` |
+| n8n automation, external orchestration | `open-mercato/n8n-nodes` repo (check via `gh` CLI) |
+| Official marketplace modules | `open-mercato/official-modules` repo (check via `gh` CLI) |
 
 **Step 3: Specs (when checking requirements or conflicts)**
 ```
 $OM_REPO/.ai/specs/                     — OSS specs
-$OM_REPO/.ai/specs/enterprise/          — Enterprise specs
+$OM_REPO/.ai/specs/enterprise/          — Enterprise specs (feature-toggled, never mixed into core)
 $OM_REPO/.ai/specs/AGENTS.md            — Spec writing rules
 ```
 
@@ -64,6 +66,19 @@ $OM_REPO/packages/core/src/modules/     — All core module source
 $OM_REPO/packages/*/src/                — Package implementations
 $OM_REPO/.github/workflows/             — CI pipelines
 ```
+
+**Step 5: External OM repos (when checking ecosystem capabilities)**
+
+| Repo | What it is | When to check |
+|------|-----------|---------------|
+| `open-mercato/official-modules` | Marketplace modules as separate npm packages. Modules that ship outside core. | When investigating if a capability exists as an official module rather than in core. `gh repo view open-mercato/official-modules` or clone to check. |
+| `open-mercato/n8n-nodes` | n8n community nodes for Open Mercato. Generic REST node that speaks OM API. | When investigating automation, external orchestration, or LLM integration patterns. n8n is the recommended automation + AI layer for apps that need scheduled/triggered external processing. |
+| `open-mercato/open-mercato` `.ai/specs/enterprise/` | Enterprise overlay specs. Feature-toggled capabilities that extend core modules. | When checking if a "missing" feature is actually enterprise-only. Don't build in an app what enterprise already provides. |
+
+**Loading rules for external repos:**
+- Use `gh` CLI to browse without cloning: `gh api repos/open-mercato/<repo>/contents/<path>`
+- Only clone if you need to search code. Keep external repos outside the OM_REPO path.
+- Enterprise specs are in the main repo but gated — check them when a feature seems like it should exist but doesn't in OSS.
 
 ### Loading Rules
 
@@ -137,15 +152,20 @@ Don't say "checked, nothing there." Show what you found.
 - `.npmignore`, `exports`, esbuild — excluded by design?
 - `.github/workflows/` — already tested in CI?
 - Separate packages — should this be a `packages/` workspace, not core code?
+- `open-mercato/official-modules` — does it exist as an official marketplace module? (check if core doesn't have it — official modules extend core, not replace it)
+- `open-mercato/n8n-nodes` — can n8n orchestrate this instead of building it in OM?
+- `.ai/specs/enterprise/` — is this an enterprise-only feature? Don't rebuild what enterprise provides.
 
 ### 4. Minimal solution
 
-1. **Nothing** — already solved
+1. **Nothing** — already solved in core
 2. **Config** — toggle module, env var, build flag
-3. **Move / re-export** — code exists, wrong path
-4. **Extend via UMES** — widget injection, interceptors, enrichers, extensions, DI overrides
-5. **Separate package** — if it's a provider/integration, it's a `packages/` workspace
-6. **New module code** — only if 1-5 failed. Explain why.
+3. **Official module** — exists in `open-mercato/official-modules`? Install it.
+4. **Move / re-export** — code exists, wrong path
+5. **Extend via UMES** — widget injection, interceptors, enrichers, extensions, DI overrides
+6. **n8n workflow** — if it's external orchestration, LLM calls, or scheduled processing → n8n with `open-mercato/n8n-nodes`. Keep LLM/external API work out of OM.
+7. **Separate package** — if it's a provider/integration, it's a `packages/` workspace
+8. **New module code** — only if 1-7 failed. Explain why.
 
 ### 5. Estimate gaps in atomic commits (Ralph loop)
 
