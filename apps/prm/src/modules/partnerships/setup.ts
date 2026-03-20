@@ -9,7 +9,10 @@ import {
   CustomerPipelineStage,
 } from '@open-mercato/core/modules/customers/data/entities'
 import { Dictionary, DictionaryEntry } from '@open-mercato/core/modules/dictionaries/data/entities'
+import { User, Role, UserRole } from '@open-mercato/core/modules/auth/data/entities'
 import { ensureCustomFieldDefinitions } from '@open-mercato/core/modules/entities/lib/field-definitions'
+import { hashForLookup } from '@open-mercato/shared/lib/encryption/aes'
+import { hash } from 'bcryptjs'
 import { DefaultDataEngine } from '@open-mercato/shared/lib/data/engine'
 import { E } from '#generated/entities.ids.generated'
 import {
@@ -370,6 +373,95 @@ const DEMO_AGENCIES: DemoAgency[] = [
 ]
 
 // ---------------------------------------------------------------------------
+// PRM roles
+// ---------------------------------------------------------------------------
+
+const PRM_ROLES = ['partner_admin', 'partner_member', 'partner_contributor', 'partnership_manager']
+
+async function seedPrmRoles(
+  em: import('@mikro-orm/postgresql').EntityManager,
+  scope: SeedScope
+): Promise<void> {
+  for (const roleName of PRM_ROLES) {
+    const existing = await em.findOne(Role, {
+      name: roleName,
+      tenantId: scope.tenantId,
+      deletedAt: null,
+    })
+    if (!existing) {
+      em.persist(em.create(Role, {
+        name: roleName,
+        tenantId: scope.tenantId,
+        createdAt: new Date(),
+      }))
+    }
+  }
+  await em.flush()
+}
+
+// ---------------------------------------------------------------------------
+// Demo users
+// ---------------------------------------------------------------------------
+
+const DEMO_PASSWORD = 'Demo123!'
+const BCRYPT_COST = 10
+
+type DemoUser = {
+  email: string
+  name: string
+  roleName: string
+}
+
+const DEMO_USERS: DemoUser[] = [
+  { email: 'partner-admin@demo.local', name: 'Alice Partner (Admin)', roleName: 'partner_admin' },
+  { email: 'partner-member@demo.local', name: 'Bob Partner (Member)', roleName: 'partner_member' },
+  { email: 'partner-contributor@demo.local', name: 'Carol Partner (Contributor)', roleName: 'partner_contributor' },
+  { email: 'partnership-manager@demo.local', name: 'Dave Manager', roleName: 'partnership_manager' },
+]
+
+async function seedDemoUsers(
+  em: import('@mikro-orm/postgresql').EntityManager,
+  scope: SeedScope
+): Promise<void> {
+  const passwordHash = await hash(DEMO_PASSWORD, BCRYPT_COST)
+
+  for (const demoUser of DEMO_USERS) {
+    const emailHash = hashForLookup(demoUser.email)
+
+    // Idempotency: skip if user already exists
+    const existing = await em.findOne(User, { emailHash, deletedAt: null })
+    if (existing) continue
+
+    const user = em.create(User, {
+      email: demoUser.email,
+      emailHash,
+      passwordHash,
+      name: demoUser.name,
+      isConfirmed: true,
+      organizationId: scope.organizationId,
+      tenantId: scope.tenantId,
+      createdAt: new Date(),
+    })
+    em.persist(user)
+
+    // Assign role
+    const role = await em.findOne(Role, {
+      name: demoUser.roleName,
+      tenantId: scope.tenantId,
+      deletedAt: null,
+    })
+    if (role) {
+      em.persist(em.create(UserRole, { user, role, createdAt: new Date() }))
+    } else {
+      console.warn(`[partnerships.seedExamples] Role "${demoUser.roleName}" not found — user "${demoUser.email}" created without role`)
+    }
+  }
+
+  await em.flush()
+  console.log(`[partnerships.seedExamples] Demo users seeded (password: ${DEMO_PASSWORD})`)
+}
+
+// ---------------------------------------------------------------------------
 // seedExamples implementation
 // ---------------------------------------------------------------------------
 
@@ -408,11 +500,8 @@ async function seedPrmExamples(
   const dataEngine = new DefaultDataEngine(em, container)
   const customFieldAssignments: Array<() => Promise<void>> = []
 
-  // TODO: Multi-org and user seeding requires platform auth module support
-  // (creating organizations, users with bcrypt passwords, and role assignments).
-  // The current seedExamples context provides a single org — seeding multiple
-  // agency orgs with distinct users is deferred until platform support is available.
-  // For now, all demo companies/deals/case studies are created within the ctx org.
+  // Seed demo users with PRM roles
+  await seedDemoUsers(em, scope)
 
   const companyEntities = new Map<string, CustomerEntity>()
   const companyProfiles = new Map<string, { id: string }>()
@@ -583,6 +672,7 @@ export const setup: ModuleSetupConfig = {
     await seedPrmPipeline(ctx.em, scope)
     await seedCustomFields(ctx.em, scope)
     await seedDictionaries(ctx.em, scope)
+    await seedPrmRoles(ctx.em, scope)
   },
 
   seedExamples: async (ctx) => {
