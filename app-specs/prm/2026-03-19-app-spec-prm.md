@@ -577,6 +577,12 @@ Success: Contributor receives email, sets password, sees WIC score dashboard sco
 **US-1.6** As BD, I add my first prospect and create a deal so that my onboarding is complete.
 Success: Company + Deal created in CRM, onboarding workflow marks BD step as done.
 
+**US-1.7** As Agency Admin, I see a checklist on my dashboard showing which onboarding steps I've completed and which remain so that I know what to do next without asking PM.
+Success: Dashboard widget shows checklist: fill company profile (done/pending), add case study (done/pending), invite BD (done/pending), invite Contributor (done/pending). Each item links to the relevant page. Completed items show checkmark. Widget disappears when all items are done.
+
+**US-1.8** As BD, I see a checklist on my dashboard showing my onboarding steps so that I know I need to create my first deal.
+Success: Dashboard widget shows: add prospect company (done/pending), create first deal (done/pending). Links to CRM. Disappears when done.
+
 ### WF2: Pipeline Building (WIP)
 
 **US-2.1** As BD, I create a deal in CRM on a prospect company so that it enters our pipeline.
@@ -687,6 +693,7 @@ Success: Every file follows OM conventions (auto-discovery paths, UMES patterns,
 | US-1.4 | auth module | 0 | — | Same mechanism as self-onboard / invitation |
 | US-1.5 | auth module | 0 | — | Same mechanism |
 | US-1.6 | customers module CRM | 0 | — | Zero code — CRM exists |
+| US-1.7 + US-1.8 | partnerships widget injection | 1 | `app` | Onboarding checklist widget. Role-conditional (Admin sees 4 items, BD sees 2). Completion derived from live data queries (profile, case study, users, deals). Disappears when done. |
 | US-2.1 | customers module CRM | 0 | — | Zero code |
 | US-2.2 | UMES API interceptor + entities custom field | 1 | `app` | Interceptor stamps `wip_registered_at` on deal at SQL stage. Custom field seeded in setup.ts (bundled with US-1.2). Interceptor = 1 commit. |
 | US-2.3 | partnerships widget injection | 1 | `app` | KPI dashboard widget. Live query: `COUNT WHERE wip_registered_at IN month`. No batch worker needed. |
@@ -710,7 +717,7 @@ Success: Every file follows OM conventions (auto-discovery paths, UMES patterns,
 | US-7.1 | create-mercato-app + SPEC-068 | 0 | — | SPEC-068 provides the `--example` flag. PRM is the content, not the mechanism. |
 | US-7.2 | setup.ts `seedExamples` | 1 per phase | `app` | Each phase adds demo data to `seedExamples`: Ph1 = agencies+deals, Ph2 = WIC+tiers+MIN, Ph3 = RFP campaign. Bundled with phase commits — not a separate commit. |
 | US-7.3 | code conventions + README | 0 | `app` | No separate commit — conventions followed throughout. Module README written once at Phase 1. |
-| **Total** | | **15 (Ph1-3) + 6-8 (Ph4) = 21-23** | | seedExamples bundled per phase, not additional commits |
+| **Total** | | **16 (Ph1-3) + 6-8 (Ph4) = 22-24** | | seedExamples bundled per phase, not additional commits |
 
 #### Checklist
 - [x] Every story mapped to specific OM module/mechanism with atomic commit estimate `Mat`
@@ -743,9 +750,10 @@ Success: Every file follows OM conventions (auto-discovery paths, UMES patterns,
 | US-2.1 | Deal creation (CRM ready) | 0 |
 | US-2.2 | WIP stamp interceptor (`wip_registered_at` on SQL stage) + pipeline stages + custom field (seeded in setup.ts) | 1 |
 | US-2.3 | WIP count widget on PM dashboard (live query: `COUNT WHERE wip_registered_at IN month`) | 1 |
+| US-1.7 + US-1.8 | Onboarding checklist widget — Admin sees profile/case study/invite steps, BD sees prospect/deal steps. Disappears when done. | 1 |
 | US-6.1 | PM org switcher / Program Scope (cross-agency visibility) | 0 |
 
-**Total: 3 atomic commits** (setup.ts seed + WIP interceptor + KPI dashboard widget)
+**Total: 4 atomic commits** (setup.ts seed + WIP interceptor + KPI dashboard widget + onboarding checklist widget)
 **Workaround:** Invitation flow replaced by PM sharing signup link manually. Good enough for 15 agencies.
 
 **Acceptance criteria:** `Vernon writes, Mat challenges`
@@ -761,11 +769,16 @@ Success: Every file follows OM conventions (auto-discovery paths, UMES patterns,
 - [ ] PM's org switcher reads are read-only — no write operations through switched-org context
 - [ ] Case study requires minimum fields: `title`, at least one `industry`, at least one `technologies`, `budget_bucket`, `duration_bucket` — partial saves rejected at entity level
 - [ ] WIP live-query widget scopes by authenticated user's org (or PM's switched org) — no unscoped cross-org counts
+- [ ] Onboarding checklist widget visible only to users who have incomplete onboarding steps — not shown to PM, not shown after completion
+- [ ] Checklist completion state derived from live data (profile fields non-empty, case study exists, users with BD/Contributor role exist in org, deal exists) — not from a separate flag that can drift
 
 **Business criteria** `Mat`:
 - [ ] PM can onboard an agency (share link → Admin creates account → fills profile → adds case study → invites BD)
 - [ ] BD can log a deal and move it to SQL → WIP count appears on dashboard immediately
 - [ ] PM can switch between agencies and see each agency's CRM data (read-only) and WIP count
+- [ ] Admin logs in for the first time and sees a checklist telling them exactly what to do: fill profile, add case study, invite BD, invite Contributor
+- [ ] BD logs in for the first time and sees a checklist: add prospect company, create first deal
+- [ ] Checklist items link to the right page. Completed items show checkmark. Widget disappears when all done.
 
 **Value delivered:**
 - **Business value:** Pipeline visibility. PM knows which agencies are generating prospects. Without this, PM has zero data on agency activity.
@@ -776,7 +789,7 @@ Success: Every file follows OM conventions (auto-discovery paths, UMES patterns,
 - CRM as core tool — agencies use `customers` module backend, not custom CRUD
 - Custom fields + custom entities via `entities` module — company profile, case studies
 - UMES API interceptor — `wip_registered_at` stamp on deal stage change
-- Widget injection — KPI dashboard widget
+- Widget injection — KPI dashboard widget + onboarding checklist widget (role-conditional, data-driven)
 - Org switcher for cross-org visibility — PM sees all agencies read-only
 - Pipeline stages seeded via setup.ts — PRM-specific deal stages
 - **Copy test:** Every piece of Phase 1 code shows "this is how you extend OM with RBAC + CRM + UMES"
@@ -994,7 +1007,7 @@ All LLM work lives in n8n. PRM app has zero LLM dependencies. One integration po
 ### Rollout Summary
 
 ```
-Phase 1: Core Loop              3 commits    WF1 (partial) + WF2 (stamp-based WIP)
+Phase 1: Core Loop              4 commits    WF1 (partial + onboarding checklist) + WF2 (stamp-based WIP)
 Phase 2: Governance + KPI + MIN 8 commits    WF5 + WF3 (manual) + MIN attribution + cron
 Phase 3: RFP (manual scoring)   4 commits    WF4 (workflows, comparison page)
 Phase 4: n8n Automation + AI    6-8 commits  WIC (n8n) + RFP scoring (n8n) + WF1 (full)
@@ -1149,6 +1162,16 @@ Vernon raised these findings. Mat disagrees with good business reason:
 ---
 
 ## Changelog
+
+### 2026-03-20 (update 6) — Onboarding Checklist Widget
+
+- Added US-1.7 (Admin checklist) and US-1.8 (BD checklist) to WF1 user stories
+- Added onboarding checklist widget to Phase 1 (+1 commit, Phase 1 now 4 commits)
+- Checklist is role-conditional (Admin 4 items, BD 2 items), data-driven (live queries, no separate flag), auto-dismissing
+- Added domain criteria: widget visibility scoped to incomplete users, completion state from live data
+- Added business criteria: first-login guided experience for Admin and BD
+- Updated gap analysis table and rollout summary totals (16 Ph1-3, 22-24 total)
+- Updated commits-WF1.md: new Commit 5 (checklist widget), renumbered Commits 6-8
 
 ### 2026-03-20 (update 5) — Vaughn Vernon Challenger Reviews
 
