@@ -254,7 +254,7 @@ API contracts use standard OM entities module: `POST /api/entities/definitions.b
 
 | Persona | Role key | Identity | Org scope | Sees | Does |
 |---------|----------|----------|-----------|------|------|
-| Partnership Manager | `partnership_manager` | User | Program Scope (all orgs) | All CRM read-only, all KPIs, all tiers, RFP campaigns, cross-org company search | Invites agencies, creates RFP, evaluates responses, approves tiers, attributes MIN via cross-org company search |
+| Partnership Manager | `partnership_manager` | User | Program Scope (all orgs) | Agency CRM data read-only (cross-org), own org (Open Mercato Backoffice) full write, all KPIs, all tiers, RFP campaigns, cross-org company search | Invites agencies, creates RFP, evaluates responses, approves tiers, attributes MIN via cross-org company search. Full CRM write in own org only. |
 | Agency Admin | `partner_admin` | User | own org only | CRM (full write, including BD records), KPI (WIC/WIP/MIN), tier, team management, case studies, RFP responses | Fills profile, manages case studies, invites BD/Contributor, creates deals, responds to RFP |
 | Business Developer | `partner_member` | User | own org only | CRM (own records write, others read), KPI (WIC/WIP/MIN), tier, RFP responses | Creates deals, edits profile + case studies, responds to RFP. NO user management. |
 | Contributor | `partner_contributor` | User | own org only | WIC score, tier level only | Views WIC, configures own profile (e.g. GH username). Nothing else. |
@@ -272,6 +272,7 @@ API contracts use standard OM entities module: `POST /api/entities/definitions.b
 - _Why not portal for Contributor?_ — Contributor is minimal, but still a User with restricted role. One identity system, not two. Simplicity > convenience.
 - _Could CustomerUser enable self-registration?_ — Yes, but at the cost of dual accounts or a promotion flow. Not worth the complexity for the example app.
 - _Why Developer is not in the role table?_ — Developer doesn't use the running app. They bootstrap and read code. Their "user stories" are about distribution (SPEC-068), not about app workflows.
+- _PM cross-org access model_ — PM should have full CRM write in own org (Open Mercato Backoffice) and read-only on agency orgs. OM RBAC does not support per-org feature scoping — `RoleAcl.featuresJson` applies to all visible orgs equally. **Phase 1 workaround:** PM gets `customers.*` (full write everywhere). Cross-org read-only is procedural, not enforced. **Phase 2+ fix:** requires per-org feature override in OM core (upstream enhancement). See Open Questions.
 
 #### Checklist
 - [x] Every persona has ONE identity type — all User, zero CustomerUser `Mat`
@@ -1172,6 +1173,8 @@ Each phase delivers a complete, usable increment. No phase leaves a workflow hal
 | 7 | RFP matching criteria | Phase 3: manual (PM reads responses, decides). Phase 4: AI-assisted via n8n (LLM scores tech fit /5 + domain fit /5 per lead-agency-matching rubric). PM always makes final call. | Phase 3/4 complexity | Mat + Piotr | Decided: manual Phase 3, n8n LLM Phase 4. One LLM integration point (n8n) for both WIC and RFP. |
 | 8 | MIN attribution | PM searches all companies across all agencies, verifies in CRM, creates PartnerLicenseDeal with attribution | Phase 2 data model | Mat | Decided: cross-org company search + CRM read-only jump + attribution. Moved from Phase 3 to Phase 2 (tier eval needs MIN). |
 | 9 | WIC L1 score discriminator | L1 0.5 = complex fix/large refactor/high-impact bug report. L1 0.25 = smaller fix/hardening/standard bug report. | WIC scoring accuracy | Mat | Decided: impact level of the fix. Verified against SDRC WIC Assessment Learnings + Monthly Workflow docs. |
+| 10 | PM per-org feature scoping | A) PM gets `customers.*` everywhere (Phase 1 workaround — procedural read-only on agencies). B) OM core adds per-org feature override in RoleAcl (Phase 2+). | PM can technically edit agency data in Phase 1 — no enforcement. Acceptable for 15 agencies with trust model. | Piotr | OPEN — Phase 1 workaround (A) active. Upstream enhancement needed for (B). Tracked in upstream-flags. |
+| 11 | `defaultRoleFeatures` ignores custom role keys | OM core `setup-app.ts` only processes superadmin/admin/employee. Custom roles (partner_admin, etc.) silently ignored. | App must seed ACL manually in seedDefaults (workaround). | Piotr | OPEN — upstream PR #1040 submitted. Workaround in seedPrmRoles. |
 
 #### Checklist
 - [x] Every question has: options, impact, owner, status
