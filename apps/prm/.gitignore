@@ -1,5 +1,10 @@
 # AI / local config
 .ai/
+!.ai/qa/
+.ai/qa/*
+!.ai/qa/tests/
+.ai/qa/tests/*
+!.ai/qa/tests/playwright.config.ts
 
 # Runtime / local storage
 storage/
