@@ -85,8 +85,8 @@ export async function checkProfileFilled(ctx: CompletionContext): Promise<boolea
     entityId: 'customers:customer_company_profile',
     tenantId: ctx.tenantId,
     ...(ctx.organizationId ? { organizationId: ctx.organizationId } : {}),
-    key: { $in: ['services', 'industries'] },
-    value: { $nin: [null, ''] },
+    fieldKey: { $in: ['services', 'industries'] },
+    valueText: { $nin: [null, ''] },
   })
   return cfvCount > 0
 }

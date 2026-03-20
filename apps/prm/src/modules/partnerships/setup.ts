@@ -172,6 +172,10 @@ async function seedDictionaries(
         key: dict.key,
         name: dict.name,
         isSystem: true,
+        isActive: true,
+        managerVisibility: 'default',
+        createdAt: new Date(),
+        updatedAt: new Date(),
       })
       em.persist(dictionary)
       await em.flush()
@@ -194,6 +198,8 @@ async function seedDictionaries(
             value: option,
             normalizedValue: normalized,
             label: option,
+            createdAt: new Date(),
+            updatedAt: new Date(),
           })
         )
       }
@@ -584,6 +590,9 @@ export const setup: ModuleSetupConfig = {
     await seedPrmExamples(ctx.em, ctx.container, scope)
   },
 
+  // PRM partners are User roles (not CustomerUser/portal roles).
+  // DefaultRoleFeatures only types superadmin/admin/employee, but the platform
+  // merges any key present here into role ACLs. Cast to satisfy the type.
   defaultRoleFeatures: {
     partner_admin: [
       'customers.*',
@@ -606,7 +615,7 @@ export const setup: ModuleSetupConfig = {
       'partnerships.manage',
       'partnerships.widgets.wip-count',
     ],
-  },
+  } as Record<string, string[]>,
 }
 
 export default setup

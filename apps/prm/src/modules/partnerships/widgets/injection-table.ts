@@ -13,4 +13,5 @@ const injectionTable: ModuleInjectionTable = {
   ],
 }
 
+export { injectionTable }
 export default injectionTable

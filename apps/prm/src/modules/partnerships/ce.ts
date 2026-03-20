@@ -1,4 +1,4 @@
-export const entities = [
+const entities = [
   {
     id: 'partnerships:case_study',
     label: 'Case Study',
@@ -8,3 +8,6 @@ export const entities = [
     fields: [],
   },
 ]
+
+export { entities }
+export default entities

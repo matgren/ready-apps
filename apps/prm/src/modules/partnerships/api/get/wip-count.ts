@@ -100,7 +100,7 @@ async function GET(req: Request) {
     const parseResult = querySchema.safeParse({ month: rawMonth })
     if (!parseResult.success) {
       return NextResponse.json(
-        { error: parseResult.error.errors[0]?.message ?? 'Invalid month format' },
+        { error: parseResult.error.issues[0]?.message ?? 'Invalid month format' },
         { status: 400 },
       )
     }
