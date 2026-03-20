@@ -289,22 +289,22 @@ API contracts use standard OM entities module: `POST /api/entities/definitions.b
 
 ### WF1: Agency Onboarding
 
-**Journey:** PM invites Agency Admin (email+link) -> Admin sets password -> Admin onboarding sub-workflow (fill company profile -> add min 1 case study -> invite BD -> invite Contributor) -> BD onboarding sub-workflow (add prospect company -> create deal -> move deal to "Contacted") -> Agency is operational
+**Journey:** PM creates Agency Admin account in backend (assigns org + role, shares credentials out-of-band) -> Admin logs in -> Admin onboarding sub-workflow (fill company profile -> add min 1 case study -> create BD account -> create Contributor account) -> BD onboarding sub-workflow (add prospect company -> create deal -> move deal to "Contacted") -> Agency is operational
 
 **ROI:** Each new agency = 1-15 WIP/month + 1-5 MIN/year. Zero agencies = zero indirect pipeline. Target: 15+ active agencies.
 
 **Key personas:** Partnership Manager (invites), Agency Admin (configures), BD (first deal)
 
 **Boundaries:**
-- Starts when: PM clicks "Invite Agency" and provides email
-- Ends when: Admin completed onboarding, min 1 BD invited, BD completed onboarding, first deal logged
+- Starts when: PM creates Agency Admin account in backend
+- Ends when: Admin completed onboarding, min 1 BD account created, BD completed onboarding, first deal logged
 - NOT this workflow: BD adding subsequent deals (WF2), dev contributing code (WF3), tier evaluation (WF5)
 
 **Edge cases:**
-1. Admin doesn't accept invitation within 72h -> token expires -> PM sees "pending" -> can resend
+1. Admin doesn't log in after PM creates account -> PM follows up out-of-band. No system reminder (Phase 1). Phase 4: email invitation with expiry + resend.
 2. Admin leaves agency after onboarding -> zombie org, nobody manages it
-3. Admin fills profile but never invites BD -> onboarding "done" but no WIP generated
-4. PM invites same email twice -> system must deduplicate
+3. Admin fills profile but never creates BD account -> onboarding "done" but no WIP generated
+4. PM creates account with email that already exists -> system rejects (email uniqueness constraint)
 
 **OM readiness:**
 - User creation + RBAC -> `auth` module ✅
@@ -593,11 +593,11 @@ RFP lifecycle uses workflows module: START → SEND_EMAIL → WAIT_FOR_TIMER →
 
 ### WF1: Agency Onboarding
 
-**US-1.1** (Phase 1) As PM, I share a signup link with an agency admin so that they can self-register and join the partner program.
-Success: Admin opens link, creates account, sets password, sees scoped backend dashboard for their org.
+**US-1.1** (Phase 1) As PM, I create an agency admin account in the backend so that a new agency can join the partner program.
+Success: PM opens `/backend/users/create`, enters email + password, selects agency organization, assigns `partner_admin` role. Account created. PM shares credentials out-of-band (email, Slack, phone). Admin logs in, sees scoped backend dashboard for their org.
 
-**US-1.1b** (Phase 4) As PM, I invite an agency admin by email so that a new agency can join the partner program without manual link sharing.
-Success: Admin receives email with signup link, clicks it, sets password, sees scoped backend dashboard.
+**US-1.1b** (Phase 4, upstream dependency) As PM, I invite an agency admin by email so that onboarding is automated without manual credential sharing.
+Success: PM enters email, system sends invitation link, Admin clicks link, sets own password, sees scoped backend dashboard. Requires upstream invitation flow (SPEC-038).
 
 **US-1.2** As Agency Admin, I fill my company profile (services, industries, tech stack) so that OM has data for lead matching.
 Success: Profile saved, visible to PM via org switcher, fields match case study categories.
@@ -605,11 +605,11 @@ Success: Profile saved, visible to PM via org switcher, fields match case study 
 **US-1.3** As Agency Admin, I add at least one case study (project type, tech, budget, duration) so that PM has evidence for RFP scoring.
 Success: Case study saved as custom entity, visible in agency profile, linked to company.
 
-**US-1.4** As Agency Admin, I invite a BD by email so that someone can start building pipeline.
-Success: BD receives email, sets password, sees CRM + KPI dashboard scoped to our org.
+**US-1.4** As Agency Admin, I create a BD account in the backend so that someone can start building pipeline.
+Success: Admin opens `/backend/users/create`, enters email + password, selects own organization, assigns `partner_member` role. Shares credentials out-of-band. BD logs in, sees CRM + KPI dashboard scoped to their org. (Phase 4: replaced by email invitation via SPEC-038.)
 
-**US-1.5** As Agency Admin, I invite a Contributor by email so that their code contributions are tracked under our agency.
-Success: Contributor receives email, sets password, sees WIC score dashboard scoped to our org. Nothing else visible.
+**US-1.5** As Agency Admin, I create a Contributor account in the backend so that their code contributions are tracked under our agency.
+Success: Admin opens `/backend/users/create`, enters email + password, selects own organization, assigns `partner_contributor` role. Shares credentials out-of-band. Contributor logs in, sees WIC score dashboard scoped to their org. Nothing else visible. (Phase 4: replaced by email invitation via SPEC-038.)
 
 **US-1.6** As BD, I add my first prospect and create a deal so that my onboarding is complete.
 Success: Company + Deal created in CRM, onboarding workflow marks BD step as done.
@@ -683,12 +683,12 @@ Success: Dashboard shows: current tier, KPI values vs thresholds, % progress to 
 Success: Dashboard shows: current tier, agency WIP count (with my deals highlighted), WIC score for my org.
 
 **US-5.6** As PM, I attribute a license sale to the agency that brought the company into pipeline so that MIN is tracked for tier evaluation.
-Success: PM opens "Create License Deal" -> searches all companies across all agencies (cross-org, Program Scope) -> sees results with agency name, company name, date created, deal count -> clicks company -> jumps to that agency's CRM (read-only) to verify deals, people, history -> confirms -> PartnerLicenseDeal created with: agency attribution, industry tag, license identifier. MIN count increments for that agency's calendar year. No double-attribution (unique: license identifier + year). Visible on KPI dashboard.
+Success: PM opens "Create License Deal" -> searches all companies across all agencies (cross-org, Program Scope) -> sees results with agency name, company name, date created, deal count -> clicks company -> jumps to that agency's CRM to verify deals, people, history (procedural read-only per OM RBAC design) -> confirms -> PartnerLicenseDeal created with: agency attribution, industry tag, license identifier. MIN count increments for that agency's calendar year. No double-attribution (unique: license identifier + year). Visible on KPI dashboard.
 
 ### Cross-workflow
 
 **US-6.1** As PM, I switch between agency organizations so that I can review any agency's CRM, KPIs, and tier status.
-Success: Org switcher shows all agencies, PM selects one, sees that agency's data read-only. PM's own actions (RFP, tier approval) remain in PM context.
+Success: Org switcher shows all agencies, PM selects one, sees that agency's data (procedural read-only per OM RBAC design — technically full write). PM's own actions (RFP, tier approval) remain in PM context.
 
 ### Distribution (SPEC-068)
 
@@ -817,7 +817,7 @@ Success: Every file follows OM conventions (auto-discovery paths, UMES patterns,
 - [ ] Checklist completion state derived from live data (profile fields non-empty, case study exists, users with BD/Contributor role exist in org, deal exists) — not from a separate flag that can drift
 
 **Business criteria** `Mat`:
-- [ ] PM can onboard an agency (share link → Admin creates account → fills profile → adds case study → invites BD)
+- [ ] PM can onboard an agency (creates Admin account in backend → shares credentials out-of-band → Admin logs in → fills profile → adds case study → creates BD account)
 - [ ] BD can log a deal and move it to SQL → WIP count appears on dashboard immediately
 - [ ] PM can switch between agencies and see each agency's CRM data and WIP count (technically full write per OM RBAC design — procedural read-only convention)
 - [ ] Admin logs in for the first time and sees a checklist telling them exactly what to do: fill profile, add case study, invite BD, invite Contributor

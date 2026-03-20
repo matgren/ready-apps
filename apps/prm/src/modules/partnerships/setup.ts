@@ -398,6 +398,8 @@ const PRM_ROLE_FEATURES: Record<string, string[]> = {
     'customers.*',
     'partnerships.manage',
     'partnerships.widgets.onboarding-checklist',
+    'auth.users.create',
+    'auth.users.view',
   ],
   partner_member: [
     ...BACKEND_BASELINE_FEATURES,
@@ -414,9 +416,11 @@ const PRM_ROLE_FEATURES: Record<string, string[]> = {
     'customers.*',
     'partnerships.manage',
     'partnerships.widgets.wip-count',
+    'auth.users.create',
+    'auth.users.view',
+    'auth.users.manage',
     // NOTE: PM gets full customers.* because OM RBAC doesn't support per-org
-    // feature scoping. Cross-org read-only is a Phase 2+ enhancement.
-    // For Phase 1, PM has full CRM access — procedural restriction, not technical.
+    // feature scoping. Cross-org read-only is procedural, not enforced (by design).
   ],
 }
 
