@@ -196,7 +196,7 @@ If this is a reference implementation, apply higher bar:
 
 ### Piotr Checkpoint #1
 
-After workflows + gap matrix: invoke Piotr to verify workflow-to-OM mapping. If Piotr finds a module Mat missed, go back and re-map.
+After workflows + gap matrix: invoke Piotr to verify workflow-to-OM mapping. If Piotr finds a module Mat missed, go back and re-map. After Piotr finishes, compare his findings against `references/platform-capabilities.md` — if Piotr confirmed a capability not listed there (merged to main/develop), add it.
 
 ## Phase 2: User Stories with Teeth
 
@@ -235,40 +235,11 @@ For EACH user story, check OM capabilities **in order**. Stop at the first match
 6. Messages module? → **Message type + template**
 7. None of the above → **New code needed** (measure twice)
 
-### Platform Capability Checklist
-
-| Capability | Module | What it gives you for free |
-|-----------|--------|---------------------------|
-| CRM (people, companies, deals, activities) | `customers` | Full CRUD, pipeline, scoped by org |
-| User management, RBAC, roles | `auth` | Backend pages, API, feature-gated sidebar |
-| Custom fields, custom entities | `entities` | Dynamic fields on any entity, admin UI |
-| Dictionaries/taxonomies | `dictionaries` | Managed lookup tables, admin UI |
-| Workflows (step-based processes) | `workflows` | Visual editor, timers, user tasks, email activities |
-| Messaging/inbox | `messages` | Threaded messages, attachments, custom types, actions |
-| Notifications | `notifications` | In-app bell, subscribers, custom renderers |
-| Search | `search` | Fulltext, vector, faceted |
-| Portal (customer-facing) | `portal` + `customer_accounts` | Login, signup, profile, RBAC, self-service |
-| Widget injection | UMES | Extend any module's UI without touching its code |
-| API interceptors | UMES | Modify any module's API behavior |
-| Response enrichers | UMES | Add data to any module's API responses |
-| Background jobs | `queue` | Workers, retry, concurrency |
-| Scheduled tasks | `scheduler` | Cron-like recurring jobs |
-
-### Red flags that you mapped wrong
-
-| Signal | You probably missed |
-|--------|-------------------|
-| Building portal pages for users who need CRM | They should be `User` not `CustomerUser` |
-| Custom API routes duplicating module CRUD | Use `makeCrudRoute` or existing module API |
-| Custom notification subscriber | Workflows SEND_EMAIL activity |
-| Hardcoded state machine in code | Workflows module |
-| Custom inbox/list page | Messages module with custom message type |
-| Building user management UI | Auth module backend pages |
-| Custom entity CRUD | `entities` module custom entities |
+Consult `references/platform-capabilities.md` for the full capability checklist and red flags table. Update it only after a Piotr session confirms a new capability is merged to main/develop — see update rules in that file.
 
 ### Piotr Checkpoint #2
 
-After story gap matrix: invoke Piotr to verify story-to-OM mapping. If Piotr finds overengineering, go back and re-map.
+After story gap matrix: invoke Piotr to verify story-to-OM mapping. If Piotr finds overengineering, go back and re-map. After Piotr finishes, compare his findings against `references/platform-capabilities.md` — if Piotr confirmed a capability not listed there (merged to main/develop), add it.
 
 ## Phase 4: Gap Analysis & Phasing
 
