@@ -572,6 +572,47 @@ Pre-event planning (scenario simulation) gets client in
 
 ---
 
+## 4.5 Module Architecture `Piotr`
+
+> Consolidated view of which OM modules CFP uses, how it extends them, and what new modules it creates.
+
+### OM Core modules used
+
+| Module | Usage | Extension points used | Notes |
+|--------|-------|----------------------|-------|
+| `customers` | as-is | -- | Client organizations. No custom fields on company entity -- org data is standard. |
+| `customer_accounts` | extend | `defaultCustomerRoleFeatures` in setup.ts | Portal auth for event_manager, event_viewer roles |
+| `entities` | extend | Custom entities via `ce.ts`, custom fields via setup.ts | 8 CEs: cfp_event, emission_source, data_point, evidence, emission_factor, scenario, scenario_override, report |
+| `workflows` | extend | Workflow JSON seed | SEND_EMAIL on data_collection stage transition |
+| `attachments` | extend | Custom portal upload route (workaround: attachments API is staff-gated) | Evidence file storage. Portal users get scoped upload via custom route, not direct attachments API. |
+| `auth` | as-is | -- | User management for admin, consultant roles. No customization. |
+
+### Official modules (existing or proposed)
+
+| Module | Status | Usage | Extension points | Rationale |
+|--------|--------|-------|-----------------|-----------|
+| `portal-attachments` | PROPOSED | create | Portal-facing upload/download routes scoped by CustomerUser org | Attachments API is staff-gated (`attachments.manage`). Every app that needs portal file uploads will hit this. Generic solution: portal-scoped attachment routes with entity-level ACL. CFP workaround: custom route in app module. |
+| `report-generator` | PROPOSED (deferred) | create | Worker pattern: enqueue job, generate PDF, store via attachments | PDF generation from structured entity data is reusable (invoices, quotes, reports). Current CFP approach: app-level worker with @react-pdf/renderer. Evaluate after CFP ships -- if pattern proves stable, extract to official module. |
+
+### App modules
+
+| Module | Responsibility | Entities owned | Notes |
+|--------|---------------|----------------|-------|
+| `cfp` | All CFP domain logic: event planning, scenario simulation, data collection, evidence management, emission factor database, report generation, calculation cascade | cfp_event, emission_source, data_point, evidence, emission_factor, scenario, scenario_override, report | Single module -- all entities share invariants (org scoping, calculation cascade, confidence scoring, pipeline gates). Emission factors are reference data managed within the same module. |
+
+#### Checklist
+- [x] Every OM core module listed with explicit usage type and extension points `Piotr`
+- [x] Every official module listed -- 2 proposed with rationale (portal-attachments, report-generator) `Piotr`
+- [x] Every gap scored `official-module` or `core-module` in section 4 has upstream investigation -- portal-attachments is a known gap, report-generator deferred `Piotr`
+- [x] Reusability check: portal file uploads and PDF generation identified as reusable patterns, proposed as official modules `Piotr`
+- [x] Proposed official modules have clear boundary -- portal-attachments = org-scoped file access, report-generator = entity-to-PDF pipeline. No CFP domain logic leaked. `Piotr`
+- [x] App module count justified -- 1 module (`cfp`). All entities share calculation cascade, confidence scoring, and pipeline gate invariants. Splitting would break transactional consistency. `Piotr`
+- [x] Extension points to official modules documented -- same UMES patterns as core `Piotr`
+- [x] No direct modification of core or official module code -- all extensions via UMES. portal-attachments workaround is app-level custom route until official module exists. `Mat + Piotr`
+- [x] Module boundaries align with bounded context boundaries -- cfp is one bounded context: event carbon footprint lifecycle from planning through audit-ready reporting. Emission factors are reference data within the same context (they only exist to serve CFP calculations). `Vernon`
+
+---
+
 ## 5. User Stories `Mat`
 
 > Pending completion of Piotr checkpoint #1 and gap analysis.
