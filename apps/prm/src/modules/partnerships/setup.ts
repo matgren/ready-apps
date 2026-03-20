@@ -9,7 +9,7 @@ import {
   CustomerPipelineStage,
 } from '@open-mercato/core/modules/customers/data/entities'
 import { Dictionary, DictionaryEntry } from '@open-mercato/core/modules/dictionaries/data/entities'
-import { User, Role, UserRole } from '@open-mercato/core/modules/auth/data/entities'
+import { User, Role, UserRole, RoleAcl } from '@open-mercato/core/modules/auth/data/entities'
 import { ensureCustomFieldDefinitions } from '@open-mercato/core/modules/entities/lib/field-definitions'
 import { hashForLookup } from '@open-mercato/shared/lib/encryption/aes'
 import { hash } from 'bcryptjs'
@@ -376,22 +376,61 @@ const DEMO_AGENCIES: DemoAgency[] = [
 // PRM roles
 // ---------------------------------------------------------------------------
 
-const PRM_ROLES = ['partner_admin', 'partner_member', 'partner_contributor', 'partnership_manager']
+const PRM_ROLE_FEATURES: Record<string, string[]> = {
+  partner_admin: [
+    'customers.*',
+    'partnerships.manage',
+    'partnerships.widgets.onboarding-checklist',
+  ],
+  partner_member: [
+    'customers.*',
+    'partnerships.widgets.wip-count',
+    'partnerships.widgets.onboarding-checklist',
+  ],
+  partner_contributor: [
+    'partnerships.widgets.onboarding-checklist',
+  ],
+  partnership_manager: [
+    'customers.people.view',
+    'customers.companies.view',
+    'customers.deals.view',
+    'customers.pipelines.view',
+    'partnerships.manage',
+    'partnerships.widgets.wip-count',
+  ],
+}
 
 async function seedPrmRoles(
   em: import('@mikro-orm/postgresql').EntityManager,
   scope: SeedScope
 ): Promise<void> {
-  for (const roleName of PRM_ROLES) {
-    const existing = await em.findOne(Role, {
+  for (const [roleName, features] of Object.entries(PRM_ROLE_FEATURES)) {
+    let role = await em.findOne(Role, {
       name: roleName,
       tenantId: scope.tenantId,
       deletedAt: null,
     })
-    if (!existing) {
-      em.persist(em.create(Role, {
+    if (!role) {
+      role = em.create(Role, {
         name: roleName,
         tenantId: scope.tenantId,
+        createdAt: new Date(),
+      })
+      em.persist(role)
+      await em.flush()
+    }
+
+    // Seed ACL (features) for this role
+    const existingAcl = await em.findOne(RoleAcl, {
+      role,
+      tenantId: scope.tenantId,
+    })
+    if (!existingAcl) {
+      em.persist(em.create(RoleAcl, {
+        role,
+        tenantId: scope.tenantId,
+        featuresJson: features,
+        isSuperAdmin: false,
         createdAt: new Date(),
       }))
     }
@@ -688,14 +727,17 @@ export const setup: ModuleSetupConfig = {
       'customers.*',
       'partnerships.manage',
       'partnerships.widgets.onboarding-checklist',
+      'dashboards.view',
     ],
     partner_member: [
       'customers.*',
       'partnerships.widgets.wip-count',
       'partnerships.widgets.onboarding-checklist',
+      'dashboards.view',
     ],
     partner_contributor: [
       'partnerships.widgets.onboarding-checklist',
+      'dashboards.view',
     ],
     partnership_manager: [
       'customers.people.view',
@@ -704,6 +746,7 @@ export const setup: ModuleSetupConfig = {
       'customers.pipelines.view',
       'partnerships.manage',
       'partnerships.widgets.wip-count',
+      'dashboards.view',
     ],
   } as Record<string, string[]>,
 }

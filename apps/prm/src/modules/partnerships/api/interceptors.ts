@@ -10,7 +10,7 @@ export const interceptors: ApiInterceptor[] = [
   {
     id: 'partnerships.wip-stamp-guard',
     targetRoute: 'customers/deals',
-    methods: ['PATCH', 'POST'],
+    methods: ['PATCH', 'PUT', 'POST'],
     priority: 50,
     async before(request) {
       const customFields = (request.body?.customFields as Record<string, unknown> | undefined)
@@ -31,13 +31,14 @@ export const interceptors: ApiInterceptor[] = [
   {
     id: 'partnerships.wip-stamp-after',
     targetRoute: 'customers/deals',
-    methods: ['PATCH'],
+    methods: ['PATCH', 'PUT'],
     priority: 50,
-    async after(_request, response, context) {
+    async after(request, response, context) {
       if (response.statusCode !== 200) return {}
 
-      const dealId = response.body.id as string | undefined
-      const pipelineStageId = response.body.pipelineStageId as string | undefined
+      // PUT returns { ok: true } without entity fields — read from request body
+      const dealId = (response.body.id ?? request.body?.id) as string | undefined
+      const pipelineStageId = (response.body.pipelineStageId ?? request.body?.pipelineStageId) as string | undefined
 
       if (!dealId || !pipelineStageId) return {}
 

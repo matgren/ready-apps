@@ -49,6 +49,7 @@
     "@open-mercato/scheduler": "0.4.9-develop-ce96cffe00",
     "@open-mercato/search": "0.4.9-develop-ce96cffe00",
     "@open-mercato/shared": "0.4.9-develop-ce96cffe00",
+    "@open-mercato/sync-akeneo": "0.4.9-develop-ce96cffe00",
     "@open-mercato/ui": "0.4.9-develop-ce96cffe00",
     "@radix-ui/react-checkbox": "^1.3.3",
     "@radix-ui/react-dialog": "^1.0.5",
