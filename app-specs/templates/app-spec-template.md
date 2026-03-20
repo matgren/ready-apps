@@ -219,6 +219,7 @@ Piotr saves detailed commit plans to `app-specs/<app>/piotr-notes/commits-US-<N>
 ## 7. Phasing & Rollout `Mat`
 
 > Phasing logic: High business priority + Low gap = ship first.
+> Every phase must deliver measurable business value. If you can't state the ROI — the phase is artificial. Merge it or cut it.
 
 ### Phase [N]: [Name]
 
@@ -233,7 +234,12 @@ Piotr saves detailed commit plans to `app-specs/<app>/piotr-notes/commits-US-<N>
 **Total: [N] atomic commits**
 **Workaround:** [if any high-gap blocker is worked around]
 
-**After this phase, client can say:** "[quote]"
+**Acceptance criteria:**
+- [ ] [Testable action the primary persona can perform end-to-end]
+- [ ] [Testable action another persona can perform]
+- [ ] ...
+- **Business value:** [What business problem is solved that wasn't solved before this phase? Be specific.]
+- **ROI metric:** [Measurable outcome. Target number. How you'd know this phase was worth building.]
 
 [Repeat per phase]
 
@@ -253,6 +259,8 @@ Phase 2: [name]    [N] commits    [which workflows]
 - [ ] Each phase delivers complete, usable increment — no half-done workflows
 - [ ] Workarounds documented for high-gap blockers (gap >3)
 - [ ] Total atomic commits estimated per phase `Piotr`
+- [ ] Acceptance criteria per phase — testable actions + business value + ROI metric
+- [ ] No artificial phases — every phase delivers measurable business value. If ROI is unclear, merge with adjacent phase or cut.
 
 ---
 

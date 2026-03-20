@@ -580,17 +580,20 @@ Success: n8n workflow runs daily (Schedule Trigger → GitHub GraphQL → scorin
 
 ### WF4: Lead Distribution (RFP)
 
-**US-4.1** As PM, I create an RFP campaign with requirements and deadline so that agencies can bid.
-Success: Campaign created, workflow triggered, target agencies (all/selected/tier-filtered) notified.
+**US-4.1** As PM, I create an RFP campaign with requirements, deadline, and file attachments (lead brief, specs) so that agencies can bid with full context.
+Success: Campaign created with attached files, workflow triggered, target agencies (all/selected/tier-filtered) notified.
 
 **US-4.2** As BD, I receive notification of a new RFP so that I can decide whether to respond.
-Success: BD sees notification (in-app or email via workflow SEND_EMAIL), clicks through to RFP details and deadline.
+Success: BD sees notification (in-app or email via workflow SEND_EMAIL), clicks through to RFP details, attached files, and deadline.
 
-**US-4.3** As BD, I submit a structured response to an RFP (capabilities, pricing, timeline, case studies) so that PM can evaluate our fit.
-Success: Response saved via workflow USER_TASK, PM sees it in campaign responses list, linked to our case studies.
+**US-4.3** As BD/Admin, I submit a free-form response to an RFP (like an email — text + optional attachments) so that PM can evaluate our fit.
+Success: Response saved via workflow USER_TASK, PM sees it in campaign responses list. Agency's case studies automatically linked for PM context.
 
 **US-4.4** As PM, I compare agency responses side-by-side and select a winner so that the lead is assigned to the best-fit agency.
-Success: Comparison view shows all responses with key fields aligned. PM selects winner, workflow advances, losing agencies notified of outcome.
+Success: Comparison view shows all responses with agency case studies. PM reads responses, selects winner, workflow advances (RfpAwarded event), losing agencies notified of outcome.
+
+**US-4.5** (Phase 4) As PM, I trigger AI-assisted scoring of RFP responses so that I have objective tech fit and domain fit scores before selecting a winner.
+Success: PM clicks "Score responses" on comparison page → n8n webhook triggered → n8n reads RFP + responses + case studies via Open Mercato node → LLM scores each agency (tech fit /5 + domain fit /5 with reasoning, per lead-agency-matching rubric) → scores POSTed back to OM → displayed on comparison page. PM uses scores as guidance, makes final call.
 
 ### WF5: Tier Governance
 
@@ -648,10 +651,11 @@ Success: Org switcher shows all agencies, PM selects one, sees that agency's dat
 | US-3.2 | partnerships import API | 1 | Import route validates WicScoringResult schema, enforces Feature Key dedup, versioned import (replace+archive). |
 | US-3.3 | partnerships backend widget | 0 | Bundled with US-2.3 KPI dashboard (same widget, scoped data) |
 | US-3.4 | n8n workflow (GitHub+LLM) → POST to import API — Phase 4 | 2-3 | n8n workflow definition + n8n-nodes enhancements + docs. WicAssessmentSource = `automated_pipeline`. |
-| US-4.1 | partnerships entity + workflows | 2 | 1: PartnerRfpCampaign entity + CRUD route. 2: RFP workflow JSON definition. CampaignPublished event. |
+| US-4.1 | partnerships entity + workflows | 2 | 1: PartnerRfpCampaign entity (with file attachments) + CRUD route. 2: RFP workflow JSON definition. CampaignPublished event. |
 | US-4.2 | workflows SEND_EMAIL | 0 | Covered by workflow activity |
-| US-4.3 | workflows USER_TASK + partnerships entity | 1 | PartnerRfpResponse entity + USER_TASK form |
-| US-4.4 | partnerships backend page | 1 | Comparison page + workflow advance. RfpAwarded event on winner selection. |
+| US-4.3 | workflows USER_TASK + partnerships entity | 1 | PartnerRfpResponse entity (free-form text + attachments) + USER_TASK form. Auto-links agency case studies. |
+| US-4.4 | partnerships backend page | 1 | Comparison page (responses + case studies side-by-side) + workflow advance. RfpAwarded event. |
+| US-4.5 | n8n webhook + LLM — Phase 4 | 1-2 | n8n workflow: webhook trigger → Open Mercato node (read data) → LLM node (score) → Open Mercato node (POST scores). Scoring rubric from lead-agency-matching skill. |
 | US-5.1 | queue worker + partnerships | 1 | Aggregation worker: reads WIC (ContributionUnits), WIP (`wip_registered_at`), MIN (PartnerLicenseDeals). Computes TierEligibility. Cron trigger shared. |
 | US-5.2a/b | partnerships + TierEvaluationState | 0 | Bundled with US-5.1 (grace period state machine + TierChangeProposal generation in same worker) |
 | US-5.3 | workflows USER_TASK | 1 | Tier evaluation workflow JSON definition. Publishes AgencyTierChanged on approval. |
@@ -660,7 +664,7 @@ Success: Org switcher shows all agencies, PM selects one, sees that agency's dat
 | US-5.6 | partnerships entity + search + CRUD | 2 | 1: PartnerLicenseDeal entity + PM-only CRUD. 2: Cross-org company search + CRM read-only jump + attribution UI. |
 | US-6.1 | auth org switcher (Program Scope) | 0 | Platform feature (`organizationsJson: null`) |
 | — | Cron trigger mechanism (shared) | 1 | External crontab or API trigger for WF3/WF5 scheduled workers |
-| **Total** | | **14 (Ph1-3) + 5-6 (Ph4) = 19-20** | |
+| **Total** | | **15 (Ph1-3) + 6-8 (Ph4) = 21-23** | |
 
 #### Checklist
 - [x] Every story mapped to specific OM module/mechanism with atomic commit estimate `Mat`
@@ -697,7 +701,12 @@ Success: Org switcher shows all agencies, PM selects one, sees that agency's dat
 **Total: 3 atomic commits** (setup.ts seed + WIP interceptor + KPI dashboard widget)
 **Workaround:** Invitation flow replaced by PM sharing signup link manually. Good enough for 15 agencies.
 
-**After Phase 1, client can say:** "I onboarded 3 agencies, they're logging deals, I see WIP counts update immediately when deals hit SQL."
+**Acceptance criteria:**
+- [ ] PM can onboard an agency (share link → Admin creates account → fills profile → adds case study → invites BD)
+- [ ] BD can log a deal and move it to SQL → WIP count appears on dashboard immediately
+- [ ] PM can switch between agencies and see each agency's CRM data (read-only) and WIP count
+- **Business value:** Pipeline visibility. PM knows which agencies are generating prospects. Without this, PM has zero data on agency activity.
+- **ROI metric:** Number of active agencies with ≥1 WIP. Target: 3+ agencies onboarded and logging deals.
 
 ### Phase 2: Governance + KPI Visibility + MIN (WF5 + WF3 workaround)
 
@@ -719,7 +728,15 @@ Success: Org switcher shows all agencies, PM selects one, sees that agency's dat
 **Total: 8 atomic commits** (GH field + import API + aggregation worker + tier workflow + tier widget + MIN entity + MIN attribution UI + cron trigger)
 **Workaround:** WIC automated pipeline deferred. PM runs external `wic_assessment.mjs` script and imports via API.
 
-**After Phase 2, client can say:** "Agencies have tiers, I can see all 3 KPIs, I can promote/demote based on data, I can attribute license sales to agencies. Agencies see their progress and grace period warnings."
+**Acceptance criteria:**
+- [ ] Contributor can link GH username to profile
+- [ ] PM can import WIC scores (upload → system validates → replaces previous import for same org+month)
+- [ ] PM can attribute a license sale to an agency (cross-org company search → verify in CRM → create PartnerLicenseDeal)
+- [ ] System evaluates tiers monthly: computes TierEligibility, applies grace period, generates TierChangeProposal
+- [ ] PM can approve/reject tier changes with reason. AgencyTierChanged event published on approval.
+- [ ] Agency Admin sees current tier, KPI values vs thresholds, progress %, grace period warning
+- **Business value:** Governance active. The partner program has meaning — agencies with strong KPIs get higher tiers, underperformers get grace period then downgrade. PM saves ~4h/week of manual spreadsheet work.
+- **ROI metric:** Number of agencies with evaluated tiers. PM approval turnaround < 1 week. Grace period correctly applied for agencies below threshold.
 
 ### Phase 3: Lead Distribution (WF4)
 
@@ -735,46 +752,69 @@ Success: Org switcher shows all agencies, PM selects one, sees that agency's dat
 | US-4.3 | PartnerRfpResponse entity + USER_TASK form | 1 |
 | US-4.4 | PM comparison page + winner selection (RfpAwarded event) | 1 |
 
-**Total: 4 atomic commits** (RFP entity + RFP workflow + response entity + comparison page)
+**Total: 4 atomic commits** (RFP entity with file attachments + RFP workflow + response entity with free-form text + comparison page)
 
-**After Phase 3, client can say:** "Full loop works. Agencies onboard, build pipeline, contribute code, respond to RFPs, get evaluated on all 3 KPIs, tiers reflect reality."
+**Acceptance criteria:**
+- [ ] PM can create RFP campaign with requirements, deadline, and file attachments (lead brief, specs)
+- [ ] Agencies receive notification, BD/Admin can view RFP details and attached files
+- [ ] BD/Admin submits free-form response (text + optional attachments), agency case studies auto-linked
+- [ ] PM sees all responses side-by-side on comparison page, selects winner
+- [ ] Winning agency notified (RfpAwarded), losing agencies notified of outcome
+- **Business value:** Lead distribution is fair and scalable. PM no longer sends emails manually. Agencies compete on evidence. Full flywheel loop complete: onboard → pipeline → contribute → bid on leads → tier evaluation reflects all 3 KPIs.
+- **ROI metric:** RFP campaigns created per month. Agency response rate. Lead-to-selection conversion rate. Target: 3+ RFPs/month, >50% response rate.
 
-### Phase 4: Automation (WF3 full + enhancements)
+### Phase 4: n8n Automation Layer + Enhancements
 
-**Goal:** Remove manual workarounds. Full automation.
+**Goal:** Remove manual workarounds. n8n becomes the automation and AI layer for all LLM-powered features.
 
 | Story | What ships | Commits |
 |-------|-----------|---------|
-| US-3.4 | Automated WIC pipeline via n8n workflow (GitHub API + LLM scoring → POST to import API) | 2-3 |
+| US-3.4 | Automated WIC pipeline via n8n (GitHub API + LLM scoring → POST to import API) | 2-3 |
+| US-4.5 | AI-assisted RFP scoring via n8n (webhook trigger → read data → LLM scoring → POST scores) | 1-2 |
 | US-1.1b | Email invitation flow (replaces self-onboard) | 2 |
 | Onboarding sub-workflows | Tracked onboarding steps via workflows module | 1 |
 
-**Total: 5-6 atomic commits**
+**Total: 6-8 atomic commits**
 
-**WIC automation approach (decided):** n8n workflow using `open-mercato/n8n-nodes` package.
+**n8n as unified automation + AI layer (decided):**
+
+All LLM work lives in n8n. PRM app has zero LLM dependencies. One integration point, one set of API keys, one place to update when scoring rules change.
+
+**WIC automation (scheduled):**
 - n8n Schedule Trigger (daily) → GitHub GraphQL node (fetch PRs) → Code node (group + score) → IF node (bounty → AI reviewer) → Open Mercato node (POST to WIC import API)
 - Import API (Phase 2) remains the anti-corruption layer — validates WicScoringResult schema, enforces dedup, versioned replace+archive
 - Scoring logic extracted from existing `wic_assessment.mjs` (SDRC) into n8n Code node steps
 - WicAssessmentSource = `automated_pipeline` distinguishes from Phase 2 manual imports
-- PM sees workflow run history in n8n UI, can trigger manual re-runs
-- Platform ROI: demonstrates n8n-nodes package as real integration pattern
 
-**Why n8n over alternatives:**
-- _Not standalone cron + scripts:_ n8n gives PM visible orchestration, run history, failure alerts. Scripts are 2000 lines of monolith — n8n decomposes into inspectable steps.
-- _Not OM queue worker:_ GitHub API + LLM scoring is not OM's domain. Wrapping external tooling in an OM worker means PRM owns that code and needs redeployment when scoring rules change.
-- _n8n node exists:_ `open-mercato/n8n-nodes` (generic REST node, pushed 2026-03-07) already speaks OM's API. WIC would be its first production use case.
+**RFP scoring (ad-hoc, PM-triggered):**
+- PM clicks "Score responses" on comparison page → OM POSTs to n8n webhook: `{ rfpCampaignId, responseIds[] }`
+- n8n workflow: Open Mercato node (GET RFP + responses + case studies) → LLM node (score with lead-agency-matching rubric: tech fit /5 + domain fit /5) → Open Mercato node (POST scores back)
+- PM sees scores appear on comparison page (polling or SSE). Scores are guidance — PM makes final call.
+- Scoring rubric from `lead-agency-matching` skill: tech fit (systems, platforms, infrastructure match) + domain fit (industry, segment, operational experience)
 
-**After Phase 4:** "System runs itself. WIC scores automatically via n8n, agencies get invited by email, onboarding is guided."
+**Why n8n for both:**
+- _One LLM integration point:_ All AI work in n8n. No LLM dependencies in OM app code. When scoring rules change, update n8n workflow — no OM redeployment.
+- _Not ai-assistant:_ OM's ai-assistant is a conversational agent (Cmd+K, OpenCode, MCP). Using a full agent stack for a single scoring call is overkill. n8n is an orchestration engine — right tool for the job.
+- _Not standalone scripts:_ n8n gives visible orchestration, run history, failure alerts. PM can inspect and re-trigger.
+- _n8n node exists:_ `open-mercato/n8n-nodes` (generic REST node, pushed 2026-03-07) already speaks OM's API.
+
+**Acceptance criteria:**
+- [ ] WIC scores arrive daily without PM intervention. Contributors see updated scores. PM can see n8n run history.
+- [ ] PM clicks "Score responses" on any RFP → tech fit + domain fit scores appear within 1 minute
+- [ ] PM can invite agencies by email (replaces manual link sharing)
+- [ ] Onboarding has guided steps tracked by the system
+- **Business value:** PM time reclaimed. WIC import goes from manual monthly task to automated daily. RFP evaluation goes from reading every response manually to AI-assisted scoring. Invitation flow is professional, not "here's a link."
+- **ROI metric:** PM hours saved per week (target: 6+ hours). WIC import delay (target: <24h from PR merge to score visible). RFP scoring time (target: <2 min from click to scores).
 
 ### Rollout Summary
 
 ```
 Phase 1: Core Loop              3 commits    WF1 (partial) + WF2 (stamp-based WIP)
 Phase 2: Governance + KPI + MIN 8 commits    WF5 + WF3 (manual) + MIN attribution + cron
-Phase 3: RFP                    4 commits    WF4 (workflows)
-Phase 4: Automation             5-6 commits  WF3 (n8n) + WF1 (full)
+Phase 3: RFP (manual scoring)   4 commits    WF4 (workflows, comparison page)
+Phase 4: n8n Automation + AI    6-8 commits  WIC (n8n) + RFP scoring (n8n) + WF1 (full)
                                 ---------
-                                20-21 atomic commits total
+                                21-23 atomic commits total
                                 15 commits for Phases 1-3 (production-ready loop)
 ```
 
@@ -784,8 +824,10 @@ Each phase delivers a complete, usable increment. No phase leaves a workflow hal
 - [x] Phases ordered by: business priority x gap score x blocker status
 - [x] Each phase delivers complete, usable increment
 - [x] Workarounds documented for high-gap blockers — WIC manual import, self-onboard
-- [x] Total atomic commits estimated per phase — 3/8/4/8+ `Piotr`
+- [x] Total atomic commits estimated per phase — 3/8/4/6-8 `Piotr`
 - [x] Challenger review: MIN moved to Phase 2 (Vernon finding: tier eval needs all 3 KPIs). Phase 1 WIP uses live query (no batch dependency).
+- [x] Acceptance criteria per phase — business value + ROI metric defined for each phase
+- [x] No artificial phases — every phase delivers measurable business value
 
 ---
 
@@ -864,8 +906,8 @@ Each phase delivers a complete, usable increment. No phase leaves a workflow hal
 | 3 | Invitation flow | a) self-onboard b) email invitation | Phase 1 vs Phase 4 | Mat | Decided: self-onboard Phase 1, email Phase 4. Known limitation: no formal enrollment event in Phase 1 (accepted). |
 | 4 | Existing portal code | a) delete b) refactor | All phases | Mat | Decided: delete. Zero personas need CustomerUser. |
 | 5 | Tier grace period | a) none b) 1 month c) pro-rata | Phase 2 edge cases | Mat | Decided: 1 month. State machine: OK → GracePeriod → ProposedDowngrade. |
-| 6 | RFP lead source | a) website form b) email c) PM enters manually | Phase 3 scope | Mat | Open |
-| 7 | RFP matching criteria | a) automated (case study data) b) manual (PM judgment) | Phase 3 complexity | Mat + Piotr | Open |
+| 6 | RFP lead source | PM enters manually (creates campaign with requirements + file attachments). Future: webhook from website form. | Phase 3 scope | Mat | Decided: manual entry v1. PM creates campaign, attaches lead brief/specs. |
+| 7 | RFP matching criteria | Phase 3: manual (PM reads responses, decides). Phase 4: AI-assisted via n8n (LLM scores tech fit /5 + domain fit /5 per lead-agency-matching rubric). PM always makes final call. | Phase 3/4 complexity | Mat + Piotr | Decided: manual Phase 3, n8n LLM Phase 4. One LLM integration point (n8n) for both WIC and RFP. |
 | 8 | MIN attribution | PM searches all companies across all agencies, verifies in CRM, creates PartnerLicenseDeal with attribution | Phase 2 data model | Mat | Decided: cross-org company search + CRM read-only jump + attribution. Moved from Phase 3 to Phase 2 (tier eval needs MIN). |
 | 9 | WIC L1 score discriminator | L1 0.5 = complex fix/large refactor/high-impact bug report. L1 0.25 = smaller fix/hardening/standard bug report. | WIC scoring accuracy | Mat | Decided: impact level of the fix. Verified against SDRC WIC Assessment Learnings + Monthly Workflow docs. |
 
