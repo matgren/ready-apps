@@ -1136,6 +1136,7 @@ Each phase delivers a complete, usable increment. No phase leaves a workflow hal
 - Two identity systems in one app
 - Building user management UI (auth module has it)
 - Leaving scaffold boilerplate modules (`example/`, empty dirs) from `create-mercato-app` in the app
+- Leaving unused modules from `create-mercato-app` template in `modules.ts` — only register modules listed in §4.5 Module Architecture. Remove corresponding imports from `layout.tsx` (e.g., AiAssistant, third-party analytics scripts)
 - Copying or re-implementing OM platform helpers locally (integration test helpers, auth utilities, fixture builders) — import from `@open-mercato/core/testing/integration` instead. Local copies drift and teach the wrong pattern.
 - Creating app-local Playwright config — use `mercato test` CLI which handles ephemeral environments and test discovery across `__integration__/` dirs
 

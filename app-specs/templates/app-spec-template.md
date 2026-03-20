@@ -402,6 +402,7 @@ Phase 2: [name]    [N] commits    [which workflows]
 **Anti-patterns to avoid:**
 - [list of what we're NOT building and why]
 - Leaving scaffold boilerplate modules (`example/`, empty dirs) from `create-mercato-app` in the app
+- Leaving unused modules from `create-mercato-app` template in `modules.ts` — only register modules listed in §4.5 Module Architecture. Remove corresponding imports from `layout.tsx` (e.g., AiAssistant, third-party analytics scripts)
 - Copying or re-implementing OM platform helpers locally (e.g., integration test helpers, auth utilities, fixture builders) instead of importing from `@open-mercato/core/testing/integration`. If a helper doesn't exist in core — contribute it upstream, don't duplicate it in the app. Local copies drift, break on version upgrades, and teach the wrong pattern.
 - Creating app-local Playwright config instead of using `mercato test` CLI and its test discovery. The CLI handles ephemeral environments, test discovery across `__integration__/` dirs, and consistent config. App-local configs bypass all of this.
 

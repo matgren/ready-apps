@@ -174,6 +174,9 @@ After a spec is written and reviewed (§2 steps 5-6), implement it. Read `open-m
 Before the first domain commit of any new app scaffolded from `create-mercato-app`:
 - Remove the `example` module from `src/modules/` (scaffold boilerplate)
 - Remove empty module directories (e.g., `auth/` if not customized)
+- Strip `modules.ts` to only modules listed in App Spec §4.5 Module Architecture
+- Remove corresponding imports from `layout.tsx` (e.g., AiAssistant, third-party analytics scripts)
+- If existing DB has migrations for removed modules, start with a fresh DB (`yarn reinstall`)
 - Verify only domain modules from the App Spec remain in `src/modules/`
 - Commit as: `chore(<app>): remove scaffold boilerplate`
 
