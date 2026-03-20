@@ -169,6 +169,16 @@ Each spec must include:
 
 After a spec is written and reviewed (§2 steps 5-6), implement it. Read `open-mercato/.ai/skills/implement-spec/SKILL.md` for the OM implementation workflow, then follow the per-commit loop below.
 
+### Pre-Implementation Cleanup
+
+Before the first domain commit of any new app scaffolded from `create-mercato-app`:
+- Remove the `example` module from `src/modules/` (scaffold boilerplate)
+- Remove empty module directories (e.g., `auth/` if not customized)
+- Verify only domain modules from the App Spec remain in `src/modules/`
+- Commit as: `chore(<app>): remove scaffold boilerplate`
+
+This is a prerequisite, not a domain commit — it does not count toward the phase commit total.
+
 ### Per-Commit Loop
 
 ```

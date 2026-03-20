@@ -786,6 +786,7 @@ Success: Every file follows OM conventions (auto-discovery paths, UMES patterns,
 - [ ] Admin logs in for the first time and sees a checklist telling them exactly what to do: fill profile, add case study, invite BD, invite Contributor
 - [ ] BD logs in for the first time and sees a checklist: add prospect company, create first deal
 - [ ] Checklist items link to the right page. Completed items show checkmark. Widget disappears when all done.
+- [ ] Scaffold boilerplate removed — no `example` module, no empty module directories in `src/modules/`
 
 **Value delivered:**
 - **Business value:** Pipeline visibility. PM knows which agencies are generating prospects. Without this, PM has zero data on agency activity.
@@ -1098,6 +1099,7 @@ Each phase delivers a complete, usable increment. No phase leaves a workflow hal
 - Hardcoded state machines (use workflows module)
 - Two identity systems in one app
 - Building user management UI (auth module has it)
+- Leaving scaffold boilerplate modules (`example/`, empty dirs) from `create-mercato-app` in the app
 
 **SPEC-068 alignment:**
 - This app IS `prm` for `create-mercato-app --example prm` — the first official example

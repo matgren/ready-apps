@@ -360,11 +360,13 @@ Phase 2: [name]    [N] commits    [which workflows]
 
 **Anti-patterns to avoid:**
 - [list of what we're NOT building and why]
+- Leaving scaffold boilerplate modules (`example/`, empty dirs) from `create-mercato-app` in the app
 
 #### Checklist
 - [ ] Every piece of new code passes the "copy test" — if someone copies this, do they build ON the platform or AROUND it?
 - [ ] Anti-patterns explicitly listed
 - [ ] Platform features demonstrated — the app showcases what the platform can do
+- [ ] Scaffold boilerplate removed — no `example` module, no empty module directories
 
 ---
 
