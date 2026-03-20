@@ -1,0 +1,55 @@
+# WIC Assessment Guide (Agentic Workflow)
+
+Ten dokument definiuje proces liczenia **Wildly Important Contribution (WIC)** dla Open Mercato w sposób przeznaczony bezpośrednio dla Modelu Językowego (Agenta AI). 
+
+Proces nie opiera się już na sztywnym kodzie JS. Zamiast tego zlecamy Agentowi pobranie suchych danych przy użyciu narzędzia fetchującego, a następnie analizę "ludzkim okiem" AI z użyciem poniższych zasad.
+
+**KRYTYCZNA ZASADA DETERMINIZMU:** Jako Agent oceniający musisz być w 100% obiektywny, bezstronny i powtarzalny (deterministryczny). Twoim zadaniem jest **wyłącznie** aplikowanie poniższego algorytmu punktacji do dostarczonych danych ze zrzutu. Nie wolno Ci wymyślać własnych reguł, zmieniać wag punktowych ani faworyzować jakichkolwiek wkładów, które nie spełniają rygorystycznie definicji z tabeli. Jeśli zrzut danych jest identyczny, Twój raport MUSI być identyczny z poprzednim uruchomieniem. Przed przyznaniem każdego punktu udowodnij w kolumnach logiki, z którego punktu w tabelce ten WIC wynika.
+
+## Krok 1: Pobranie Danych WIC
+Zawsze zaczynaj od wygenerowania zrzutu wkładu z GitHuba za pomocą szybkiego skryptu pobierającego:
+`node /Users/maciejgren/Documents/SDRC/scripts/wic_data_fetcher.mjs --profiles <loginy> --from <YYYY-MM-DD> --to <YYYY-MM-DD> --format markdown > /tmp/wic_dump.md`
+
+Następnie przeczytaj uważnie wygenerowany plik `/tmp/wic_dump.md`. Będą tam wszystkie Pull Requesty oraz Issue dla ocenianych osób, w tym powiązane komentarze, zmienione pliki i aktywne zadania typu "Bounty".
+
+## Krok 2: Analiza przez Agenta (Ty jesteś sędzią)
+
+Twoim zadaniem jest sklasyfikować każdą znaczącą pracę danej osoby do punktacji WIC, korzystając z poniższego klucza. Zawsze grupuj logicznie połączone PR-y i Issue w jedno _Feature_ (np. specyfikacja + implementacja).
+
+### Co to jest WIC
+WIC to znaczący wkład, który realnie przesuwa platformę do przodu.
+
+### Typowe Zrzuty i Wykluczenia
+- Jeśli kod ma małe modyfikacje bez większego znaczenia architektonicznego (np. kilka zmienionych linii, rutynowe fixy w paczkach, update zależności) -> **odrzucasz (0 pkt, Routine Maintenance)**.
+- Jeśli PR został utworzony ale zamknięty bez zmergowania, chyba że zawiera sygnał aprobaty Core Teamu (komentarz akceptujący lub review APPROVED), -> **odrzucasz.**
+- Przypisuj jeden wynik (ten najwyższy) do pracy podzielonej na kilka PR-ów dla tego samego problemu (np. SPEC-xyz).
+
+### Tabela Punktacji Bazowej
+
+| Typ wkładu | WIC Level | Bazowe punkty |
+| :--- | :--- | :--- |
+| **Complete Core Module** (wielka zmiana w infrastrukturze) | L4 | 1.0 |
+| **New Feature / Spec + Implementacja** (nowa, kompleksowa funkcja ze specyfikacją) | L4 | 1.0 |
+| **Major PoC / Industry Prototype** (duży działający koncept badawczy) | L2 | 1.0 |
+| **Comprehensive Feature Spec** (sama ogromna i merytoryczna specyfikacja nowej funkcji) | L3 | 0.5 |
+| **Complex Bug / Deep Refactor** (duże refakturyzowanie wielu pilków, trudne bugi) | L1 | 0.5 |
+| **Restoration / Small Hardening / Accepted Bug Report** (proste błędy i drobne polepszenia) | L1 | 0.25 |
+| **Routine maintenance** | - | 0.0 |
+
+### Impact Bonus (Impact Score)
+Oceń *szerokość* wkładu jako człowiek – jeśli implementacja nowej funkcji była ogromna, zawierała tysiące linijek kodu, kompletne testy E2E / Unit, i dotykała wielu modułów, możesz przyznać do punktacji bazowej **bonus +0.25 za wielki zasięg (Scope) oraz +0.25 za dokładność (np. pokrycie testami E2E/Unit)**. (Max Impact to `+0.5`).
+
+### Bonys Bounty (Mnożnik)
+Jeżeli w zrzucie Danych występuje aktywne zadanie z tagiem `Bounty` – musisz ocenić z dużą starannością, czy zgłoszony PR autora *został intencjonalnie napisany w celu wypełnienia tego konkretnego Bounty*.
+- Oceniasz cel biznesowy – nawet jeśli słowa kluczowe są podobne (np. 'optimization'), zastanów się, czy PR realizuje obietnicę bounty. Nie dodawaj bonusu Bounty dla zupełnie nowych ogromnych funkcjonalności jeśli bounty dotyczy DRY/Refactoringu.
+- Kiedy przyznajesz Bounty, pomnóż ostateczny wynik wkładu (Baza + Impact) przez **1.5**. Ostateczny skok odkładany jest jako `Bounty Bonus`.
+
+## Krok 3: Wygenerowanie Ostatecznego Raportu
+
+Wynik Twojej analizy opublikuj jako odpowiedź w formacie tabeli Markdown o poniższych rygorystycznych kolumnach (Tylko po jednym wierszu per Osoba na cały miesiąc, uśrednij poziomy wybierając najwyższy).
+
+| osoba | GH profile | miesiac-rok | WIC script version | Ocena WIC | WIC Level | Bounty bonus | Why bonus | What we included and why? | What we excluded and why? |
+|---|---|---|---|---:|---|---:|---|---|---|
+| Imię | github_login | YYYY-MM | 1.0-agent | *[Suma Base+Impact+Bounty wszystkich prac]* | *[Max z osiągniętych L]* | *[Suma punktów uzyskanych z samego mnożnika Bounty]* | *[Tytuł Bounty jesli uznane]* | *[Opisz krótko praca A: level, base, +impact, PRs; Praca B: ...]* | *[Odrzucone commity ze względu na rutynę]* |
+
+**Zalecenie na koniec:** Gdy po obliczeniach zastanawiasz się nad wynikiem końcowym, zawsze jako recenzent AI zadaj sobie pytanie: *Gdyby ta osoba zrobiła dla nas tylko to jedno w tym miesiącu, czy realnie pchnęłaby projekt do przodu?* Jeśli obiektywnie tak – zostaw pełny wynik. Jeśli mam wątpliwości – przytnij do 0.25. Nigdy nie dodawaj punktów za "dobre chęci" czy samą koncepcję, jeśli nie jest to wyraźnie dozwolone przez tabelę (np. *Comprehensive Feature Spec*). Jeśli kod jest nie zmergowany i nie ma jawnej aprobaty Core Teamu - absolutnie zawsze przypisujesz 0 pkt za taki PR.
