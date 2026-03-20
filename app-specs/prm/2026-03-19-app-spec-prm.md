@@ -211,7 +211,7 @@ MIN(org, year) = COUNT(DISTINCT license_deals)
 
 **Company Profile and Case Study field definitions:**
 
-Source: SPEC-053a (B2B PRM Matching Data). These are the canonical field definitions — our setup.ts seeds them exactly as specified.
+These are the canonical field definitions for PRM. setup.ts seeds them exactly as defined below.
 
 **Company Profile** (`customers:customer_company_profile`) — 13 fields:
 - `positioning_summary` (multiline), `services` (dictionary, multi), `industries` (dictionary, multi), `tech_capabilities` (dictionary, multi)
@@ -232,7 +232,7 @@ Source: SPEC-053a (B2B PRM Matching Data). These are the canonical field definit
 
 **Minimum required for creation:** `title`, at least one `industry`, at least one `technologies`, `budget_bucket`, `duration_bucket`. Other fields optional but improve RFP matching quality.
 
-See SPEC-053a for full API contracts, dictionary taxonomy, and custom field definition payloads.
+API contracts use standard OM entities module: `POST /api/entities/definitions.batch` for field definitions, `POST /api/entities/records` for records, `POST /api/dictionaries` for taxonomies.
 
 #### Domain Model Checklist
 - [x] Domain entities identified — PartnerAgency, tiers, KPIs, case studies, RFP, license deals, ContributionUnit, TierChangeProposal, TierEvaluationState
@@ -759,7 +759,7 @@ Success: Every file follows OM conventions (auto-discovery paths, UMES patterns,
 - [ ] Company records scoped to BD's org — no cross-org CRM data leaks
 - [ ] BD cannot create or modify `wip_registered_at` directly — only the API interceptor writes it
 - [ ] PM's org switcher reads are read-only — no write operations through switched-org context
-- [ ] Case study requires minimum fields per SPEC-053a: `title`, at least one `industry`, at least one `technologies`, `budget_bucket`, `duration_bucket` — partial saves rejected at entity level
+- [ ] Case study requires minimum fields: `title`, at least one `industry`, at least one `technologies`, `budget_bucket`, `duration_bucket` — partial saves rejected at entity level
 - [ ] WIP live-query widget scopes by authenticated user's org (or PM's switched org) — no unscoped cross-org counts
 
 **Business criteria** `Mat`:
@@ -1018,38 +1018,39 @@ Each phase delivers a complete, usable increment. No phase leaves a workflow hal
 
 ## 8. Cross-Spec Conflicts `Mat`
 
-### Conflicts
+### Conflicts (resolved)
 
-| Conflict | Specs involved | Resolution |
+| Conflict | What was wrong | Resolution |
 |----------|---------------|------------|
-| Agency identity: CustomerUser vs User | SPEC-053c vs SPEC-053b | **User wins.** BD needs CRM. Portal deleted. |
-| Tier levels: 3 (bronze/silver/gold) vs 4 real | SPEC-053c vs business requirements | **4 real tiers.** Spec was wrong. |
-| WIP definition: "conversations" vs "deals in SQL stage" | SPEC-053 vs SPEC-053b | **Deals in SQL stage.** CRM best practice. |
-| RFP: custom API routes vs workflows module | SPEC-053c (code) vs SPEC-053b (spec) | **Workflows module wins.** RFP lifecycle (create → notify → collect responses → evaluate → select) maps to workflow steps: START → SEND_EMAIL → WAIT_FOR_TIMER → USER_TASK (BD response) → USER_TASK (PM evaluation) → END. Reduces custom code. |
+| Agency identity: CustomerUser vs User | Earlier design made agency users CustomerUser (portal) | **User wins.** BD needs CRM. Portal deleted. |
+| Tier levels: 3 (bronze/silver/gold) vs 4 real | Earlier design had 3 generic tiers | **4 real tiers** matching business requirements. |
+| WIP definition: "conversations" vs "deals in SQL stage" | Earlier design counted vague "conversations" | **Deals at SQL stage** with `wip_registered_at` stamp. CRM best practice. |
+| RFP: custom API routes vs workflows module | Earlier code built custom RFP routes | **Workflows module wins.** RFP lifecycle maps to: START → SEND_EMAIL → WAIT_FOR_TIMER → USER_TASK → END. Reduces custom code. |
 
 ### Shared Entity Ownership
 
-| Entity | Owner | Referenced by |
-|--------|-------|---------------|
-| PartnerAgency (org + tier + profile) | partnerships module | all specs |
-| PartnerTierAssignment | partnerships module | SPEC-053b (tier governance) |
-| PartnerMetricSnapshot (WIC/WIP/MIN per period) | partnerships module | SPEC-053b (KPIs), SPEC-060 (WIC) |
-| PartnerWicRun / ContributionUnit | partnerships module | SPEC-060 (WIC scoring) |
-| PartnerRfpCampaign | partnerships module | SPEC-053b (RFP) |
-| PartnerRfpResponse | partnerships module | SPEC-053b (RFP) |
-| PartnerLicenseDeal (MIN source) | partnerships module | SPEC-053b (MIN) |
-| PartnerCaseStudy (`user:case_study`) | entities module (custom entity) | SPEC-053a (field definitions), SPEC-053b (RFP matching) |
-| Company Profile fields | entities module (custom fields on `customers:customer_company_profile`) | SPEC-053a (field definitions) |
-| Dictionaries (services, industries, tech_capabilities, etc.) | dictionaries module (seeded) | SPEC-053a (taxonomy definitions) |
-| Pipeline stages (PRM-specific) | customers module (seeded) | SPEC-053b (WIP) |
+| Entity | Owner | Used by |
+|--------|-------|---------|
+| PartnerAgency (org + tier + profile) | partnerships module | all workflows |
+| PartnerTierAssignment | partnerships module | tier governance (WF5) |
+| TierChangeProposal | partnerships module | tier governance (WF5) |
+| TierEvaluationState | partnerships module | tier governance (WF5) |
+| PartnerMetricSnapshot (WIC/WIP/MIN per period) | partnerships module | KPI aggregation, tier evaluation |
+| ContributionUnit | partnerships module | WIC scoring (WF3) |
+| PartnerRfpCampaign | partnerships module | RFP (WF4) |
+| PartnerRfpResponse | partnerships module | RFP (WF4) |
+| PartnerLicenseDeal (MIN source) | partnerships module | MIN attribution (WF5) |
+| Case Study (`user:case_study`, 19 fields) | entities module (custom entity) | RFP matching, company profile |
+| Company Profile (13 custom fields on `customers:customer_company_profile`) | entities module (custom fields) | agency profile, RFP matching |
+| Dictionaries (services, industries, tech_capabilities, compliance_tags, regions, languages) | dictionaries module (seeded) | company profile, case studies |
+| Pipeline stages (PRM-specific) | customers module (seeded) | WIP tracking (WF2) |
 
 #### Checklist
-- [x] All related specs listed — SPEC-053, 053a, 053b, 053c, 060, 068
 - [x] Identity model consistent — conflict resolved, User wins
 - [x] Terminology consistent — glossary §1.3 is source of truth
-- [x] Shared entities owned by one spec — partnerships module owns all PRM entities
-- [x] Every conflict resolved — RFP uses workflows module
-- [x] SPEC-053a field definitions adopted — company profile (13 fields) + case study (19 fields) + 6 dictionaries
+- [x] Shared entities owned by one module — partnerships module owns all PRM entities, entities module owns profile/case study schema
+- [x] Every conflict resolved — all four resolved with clear rationale
+- [x] Field definitions self-contained — company profile (13 fields) + case study (19 fields) + 6 dictionaries defined in §1.4.3
 
 ---
 
