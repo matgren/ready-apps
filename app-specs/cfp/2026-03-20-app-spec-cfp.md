@@ -677,6 +677,8 @@ Pre-event planning (scenario simulation) gets client in
 - Custom notification system instead of OM workflows SEND_EMAIL
 - Cross-module ORM relationships
 - Retroactive recalculation of historical data (use factor_value_snapshot instead)
+- Leaving scaffold boilerplate modules (`example/`, empty dirs) from `create-mercato-app` in the app
+- Leaving unused modules from `create-mercato-app` template in `modules.ts` -- only register modules listed in §4.5 Module Architecture. Remove corresponding imports from `layout.tsx` (e.g., AiAssistant, third-party analytics scripts)
 
 #### Checklist
 - [ ] Every piece of new code passes the "copy test"
