@@ -390,9 +390,9 @@ API contracts use standard OM entities module: `POST /api/entities/definitions.b
 4. Lead changes requirements after RFP published
 
 **OM readiness:**
-- RFP as workflow -> `workflows` module: START -> SEND_EMAIL -> WAIT_FOR_TIMER -> USER_TASK -> END ✅
+- RFP as workflow -> `workflows` module: START -> SEND_EMAIL -> WAIT_FOR_TIMER -> USER_TASK (PM only) -> END ✅
 - Notification to BD -> workflows SEND_EMAIL activity ✅
-- BD response -> workflows USER_TASK with structured form ✅
+- BD response -> PartnerRfpResponse CRUD API (submitted while workflow waits for timer — not a workflow step) ✅
 - **Gap: RFP campaign data** — custom entity (PartnerRfpCampaign)
 - **Gap: Response data** — custom entity (PartnerRfpResponse)
 - **Gap: PM evaluation page** — comparison view (~100 lines)
@@ -508,13 +508,13 @@ Each gap is measured in **atomic commits** — one self-contained, testable incr
 
 #### WF4: Lead Distribution (RFP) — Total: 4 atomic commits
 
-RFP lifecycle uses workflows module: START → SEND_EMAIL → WAIT_FOR_TIMER → USER_TASK (BD response) → USER_TASK (PM evaluation) → END.
+RFP lifecycle uses workflows module: START → SEND_EMAIL → WAIT_FOR_TIMER → USER_TASK (PM evaluation) → END. One workflow instance per campaign. BD responses are submitted via PartnerRfpResponse CRUD API while the workflow waits for the timer — not a workflow step.
 
 | Step | OM Module | Gap | Commits | Scope | Notes |
 |------|-----------|-----|---------|-------|-------|
 | PM creates RFP campaign | partnerships entities + workflows | Gap: entity + workflow def | 2 | `app` | 1: PartnerRfpCampaign entity + CRUD route. 2: Workflow JSON definition + trigger |
 | System notifies agencies | workflows SEND_EMAIL | Covered | 0 | — | Workflow activity — zero code |
-| BD sees RFP + submits response | workflows USER_TASK + partnerships | Gap: response entity | 1 | `app` | PartnerRfpResponse entity, USER_TASK form renders it |
+| BD sees RFP + submits response | partnerships CRUD API | Gap: response entity | 1 | `app` | PartnerRfpResponse entity + CRUD route. BD submits via API while workflow waits for timer. Late submissions rejected by route (deadline check). |
 | PM evaluates responses | partnerships backend | Gap: comparison page | 1 | `app` | Side-by-side backend page |
 | PM selects winner | workflows USER_TASK | Covered | 0 | — | Workflow completes, status updated |
 
@@ -611,7 +611,7 @@ Success: Campaign created with attached files, workflow triggered, target agenci
 Success: BD sees notification (in-app or email via workflow SEND_EMAIL), clicks through to RFP details, attached files, and deadline.
 
 **US-4.3** As BD/Admin, I submit a free-form response to an RFP (like an email — text + optional attachments) so that PM can evaluate our fit.
-Success: Response saved via workflow USER_TASK, PM sees it in campaign responses list. Agency's case studies automatically linked for PM context.
+Success: Response saved via PartnerRfpResponse CRUD API (not a workflow step — BD submits while workflow waits for timer). Late submissions rejected (deadline check in route). PM sees it in campaign responses list. Agency's case studies automatically linked for PM context.
 
 **US-4.4** As PM, I compare agency responses side-by-side and select a winner so that the lead is assigned to the best-fit agency.
 Success: Comparison view shows all responses with agency case studies. PM reads responses, selects winner, workflow advances (RfpAwarded event), losing agencies notified of outcome.
@@ -696,7 +696,7 @@ Success: Every file follows OM conventions (auto-discovery paths, UMES patterns,
 | US-3.4 | n8n workflow (GitHub+LLM) → POST to import API — Phase 4 | 2-3 | `n8n` | n8n workflow definition + n8n-nodes enhancements + docs. WicAssessmentSource = `automated_pipeline`. |
 | US-4.1 | partnerships entity + workflows | 2 | `app` | 1: PartnerRfpCampaign entity (with file attachments) + CRUD route. 2: RFP workflow JSON definition. CampaignPublished event. |
 | US-4.2 | workflows SEND_EMAIL | 0 | — | Covered by workflow activity |
-| US-4.3 | workflows USER_TASK + partnerships entity | 1 | `app` | PartnerRfpResponse entity (free-form text + attachments) + USER_TASK form. Auto-links agency case studies. |
+| US-4.3 | partnerships CRUD API | 1 | `app` | PartnerRfpResponse entity (free-form text + attachments) + CRUD route. BD submits via API while workflow waits for timer. Deadline enforced in route. Auto-links agency case studies. |
 | US-4.4 | partnerships backend page | 1 | `app` | Comparison page (responses + case studies side-by-side) + workflow advance. RfpAwarded event. |
 | US-4.5 | n8n webhook + LLM — Phase 4 | 1-2 | `n8n` | n8n workflow: webhook trigger → Open Mercato node (read data) → LLM node (score) → Open Mercato node (POST scores). Scoring rubric from lead-agency-matching skill. |
 | US-5.1 | queue worker + partnerships | 1 | `app` | Aggregation worker: reads WIC (ContributionUnits), WIP (`wip_registered_at`), MIN (PartnerLicenseDeals). Computes TierEligibility. Cron trigger shared. |
@@ -873,7 +873,7 @@ Success: Every file follows OM conventions (auto-discovery paths, UMES patterns,
 | US-4.1 | RFP campaign entity + CRUD route (CampaignPublished event) | 1 |
 | US-4.1 | RFP workflow JSON definition + trigger | 1 |
 | US-4.2 | BD notification (covered by workflow SEND_EMAIL) | 0 |
-| US-4.3 | PartnerRfpResponse entity + USER_TASK form | 1 |
+| US-4.3 | PartnerRfpResponse entity + CRUD route (BD submits via API, not workflow step) | 1 |
 | US-4.4 | PM comparison page + winner selection (RfpAwarded event) | 1 |
 
 **Total: 4 atomic commits** (RFP entity with file attachments + RFP workflow + response entity with free-form text + comparison page)
@@ -882,7 +882,7 @@ Success: Every file follows OM conventions (auto-discovery paths, UMES patterns,
 
 **Domain criteria** `Vernon` (11 accepted, 1 deferred by Mat):
 - [ ] RFP campaign has exactly one lifecycle state at any point — states do not overlap
-- [ ] No submissions after deadline — USER_TASK form closed, late submissions rejected
+- [ ] No submissions after deadline — PartnerRfpResponse CRUD route rejects submissions when `campaign.deadline < now()`, late submissions return 422
 - [ ] Exactly one winning agency per campaign — second winner-selection on Awarded campaign rejected
 - [ ] One response per agency per campaign — duplicate submissions replaced or rejected
 - [ ] Every PartnerRfpResponse has non-null `rfp_campaign_id` and `responding_agency_id`
@@ -906,9 +906,9 @@ Success: Every file follows OM conventions (auto-discovery paths, UMES patterns,
 - **ROI metric:** RFP campaigns created per month. Agency response rate. Lead-to-selection conversion rate. Target: 3+ RFPs/month, >50% response rate.
 
 **Platform ROI** (example app patterns demonstrated):
-- Workflows module for multi-step processes — RFP lifecycle (START → SEND_EMAIL → WAIT_FOR_TIMER → USER_TASK → END)
+- Workflows module for multi-step processes — RFP lifecycle (START → SEND_EMAIL → WAIT_FOR_TIMER → USER_TASK (PM) → END)
 - SEND_EMAIL activity — agency notification without custom notification code
-- USER_TASK with free-form input — BD response collection via workflow step
+- CRUD API for parallel submissions — BD responses collected via PartnerRfpResponse route while workflow waits, not via USER_TASK (cleaner model for multi-party workflows)
 - Domain events — CampaignPublished, RfpAwarded as explicit facts
 - File attachments on custom entities — RFP campaigns and responses
 - **Copy test:** Phase 3 shows "this is how you build a multi-party workflow with the workflows module"
