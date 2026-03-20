@@ -209,11 +209,40 @@ Success: [concrete, testable criteria]
 
 [Repeat per story, grouped by workflow]
 
-#### Checklist
+### Default User Stories
+
+> Every ready app MUST include these stories. They ensure the app is testable out of the box
+> without manual setup. These follow the same quality bar as domain stories: persona, action,
+> measurable outcome, success criteria.
+
+**US-0.1** As a developer evaluating this ready app, I run `yarn initialize` and get
+pre-configured demo users with distinct roles so that I can log in and test every
+persona's experience without manual user/role setup.
+Success:
+- Each role from §2 Identity Model has at least one seeded user
+- All demo users share a single known password logged to console at seed time
+- Login with each demo user shows only the UI and data their role permits
+- Seeding is idempotent — running `yarn initialize` twice does not create duplicates
+- Demo user emails follow the pattern `{role}@demo.local`
+
+**US-0.2** As a developer evaluating this ready app, I run `yarn dev` after `yarn initialize`
+and see realistic demo data (entities, pipeline deals, relationships) so that I can
+understand the app's domain without reading source code.
+Success:
+- At least 2-3 representative entities per major domain concept
+- Entities span different pipeline stages / lifecycle states
+- Custom fields are populated with realistic values (not "test123")
+- Demo data is visually distinguishable (names contain "Demo" marker)
+
+#### Checklist (domain stories)
 - [ ] Every story has: persona + action + measurable outcome + success criteria
 - [ ] Every story traces to a workflow step — no orphan stories
 - [ ] Identity checkpoint per story — User or CustomerUser? What role key?
 - [ ] No weak stories — vague verbs killed: "manage", "track", "handle", "view data"
+
+#### Checklist (default stories)
+- [ ] US-0.1: Demo users seeded for every role in §2, idempotent, known password
+- [ ] US-0.2: Demo data covers major domain concepts with realistic values
 
 ---
 

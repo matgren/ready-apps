@@ -658,7 +658,14 @@ Success: Org switcher shows all agencies, PM selects one, sees that agency's dat
 **US-7.1** As a Developer, I run `create-mercato-app --example prm` and get a running PRM app so that I can see how OM solves partner relationship management.
 Success: One command → app scaffolded with PRM modules in `src/modules/`. `yarn install && yarn initialize` → app starts with demo data. Developer sees working dashboards, CRM with deals, tier widgets — no manual setup needed.
 
-**US-7.2** As a Developer, I run `yarn initialize` and see example data that exercises every workflow so that I understand what the app does without reading docs first.
+**US-7.2** As a Developer, I run `yarn initialize` and can immediately log in as any persona so that I can test every role's experience without manual user/role setup.
+Success:
+- Each role from §2 Identity Model has at least one seeded user with a known password (logged to console at seed time)
+- Demo user emails follow `{role}@demo.local` pattern (e.g. `partner-admin@demo.local`)
+- Login with each demo user shows only the UI and data their role permits
+- Seeding is idempotent — running `yarn initialize` twice does not create duplicates
+
+**US-7.3** As a Developer, I run `yarn initialize` and see example data that exercises every workflow so that I understand what the app does without reading docs first.
 Success: `seedExamples` populates:
 - 3 demo agencies (different tiers: OM Agency, AI-native Agency, AI-native Expert) with company profiles and case studies
 - Demo BD users per agency with deals at various pipeline stages (some with `wip_registered_at` stamps)
@@ -669,7 +676,7 @@ Success: `seedExamples` populates:
 - 1 demo RFP campaign (Published, with agency responses and a selected winner)
 All data is clearly labeled as demo (e.g., company names like "Acme Agency (Demo)").
 
-**US-7.3** As a Developer, I read any piece of PRM code and understand which OM pattern it uses so that I can apply the same pattern to my own app.
+**US-7.4** As a Developer, I read any piece of PRM code and understand which OM pattern it uses so that I can apply the same pattern to my own app.
 Success: Every file follows OM conventions (auto-discovery paths, UMES patterns, setup.ts hooks). Code comments reference the pattern name when non-obvious. README in `src/modules/partnerships/` explains the module structure and which OM capabilities each file demonstrates.
 
 #### Checklist
