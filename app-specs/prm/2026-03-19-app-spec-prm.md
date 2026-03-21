@@ -84,6 +84,7 @@ All 5 must work for the flywheel to spin. Missing any one = broken loop.
 | **Contributor** | Agency team member whose primary contribution to the program is code (WIC). Has no sales or administrative responsibilities. Identified in the system to enable WIC attribution via GitHub username. | — | — |
 | **ContributionUnit** | Aggregate representing one person's contribution to one feature in one month. Dedup key: person + month + feature_key (enforced as invariant at creation, not just grouping). `organization_id` set at PR merge time. | WIC scoring algorithm or manual import | Monthly |
 | **WicAssessmentSource** | Enum tracking how WIC scores were produced: `manual_import` (PM uploads) or `automated_pipeline` (GitHub+LLM). Each import for a given org+month replaces the previous one; old version archived with timestamp. | WIC import/pipeline | Per import |
+| **AgencyCreated** | Domain event published when PM creates a new agency via "Add Agency" flow. Payload: organizationId, adminUserId, createdBy, demoDataSeeded, createdAt. Downstream consumers: audit trail, tier evaluation (enrollment timestamp for grace period), future notifications. | "Add Agency" API route | Per agency creation |
 | **AgencyTierChanged** | Domain event published when PM approves a tier change. Payload: agencyId, previousTier, newTier, effectiveDate, approvedBy. Downstream consumers: RFP audience filtering, agency dashboard, future website visibility. | Tier approval workflow | Per tier change |
 | **CampaignPublished** | Domain event: PM published an RFP campaign, agencies notified. | RFP workflow | Per campaign |
 | **RfpAwarded** | Domain event: PM selected winning agency for an RFP. Payload: rfpId, winningAgencyId. | RFP workflow | Per campaign |
@@ -184,6 +185,11 @@ MIN(org, year) = COUNT(DISTINCT license_deals)
 - Admin has full CRM write access within own org, including records created by BD users. BD has write access only to their own CRM records.
 - BD and Admin both need to understand what qualifies as WIP — deal must reach SQL stage to trigger `wip_registered_at` stamp
 - Contributor sees almost nothing — only WIC score and tier level
+- **Role assignment constraint:** Agency Admin can only assign roles `partner_member`, `partner_contributor`, `partner_admin` to users in their own org. The `partnership_manager` role is reserved for PM and cannot be assigned by agency users. (Phase 1: procedural. Enforced at API level when role-assignment interceptor is implemented.)
+
+**Demo data safety:**
+- Demo data created via "Add Agency" checkbox or `seedExamples` must be KPI-safe: demo deals do NOT have `wip_registered_at` stamps. Demo data shows pipeline stages and CRM structure but does not inflate WIP counts or affect tier evaluation.
+- `seedExamples` (developer persona, US-7.3) MAY include WIP stamps for demonstrating the WIP workflow — but only in a clearly labeled development context, not in production "Add Agency" flow.
 
 **Cross-org visibility:**
 - PM has Program Scope — sees CRM data of ALL agencies via org switcher. Technically full write (`customers.*`) per OM RBAC design (tenant-wide features, orgs = data partition). Cross-org read-only is a procedural convention, not enforced.
@@ -755,12 +761,12 @@ Success: Every file follows OM conventions (auto-discovery paths, UMES patterns,
 
 | Story | Platform Match | Atomic Commits | Scope | Notes |
 |-------|---------------|----------------|-------|-------|
-| US-1.1 | auth module (self-onboard) | 0 | — | Standard signup flow, zero code. Known limitation: no enrollment event for audit trail (accepted for Phase 1). |
+| US-1.1 | partnerships custom API route + backend page | 1 | `app` | "Add Agency" page: PM fills agency name + admin email + demo data checkbox. System atomically creates Organization (directory) + User (partner_admin + UserAcl) + pipeline + optional KPI-safe demo data. Returns invite message. Emits `AgencyCreated` event. |
 | US-1.1b | auth module (Phase 4: email invitation) | 2 | `core-module` FLAG — invitation flow requires auth module changes (upstream PR + core team approval) | Email template + invitation API route + UI |
 | US-1.2 | entities module custom fields | 1 | `app` | Seed field definitions in setup.ts (includes CaseStudy minimum required fields) |
 | US-1.3 | entities module custom entity | 0 | — | Bundled with US-1.2 seed commit |
-| US-1.4 | auth module | 0 | — | Same mechanism as self-onboard / invitation |
-| US-1.5 | auth module | 0 | — | Same mechanism |
+| US-1.4 | auth module | 0 | — | Admin creates BD via `/backend/users/create` (auth.users.* feature). Domain rule: Admin can only assign partner_member, partner_contributor, partner_admin roles — NOT partnership_manager. |
+| US-1.5 | auth module | 0 | — | Same mechanism as US-1.4 |
 | US-1.6 | customers module CRM | 0 | — | Zero code — CRM exists |
 | US-1.7 + US-1.8 | partnerships widget injection | 1 | `app` | Onboarding checklist widget. Role-conditional (Admin sees 4 items, BD sees 2). Completion derived from live data queries (profile, case study, users, deals). Disappears when done. |
 | US-2.1 | customers module CRM | 0 | — | Zero code |
@@ -782,11 +788,14 @@ Success: Every file follows OM conventions (auto-discovery paths, UMES patterns,
 | US-5.5 | partnerships widget | 0 | — | Scoped view of US-5.4 widget |
 | US-5.6 | partnerships entity + search + CRUD | 2 | `app` | 1: PartnerLicenseDeal entity + PM-only CRUD. 2: Cross-org company search + CRM read-only jump + attribution UI. |
 | US-6.1 | auth org switcher (Program Scope) | 0 | — | Platform feature (`organizationsJson: null`) |
+| US-6.2 | auth org scoping | 0 | — | PM's default org has no deals/WIP. No code needed — natural consequence of org-scoped CRM data. |
+| US-6.3 | auth UserAcl | 0 | — | Agency Admin restricted via `UserAcl.organizationsJson: [ownOrgId]`. Org switcher shows only own org. Covered by "Add Agency" commit. |
+| US-6.4 | auth UserAcl | 0 | — | Same mechanism as US-6.3 for BD role. |
 | — | Cron trigger mechanism (shared) | 1 | `app` | External crontab or API trigger for WF3/WF5 scheduled workers |
 | US-7.1 | create-mercato-app + SPEC-068 | 0 | — | SPEC-068 provides the `--example` flag. PRM is the content, not the mechanism. |
 | US-7.2 | setup.ts `seedExamples` | 1 per phase | `app` | Each phase adds demo data to `seedExamples`: Ph1 = agencies+deals, Ph2 = WIC+tiers+MIN, Ph3 = RFP campaign. Bundled with phase commits — not a separate commit. |
 | US-7.3 | code conventions + README | 0 | `app` | No separate commit — conventions followed throughout. Module README written once at Phase 1. |
-| **Total** | | **16 (Ph1-3) + 6-8 (Ph4) = 22-24** | | seedExamples bundled per phase, not additional commits |
+| **Total** | | **17 (Ph1-3) + 6-8 (Ph4) = 23-25** | | seedExamples bundled per phase, not additional commits. +1 from US-1.1 Add Agency route. |
 
 #### Checklist
 - [x] Every story mapped to specific OM module/mechanism with atomic commit estimate `Mat`
@@ -811,19 +820,19 @@ Success: Every file follows OM conventions (auto-discovery paths, UMES patterns,
 
 | Story | What ships | Commits |
 |-------|-----------|---------|
-| US-1.1 | Self-onboard (PM shares signup link manually). Known limitation: no formal enrollment event for audit trail. | 0 |
+| US-1.1 | "Add Agency" page — PM creates org + admin + optional demo data in one step. Emits `AgencyCreated` event. Returns invite message for PM to copy. | 1 |
 | US-1.2 + US-1.3 | Company profile custom fields + case study custom entity + CaseStudy minimum required fields (seed in setup.ts) | 1 |
-| US-1.4 | Admin invites BD (same self-onboard mechanism) | 0 |
-| US-1.5 | Admin invites Contributor (same mechanism) | 0 |
+| US-1.4 | Admin creates BD account via `/backend/users/create` (has `auth.users.*` feature) | 0 |
+| US-1.5 | Admin creates Contributor account (same mechanism) | 0 |
 | US-1.6 | BD creates first deal (CRM ready) | 0 |
 | US-2.1 | Deal creation (CRM ready) | 0 |
 | US-2.2 | WIP stamp interceptor (`wip_registered_at` on SQL stage) + pipeline stages + custom field (seeded in setup.ts) | 1 |
 | US-2.3 | WIP count widget on PM dashboard (live query: `COUNT WHERE wip_registered_at IN month`) | 1 |
-| US-1.7 + US-1.8 | Onboarding checklist widget — Admin sees profile/case study/invite steps, BD sees prospect/deal steps. Disappears when done. | 1 |
-| US-6.1 | PM org switcher / Program Scope (cross-agency visibility) | 0 |
+| US-1.7 + US-1.8 | Onboarding checklist widget — Admin sees profile/case study/create BD steps, BD sees prospect/deal steps. Disappears when done. | 1 |
+| US-6.1-6.4 | Org isolation — PM sees all via switcher, agency users restricted to own org (UserAcl). | 0 |
 
-**Total: 4 atomic commits** (setup.ts seed + WIP interceptor + KPI dashboard widget + onboarding checklist widget)
-**Workaround:** Invitation flow replaced by PM sharing signup link manually. Good enough for 15 agencies.
+**Total: 5 atomic commits** (Add Agency route + setup.ts seed + WIP interceptor + KPI dashboard widget + onboarding checklist widget)
+**Known limitations Phase 1:** No forced password change on first login (Phase 4 invitation flow replaces). Admin can technically assign any role (domain rule enforcement deferred — procedural for 15 agencies).
 
 **Acceptance criteria:** `Vernon writes, Mat challenges`
 
@@ -1234,11 +1243,25 @@ Vernon raised these findings. Mat disagrees with good business reason:
 
 2. **WF1 should split into two workflows** (Workflows W1) — Onboarding IS one business workflow from the PM's perspective. The platform's workflows module handles sub-workflows (SUB_WORKFLOW step type). Admin onboarding and BD onboarding are tracked as sub-workflows within WF1, not independent workflows. The completion gate ("agency is operational = both halves done") is intentional business logic.
 
-3. **Self-onboard erases enrollment event** (Phasing C3) — In Phase 1, PM shares link manually and knows who they invited. The audit gap is real but acceptable for 15 agencies. Documented as known limitation in US-1.1 and Open Question #3. Phase 4 adds formal invitation flow. Not worth engineering a synthetic event for a workaround that serves < 20 agencies.
+3. **Self-onboard erases enrollment event** (Phasing C3) — ~~Originally accepted as limitation.~~ RESOLVED: "Add Agency" flow (US-1.1 update 8) now emits `AgencyCreated` domain event with enrollment timestamp. Tier evaluation can use `createdAt` for grace period logic. No longer a gap.
 
 ---
 
 ## Changelog
+
+### 2026-03-22 (update 8) — Vernon/Piotr review: Add Agency flow, org isolation, domain events
+
+- Vernon challenger review (0 critical, 5 warnings):
+  - W1: Added `AgencyCreated` domain event to glossary + US-1.1
+  - W2: Atomicity via `em.transactional()` — documented in US-1.1
+  - W3: No forced password change — known limitation Phase 1, documented
+  - W4: Demo data from "Add Agency" is KPI-safe (no WIP stamps). seedExamples may have stamps for dev context only.
+  - W5: Role assignment constraint added — Admin cannot assign partnership_manager role
+- Piotr gap analysis: US-1.1 updated from 0 to 1 commit in §6 and §7. Phase 1 total: 4 → 5 commits.
+- Added US-6.2, 6.3, 6.4 to §6 gap analysis (0 commits — platform features)
+- Updated §7 Phase 1 table to reflect "Add Agency" commit and org isolation stories
+- Per-agency Organization seed structure (directory module), UserAcl org restriction
+- PM gets directory.organizations.manage for creating agency orgs
 
 ### 2026-03-20 (update 7) — Module Architecture, Anti-patterns, RBAC Clarifications
 
