@@ -23,25 +23,15 @@
 
 ---
 
-## defaultRoleFeatures ignores custom role keys (Phase 1 blocker — workaround active)
+## defaultRoleFeatures ignores custom role keys — RESOLVED
 
 ### Upstream investigation
 - **Scope:** `core-module` — auth module `setup-app.ts`
 - **Needed capability:** `defaultRoleFeatures` should process arbitrary role keys, not just superadmin/admin/employee
-- **Spec found:** None
-- **Issues/PRs found:** PR #1040 submitted (https://github.com/open-mercato/open-mercato/pull/1040)
-- **On develop branch:** No — not implemented
-- **Recommendation:** PR submitted. App workaround: `seedPrmRoles` manually creates RoleAcl entries for custom roles.
-
-### Impact
-- Every OM app with custom roles (PRM, CFP, any future app) hits this
-- Without fix, custom role features silently ignored during `yarn initialize`
-- Workaround: manually seed RoleAcl in module's `seedDefaults`
-
-### Timeline
-- PR submitted: 2026-03-20
-- Risk: low — fix is 22 lines, backward compatible, no architectural debate
-- Mitigation: workaround in seedPrmRoles is stable
+- **PR:** #1040 (https://github.com/open-mercato/open-mercato/pull/1040)
+- **Status:** MERGED to develop on 2026-03-20. Commit `97d4cca06`.
+- **Available in:** `@open-mercato/core@0.4.9-develop.1013.aa3a9dea92`
+- **App impact:** RoleAcl workaround in `seedPrmRoles` removed. `defaultRoleFeatures` now handles custom role keys natively.
 
 ---
 

@@ -9,7 +9,7 @@ import {
   CustomerPipelineStage,
 } from '@open-mercato/core/modules/customers/data/entities'
 import { Dictionary, DictionaryEntry } from '@open-mercato/core/modules/dictionaries/data/entities'
-import { User, Role, UserRole, RoleAcl, UserAcl } from '@open-mercato/core/modules/auth/data/entities'
+import { User, Role, UserRole, UserAcl } from '@open-mercato/core/modules/auth/data/entities'
 import { ensureCustomFieldDefinitions } from '@open-mercato/core/modules/entities/lib/field-definitions'
 import { hashForLookup } from '@open-mercato/shared/lib/encryption/aes'
 import { hash } from 'bcryptjs'
@@ -421,37 +421,22 @@ const PRM_ROLE_FEATURES: Record<string, string[]> = {
   ],
 }
 
+// Seed PRM roles. Features are assigned via defaultRoleFeatures (OM core
+// handles custom role keys since PR #1040, merged 2026-03-20).
 async function seedPrmRoles(
   em: import('@mikro-orm/postgresql').EntityManager,
   scope: SeedScope
 ): Promise<void> {
-  for (const [roleName, features] of Object.entries(PRM_ROLE_FEATURES)) {
-    let role = await em.findOne(Role, {
+  for (const roleName of Object.keys(PRM_ROLE_FEATURES)) {
+    const existing = await em.findOne(Role, {
       name: roleName,
       tenantId: scope.tenantId,
       deletedAt: null,
     })
-    if (!role) {
-      role = em.create(Role, {
+    if (!existing) {
+      em.persist(em.create(Role, {
         name: roleName,
         tenantId: scope.tenantId,
-        createdAt: new Date(),
-      })
-      em.persist(role)
-      await em.flush()
-    }
-
-    // Seed ACL (features) for this role
-    const existingAcl = await em.findOne(RoleAcl, {
-      role,
-      tenantId: scope.tenantId,
-    })
-    if (!existingAcl) {
-      em.persist(em.create(RoleAcl, {
-        role,
-        tenantId: scope.tenantId,
-        featuresJson: features,
-        isSuperAdmin: false,
         createdAt: new Date(),
       }))
     }
@@ -757,11 +742,8 @@ export const setup: ModuleSetupConfig = {
   },
 
   // PRM partners are User roles (not CustomerUser/portal roles).
-  // DefaultRoleFeatures only types superadmin/admin/employee, but the platform
-  // merges any key present here into role ACLs. Cast to satisfy the type.
-  // NOTE: Until upstream PR #1040 merges, custom role keys here are IGNORED by
-  // OM core. The actual ACL seeding happens in seedPrmRoles above (workaround).
-  // Keep these in sync with PRM_ROLE_FEATURES.
+  // OM core seeds ACL for custom role keys since PR #1040 (merged 2026-03-20).
+  // Single source of truth: PRM_ROLE_FEATURES.
   defaultRoleFeatures: PRM_ROLE_FEATURES as Record<string, string[]>,
 }
 
