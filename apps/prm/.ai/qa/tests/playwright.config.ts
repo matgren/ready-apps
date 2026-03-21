@@ -1,9 +1,11 @@
 import { defineConfig } from '@playwright/test';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { discoverIntegrationSpecFiles } from '@open-mercato/cli/lib/testing/integration-discovery';
 
 const captureScreenshots = process.env.PW_CAPTURE_SCREENSHOTS === '1';
 const isGitHubActions = process.env.GITHUB_ACTIONS === 'true';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, '..', '..', '..');
 const qaTestResultsRoot = path.join(projectRoot, '.ai', 'qa', 'test-results');
 const normalizePath = (value: string) => value.split(path.sep).join('/');

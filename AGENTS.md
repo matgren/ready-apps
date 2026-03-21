@@ -201,7 +201,7 @@ This is a prerequisite, not a domain commit — it does not count toward the pha
     - Place tests in src/modules/<module>/__integration__/TC-*.spec.ts
     - Tests MUST be self-contained: create fixtures in setup, clean up in teardown
     - Tests MUST NOT rely on seeded/demo data
-    - Run: yarn test:integration:ephemeral (spins up fresh app + DB)
+    - Run: yarn test:integration (spins up fresh ephemeral app + DB, runs Playwright)
     - See §3.1 below for integration test infrastructure rules
 9.  Check acceptance criteria from the spec
 10. Invoke superpowers:verification-before-completion before claiming done
@@ -216,8 +216,13 @@ Do NOT create custom test helpers, fixture utilities, or playwright configs from
 
 **Playwright config** — every app MUST have `.ai/qa/tests/playwright.config.ts`. The CLI hardcodes this path. Copy the pattern from OM monorepo but use canary imports:
 - `discoverIntegrationSpecFiles` from `@open-mercato/cli/lib/testing/integration-discovery`
-- Use `__dirname` directly (Playwright transpiles TS to CJS — no ESM hacks needed)
-- If `yarn test:integration:ephemeral` starts the server but never runs tests, this file is missing
+- Apps with `"type": "module"` need an ESM-compatible `__dirname` polyfill: `const __dirname = path.dirname(fileURLToPath(import.meta.url))` (import `fileURLToPath` from `node:url`)
+- If `yarn test:integration` starts the server but never runs tests, this file is missing
+
+**`test:integration` script** — the CLI internally runs `yarn test:integration` to execute Playwright. This script MUST point directly to Playwright, NOT back to `mercato test integration` (causes infinite recursion). Correct value:
+```json
+"test:integration": "npx playwright test --config .ai/qa/tests/playwright.config.ts"
+```
 
 **Test helpers** — import from `@open-mercato/core/helpers/integration/*`:
 - `api` — `getAuthToken`, `apiRequest`
@@ -244,7 +249,7 @@ Pattern: {OM pattern used}
 After all commits in a phase are done:
 
 1. Run `yarn initialize` to test full bootstrap (seedDefaults + seedExamples)
-2. Run `yarn test:integration:ephemeral` — all integration tests for the phase must pass
+2. Run `yarn test:integration` — all integration tests for the phase must pass
 3. Verify ALL acceptance criteria from App Spec §7 for this phase (both domain and business)
 4. Use `code-review` skill for phase review
 5. Update `apps/<app>/docs/specs/` with any learnings
@@ -368,8 +373,9 @@ yarn db:generate                      # Generate database migrations
 yarn db:migrate                       # Apply migrations
 yarn initialize                       # Full initialization (seedDefaults + seedExamples)
 yarn test                             # Run unit tests
-yarn test:integration:ephemeral       # Run Playwright integration tests (fresh app + DB)
-yarn test:integration:ephemeral:start # Start ephemeral app only (for test development)
+yarn test:integration                 # Run Playwright integration tests (fresh ephemeral app + DB)
+yarn test:integration:ephemeral       # Start ephemeral app only (QA exploration, no test run)
+yarn test:integration:ephemeral:start # Start ephemeral app only (alias, for test development)
 yarn test:integration:report          # View HTML test report
 ```
 
