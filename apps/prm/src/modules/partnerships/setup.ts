@@ -13,6 +13,7 @@ import { Organization } from '@open-mercato/core/modules/directory/data/entities
 import { User, Role, UserRole, UserAcl } from '@open-mercato/core/modules/auth/data/entities'
 import { ensureCustomFieldDefinitions } from '@open-mercato/core/modules/entities/lib/field-definitions'
 import { hashForLookup } from '@open-mercato/shared/lib/encryption/aes'
+import { seedDashboardDefaultsForTenant } from '@open-mercato/core/modules/dashboards/cli'
 import { hash } from 'bcryptjs'
 import { DefaultDataEngine } from '@open-mercato/shared/lib/data/engine'
 import { E } from '#generated/entities.ids.generated'
@@ -583,6 +584,15 @@ async function seedPrmExamples(
         name: agency.name.replace(' (Demo)', ''),
         slug: orgSlug,
         isActive: true,
+        depth: 0,
+        ancestorIds: [],
+        childIds: [],
+        descendantIds: [],
+        parentId: null,
+        rootId: null,
+        treePath: '',
+        createdAt: new Date(),
+        updatedAt: new Date(),
       })
       em.persist(agencyOrg)
       await em.flush()
@@ -781,6 +791,21 @@ export const setup: ModuleSetupConfig = {
     await seedCustomFields(ctx.em, scope)
     await seedDictionaries(ctx.em, scope)
     await seedPrmRoles(ctx.em, scope)
+
+    // Replace default OM dashboard widgets with PRM-only widgets for built-in roles.
+    // seedDashboardDefaultsForTenant with explicit widgetIds does a full replace
+    // when records already exist (cli.ts line 76). Custom PRM roles (partner_admin etc.)
+    // are already filtered by feature gating — they don't have customers.widgets.* features.
+    await seedDashboardDefaultsForTenant(ctx.em, {
+      tenantId: ctx.tenantId,
+      organizationId: ctx.organizationId,
+      roleNames: ['admin', 'employee'],
+      widgetIds: [
+        'partnerships.dashboard.wip-count',
+        'partnerships.dashboard.onboarding-checklist',
+      ],
+      logger: () => {},
+    })
   },
 
   seedExamples: async (ctx) => {
