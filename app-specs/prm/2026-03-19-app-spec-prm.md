@@ -289,22 +289,23 @@ API contracts use standard OM entities module: `POST /api/entities/definitions.b
 
 ### WF1: Agency Onboarding
 
-**Journey:** PM creates Organization for agency (directory module) -> PM creates Agency Admin account (assigns agency org + partner_admin role, shares credentials out-of-band) -> Admin logs in -> Admin onboarding sub-workflow (fill company profile -> add min 1 case study -> create BD account -> create Contributor account) -> BD onboarding sub-workflow (add prospect company -> create deal -> move deal to "Contacted") -> Agency is operational
+**Journey:** PM opens "Add Agency" page -> fills agency name + admin email -> optional: demo data checkbox -> click Create -> system creates org + admin + optional demo data -> PM copies invite message from screen -> sends to Admin out-of-band -> Admin logs in (sees demo data or onboarding checklist) -> Admin completes onboarding (profile, case studies, creates BD/Contributor) -> BD creates deals -> Agency is operational
 
 **ROI:** Each new agency = 1-15 WIP/month + 1-5 MIN/year. Zero agencies = zero indirect pipeline. Target: 15+ active agencies.
 
 **Key personas:** Partnership Manager (invites), Agency Admin (configures), BD (first deal)
 
 **Boundaries:**
-- Starts when: PM creates Agency Admin account in backend
+- Starts when: PM opens "Add Agency" page
 - Ends when: Admin completed onboarding, min 1 BD account created, BD completed onboarding, first deal logged
 - NOT this workflow: BD adding subsequent deals (WF2), dev contributing code (WF3), tier evaluation (WF5)
 
 **Edge cases:**
-1. Admin doesn't log in after PM creates account -> PM follows up out-of-band. No system reminder (Phase 1). Phase 4: email invitation with expiry + resend.
+1. Admin doesn't log in after PM creates account -> PM follows up out-of-band using the copied invite message. No system reminder (Phase 1). Phase 4: email with expiry + resend.
 2. Admin leaves agency after onboarding -> zombie org, nobody manages it
 3. Admin fills profile but never creates BD account -> onboarding "done" but no WIP generated
-4. PM creates account with email that already exists -> system rejects (email uniqueness constraint)
+4. PM creates agency with email that already exists -> system rejects (email uniqueness constraint), org not created (atomic operation)
+5. PM creates agency with demo data -> Admin logs in and sees realistic CRM data, can start exploring immediately without manual setup
 
 **OM readiness:**
 - User creation + RBAC -> `auth` module ✅
@@ -593,11 +594,25 @@ RFP lifecycle uses workflows module: START → SEND_EMAIL → WAIT_FOR_TIMER →
 
 ### WF1: Agency Onboarding
 
-**US-1.1** (Phase 1) As PM, I onboard a new agency by creating their organization and admin account so that they can join the partner program.
-Success: PM opens `/backend/directory/organizations/create`, creates organization (e.g., "Acme Digital"). Then opens `/backend/users/create`, enters admin email + password, selects the newly created agency organization, assigns `partner_admin` role. PM shares credentials out-of-band (email, Slack, phone). Admin logs in, sees scoped backend dashboard for their org. Agency data is isolated — no cross-org visibility.
+**US-1.1** (Phase 1) As PM, I onboard a new agency in one step so that the process is fast and I can immediately share access credentials.
+Success: PM opens "Add Agency" page. Fills two fields: agency name + admin email. Optional checkbox: "Create demo data" (checked by default). Clicks "Create". System:
+1. Creates Organization (directory module) with agency name
+2. Generates a random password
+3. Creates Admin user (partner_admin role) in the new org with UserAcl restricting to that org
+4. If "Create demo data" checked: seeds sample company profile, case study, prospect companies, deals at various pipeline stages — so Admin can explore a working CRM immediately
+5. Displays invite message on screen for PM to copy:
+   ```
+   Your agency account has been created on Open Mercato PRM.
+   Organization: [agency name]
+   Login: [admin email]
+   Password: [generated password]
+   URL: [app URL]/login
+   Please change your password after first login.
+   ```
+PM copies message, sends via email/Slack/phone. Admin logs in, sees populated CRM (if demo data) or empty CRM with onboarding checklist (if no demo data). Agency data is isolated — no cross-org visibility.
 
-**US-1.1b** (Phase 4, upstream dependency) As PM, I invite an agency admin by email so that onboarding is automated without manual credential sharing.
-Success: PM enters email, system sends invitation link, Admin clicks link, sets own password, sees scoped backend dashboard. Requires upstream invitation flow (SPEC-038).
+**US-1.1b** (Phase 4, upstream dependency) As PM, I invite an agency admin by email directly from the platform so that credential sharing is automated.
+Success: Same "Add Agency" form but with "Send invitation email" option. System sends email with login link + temporary password. Requires upstream invitation flow (SPEC-038).
 
 **US-1.2** As Agency Admin, I fill my company profile (services, industries, tech stack) so that OM has data for lead matching.
 Success: Profile saved, visible to PM via org switcher, fields match case study categories.
