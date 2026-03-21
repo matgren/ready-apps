@@ -1263,6 +1263,7 @@ Each phase delivers a complete, usable increment. No phase leaves a workflow hal
 - Copying or re-implementing OM platform helpers locally (integration test helpers, auth utilities, fixture builders) — import from `@open-mercato/core/testing/integration` instead. Local copies drift and teach the wrong pattern.
 - Creating app-local Playwright config — use `mercato test` CLI which handles ephemeral environments and test discovery across `__integration__/` dirs
 - Seeding org-scoped users without `UserAcl.organizationsJson` restriction — agency roles (partner_admin, partner_member, partner_contributor) must have `organizationsJson: [orgId]` to prevent cross-org data exposure via org switcher. PM (`partnership_manager`) keeps `null` (all orgs = Program Scope).
+- Leaving default OM dashboard widgets (Customer Todos, New Customers, New Quotes, Next Interactions) active for PRM roles — they clutter the dashboard with irrelevant data. OM currently only provides `appendWidgetsToRoles` (no `setWidgetsForRole` to replace). Phase 1 workaround: users manually hide via dashboard configure. Upstream enhancement: `setWidgetsForRole` API to allow apps to define exact widget set per role.
 
 **SPEC-068 alignment:**
 - This app IS `prm` for `create-mercato-app --example prm` — the first official example
@@ -1298,6 +1299,7 @@ Each phase delivers a complete, usable increment. No phase leaves a workflow hal
 | 9 | WIC L1 score discriminator | L1 0.5 = complex fix/large refactor/high-impact bug report. L1 0.25 = smaller fix/hardening/standard bug report. | WIC scoring accuracy | Mat | Decided: impact level of the fix. Verified against SDRC WIC Assessment Learnings + Monthly Workflow docs. |
 | 10 | PM per-org feature scoping | A) PM gets `customers.*` everywhere — procedural read-only on agencies. B) OM core adds per-org feature override (new OrgRoleAcl entity). | PM can edit agency data — by design per OM RBAC architecture (orgs = data partition, not permission partition). Acceptable for trust-based partner program. | Piotr | DECIDED: A. OM RBAC is by design tenant-wide. No upstream change planned. |
 | 11 | `defaultRoleFeatures` ignores custom role keys | OM core `setup-app.ts` only processes superadmin/admin/employee. Custom roles (partner_admin, etc.) silently ignored. | RESOLVED — PR #1040 merged 2026-03-20. Workaround removed. Updated to `@open-mercato/core@0.4.9-develop.1013.aa3a9dea92`. | Piotr | RESOLVED |
+| 12 | Default OM dashboard widgets clutter PRM dashboard | A) OM adds `setWidgetsForRole` API (replace instead of append). B) App manually hides via dashboard configure. C) Remove unused modules from modules.ts (needs fresh DB). | Dashboard shows Customer Todos, New Quotes etc. alongside PRM widgets. Irrelevant for PRM users. | Piotr | OPEN — Phase 1 workaround (B). Upstream enhancement (A) requested. |
 
 #### Checklist
 - [x] Every question has: options, impact, owner, status
@@ -1310,7 +1312,7 @@ Each phase delivers a complete, usable increment. No phase leaves a workflow hal
 
 | Workflow | Deployable | Blocker | What client would say |
 |----------|-----------|---------|----------------------|
-| WF1: Agency Onboarding | **No** | No invitation flow in auth module | "How do I invite an agency?" (Phase 1 workaround: self-onboard link) |
+| WF1: Agency Onboarding | **Almost** | "Add Agency" page not yet implemented (1 commit). Default OM widgets clutter dashboard. | "I can add agencies but dashboard is noisy with unrelated widgets" |
 | WF2: Pipeline Building (WIP) | **Almost** | CRM ready, missing WIP stamp interceptor + dashboard widget | "I see CRM but not my WIP count" |
 | WF3: Code Contribution (WIC) | **No** | No GitHub integration, no LLM scoring | "How does my PR become WIC score?" (Phase 2 workaround: manual import) |
 | WF4: Lead Distribution (RFP) | **No** | No RFP workflow definition, open questions | "How do I send a lead to agencies?" |
