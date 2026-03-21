@@ -454,6 +454,78 @@ PM has license sale -> opens "Create License Deal" -> searches all companies acr
 
 ---
 
+## 3.5 UI Architecture `Mat + Krug`
+
+> Defines what each persona sees in the UI. Navigation, pages, dashboard widgets, key user flows.
+> Everything uses OM's existing UI building blocks — no custom components.
+
+### Navigation (per role)
+
+| Role | Sidebar groups | Notes |
+|------|---------------|-------|
+| Partnership Manager | **CRM** (Companies, People, Deals, Pipeline), **Partnerships** (Add Agency, Agencies list), **Directory** (Organizations) | PM spends most time in CRM (cross-org) and Partnerships (manage agencies). Directory needed for org management. |
+| Agency Admin | **CRM** (Companies, People, Deals, Pipeline), **Users** (manage team) | Admin works primarily in CRM. Users section for creating BD/Contributor accounts. No Partnerships group — that's PM-only. |
+| Business Developer | **CRM** (Companies, People, Deals, Pipeline) | BD lives in CRM. Creates prospects, manages deals. No user management, no partnerships. |
+| Contributor | _(minimal — dashboard only)_ | Contributor sees dashboard with onboarding checklist. No CRM sidebar items (no `customers.*` feature). Phase 2 adds WIC score widget. |
+
+### Dashboard Widgets (per role)
+
+| Widget | Roles that see it | Data shown | Click-through |
+|--------|------------------|------------|---------------|
+| Onboarding Checklist | Admin (4 items), BD (2 items) | Pending steps: fill profile, add case study, create BD, create Contributor (Admin) / add prospect, create deal (BD). Disappears when done. | Each item links to relevant page |
+| WIP Count | PM, BD (own org) | WIP deals this month per agency (PM: all agencies table, BD: own agency number) | PM: click agency row → switch to that org's CRM |
+| Tier Status | Admin, BD (Phase 2+) | Current tier, progress to next, grace period warning | Link to tier detail page |
+
+### Custom Pages
+
+| Page | URL pattern | Role | Purpose | OM pattern |
+|------|------------|------|---------|------------|
+| Add Agency | `/backend/partnerships/add-agency` | PM | One-step agency creation: name + email + demo data checkbox. Returns invite message. | Custom form (not CrudForm — custom submit with atomic multi-entity creation) |
+| Agency List | `/backend/partnerships/agencies` | PM | DataTable of all agencies: name, org, admin email, tier, WIP count, created date | DataTable with filters |
+| Tier Review | `/backend/partnerships/tier-review` | PM (Phase 2+) | Pending TierChangeProposals for approval/rejection | DataTable + detail dialog |
+| RFP Campaigns | `/backend/partnerships/rfp` | PM (Phase 3+) | Campaign list + create form + response comparison | DataTable + CrudForm |
+| RFP Response | `/backend/partnerships/rfp/[id]/respond` | Admin, BD (Phase 3+) | Submit response to RFP with text + attachments | CrudForm |
+
+### Widget Injections
+
+| Widget | Injects into | Injection spot | Data |
+|--------|-------------|---------------|------|
+| Onboarding Checklist | Dashboard (main) | `dashboard:main:widgets` | Live data: profile completeness, case study count, team members, deals |
+| WIP Count | Dashboard (main) | `dashboard:main:widgets` | Live query: `COUNT WHERE wip_registered_at IN current month` per org |
+| Agency Tier Badge | Company detail page | `data-table:customers-companies:columns` | Shows agency's current tier as badge in company list |
+
+### Key User Flows
+
+| Persona | Task | Flow (login → done) | Clicks | Notes |
+|---------|------|---------------------|--------|-------|
+| PM | Add new agency | Login → Dashboard → Sidebar "Add Agency" → Fill form → Copy invite message | 3 | One-step creation, no multi-page wizard |
+| PM | Check agency activity | Login → Dashboard (WIP widget shows all agencies) → Click agency row → Org switches → See agency CRM | 2 | WIP widget is the entry point, not sidebar |
+| Admin | Complete onboarding | Login → Dashboard (checklist widget) → Click "Fill profile" → Save → Back → Click "Add case study" → Save → ... | 2 per item | Checklist drives the flow, each item is a direct link |
+| Admin | Create BD account | Login → Sidebar "Users" → "Create User" → Fill email + password + select role → Done | 3 | Standard OM user creation page |
+| BD | Create deal | Login → Sidebar "Deals" → "New Deal" → Fill form → Save | 3 | Standard CRM deal creation |
+| BD | Move deal to SQL | Login → Sidebar "Pipeline" → Drag deal to SQL stage | 2 | Pipeline board view, drag & drop |
+
+### Empty States
+
+| Page/Widget | Empty state message | Action |
+|-------------|-------------------|--------|
+| Dashboard (Admin, first login) | Onboarding checklist widget shows all items pending | Each item links to relevant page |
+| Dashboard (PM, own org) | "Your organization has no CRM data. Switch to an agency to view their pipeline." | Org switcher highlighted |
+| CRM Companies (new agency) | "No companies yet. Add your first prospect." | Link to Create Company |
+| CRM Deals (new agency) | "No deals yet. Create your first deal to start tracking pipeline." | Link to Create Deal |
+| WIP Widget (new agency) | "No WIP this month. Deals reaching SQL stage will appear here." | — |
+| Agency List (PM, no agencies) | "No agencies yet. Add your first agency to start the partner program." | Link to Add Agency |
+
+#### Checklist
+- [x] Every persona has a defined login-to-primary-task flow `Mat`
+- [ ] Navigation grouping matches how users think about their work `Krug`
+- [ ] Dashboard widgets answer "what to do next" not just "data" `Krug`
+- [ ] Empty states are helpful, not blank pages `Krug`
+- [x] Custom pages use OM patterns (CrudForm, DataTable) `Piotr`
+- [ ] Click count from login to primary task is ≤ 3 for each persona `Krug`
+
+---
+
 ## 4. Workflow Gap Analysis `Piotr`
 
 > Gap analysis maps each workflow step to OM platform capability.
