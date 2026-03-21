@@ -405,6 +405,7 @@ Phase 2: [name]    [N] commits    [which workflows]
 - Leaving unused modules from `create-mercato-app` template in `modules.ts` — only register modules listed in §4.5 Module Architecture. Remove corresponding imports from `layout.tsx` (e.g., AiAssistant, third-party analytics scripts)
 - Copying or re-implementing OM platform helpers locally (e.g., integration test helpers, auth utilities, fixture builders) instead of importing from `@open-mercato/core/testing/integration`. If a helper doesn't exist in core — contribute it upstream, don't duplicate it in the app. Local copies drift, break on version upgrades, and teach the wrong pattern.
 - Creating app-local Playwright config instead of using `mercato test` CLI and its test discovery. The CLI handles ephemeral environments, test discovery across `__integration__/` dirs, and consistent config. App-local configs bypass all of this.
+- Seeding org-scoped users without `UserAcl.organizationsJson` restriction — if a role should only see its own org, the seed must create a `UserAcl` with `organizationsJson: [orgId]`. Without it, `null` = all orgs in tenant, and the org switcher exposes cross-org data.
 
 #### Checklist
 - [ ] Every piece of new code passes the "copy test" — if someone copies this, do they build ON the platform or AROUND it?

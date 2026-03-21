@@ -1140,6 +1140,7 @@ Each phase delivers a complete, usable increment. No phase leaves a workflow hal
 - Leaving unused modules from `create-mercato-app` template in `modules.ts` — only register modules listed in §4.5 Module Architecture. Remove corresponding imports from `layout.tsx` (e.g., AiAssistant, third-party analytics scripts)
 - Copying or re-implementing OM platform helpers locally (integration test helpers, auth utilities, fixture builders) — import from `@open-mercato/core/testing/integration` instead. Local copies drift and teach the wrong pattern.
 - Creating app-local Playwright config — use `mercato test` CLI which handles ephemeral environments and test discovery across `__integration__/` dirs
+- Seeding org-scoped users without `UserAcl.organizationsJson` restriction — agency roles (partner_admin, partner_member, partner_contributor) must have `organizationsJson: [orgId]` to prevent cross-org data exposure via org switcher. PM (`partnership_manager`) keeps `null` (all orgs = Program Scope).
 
 **SPEC-068 alignment:**
 - This app IS `prm` for `create-mercato-app --example prm` — the first official example

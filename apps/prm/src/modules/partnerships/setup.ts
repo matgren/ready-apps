@@ -9,7 +9,7 @@ import {
   CustomerPipelineStage,
 } from '@open-mercato/core/modules/customers/data/entities'
 import { Dictionary, DictionaryEntry } from '@open-mercato/core/modules/dictionaries/data/entities'
-import { User, Role, UserRole, RoleAcl } from '@open-mercato/core/modules/auth/data/entities'
+import { User, Role, UserRole, RoleAcl, UserAcl } from '@open-mercato/core/modules/auth/data/entities'
 import { ensureCustomFieldDefinitions } from '@open-mercato/core/modules/entities/lib/field-definitions'
 import { hashForLookup } from '@open-mercato/shared/lib/encryption/aes'
 import { hash } from 'bcryptjs'
@@ -472,11 +472,13 @@ type DemoUser = {
   roleName: string
 }
 
-const DEMO_USERS: DemoUser[] = [
-  { email: 'partner-admin@demo.local', name: 'Alice Partner (Admin)', roleName: 'partner_admin' },
-  { email: 'partner-member@demo.local', name: 'Bob Partner (Member)', roleName: 'partner_member' },
-  { email: 'partner-contributor@demo.local', name: 'Carol Partner (Contributor)', roleName: 'partner_contributor' },
-  { email: 'partnership-manager@demo.local', name: 'Dave Manager', roleName: 'partnership_manager' },
+// orgScoped: true = user can only see their own org (agency roles)
+// orgScoped: false = user can see all orgs (PM role — Program Scope)
+const DEMO_USERS: (DemoUser & { orgScoped: boolean })[] = [
+  { email: 'partner-admin@demo.local', name: 'Alice Partner (Admin)', roleName: 'partner_admin', orgScoped: true },
+  { email: 'partner-member@demo.local', name: 'Bob Partner (Member)', roleName: 'partner_member', orgScoped: true },
+  { email: 'partner-contributor@demo.local', name: 'Carol Partner (Contributor)', roleName: 'partner_contributor', orgScoped: true },
+  { email: 'partnership-manager@demo.local', name: 'Dave Manager', roleName: 'partnership_manager', orgScoped: false },
 ]
 
 async function seedDemoUsers(
@@ -514,6 +516,20 @@ async function seedDemoUsers(
       em.persist(em.create(UserRole, { user, role, createdAt: new Date() }))
     } else {
       console.warn(`[partnerships.seedExamples] Role "${demoUser.roleName}" not found — user "${demoUser.email}" created without role`)
+    }
+
+    // Restrict org-scoped users to their own organization via UserAcl
+    if (demoUser.orgScoped) {
+      const existingUserAcl = await em.findOne(UserAcl, { user, tenantId: scope.tenantId })
+      if (!existingUserAcl) {
+        em.persist(em.create(UserAcl, {
+          user,
+          tenantId: scope.tenantId,
+          organizationsJson: [scope.organizationId],
+          isSuperAdmin: false,
+          createdAt: new Date(),
+        }))
+      }
     }
   }
 
