@@ -463,7 +463,7 @@ PM has license sale -> opens "Create License Deal" -> searches all companies acr
 
 | Role | Sidebar groups | Notes |
 |------|---------------|-------|
-| Partnership Manager | **CRM** (Companies, People, Deals, Pipeline), **Partnerships** (Add Agency, Agencies list), **Directory** (Organizations) | PM spends most time in CRM (cross-org) and Partnerships (manage agencies). Directory needed for org management. |
+| Partnership Manager | **CRM** (Companies, People, Deals, Pipeline), **Partnerships** (Add Agency, Agencies list, WIC Import, Tier Review), **Directory** (Organizations) | PM spends most time in CRM (cross-org) and Partnerships (manage agencies, import WIC, review tiers). Directory needed for org management. |
 | Agency Admin | **CRM** (Companies, People, Deals, Pipeline), **Users** (manage team) | Admin works primarily in CRM. Users section for creating BD/Contributor accounts. No Partnerships group — that's PM-only. |
 | Business Developer | **CRM** (Companies, People, Deals, Pipeline) | BD lives in CRM. Creates prospects, manages deals. No user management, no partnerships. |
 | Contributor | _(minimal — dashboard + profile)_ | Contributor sees dashboard with onboarding checklist (1 item: set GH username). Profile page always accessible via header dropdown. No CRM sidebar items (no `customers.*` feature). Phase 2 adds WIC score widget. |
@@ -472,19 +472,26 @@ PM has license sale -> opens "Create License Deal" -> searches all companies acr
 
 | Widget | Roles that see it | Data shown | Click-through |
 |--------|------------------|------------|---------------|
-| Onboarding Checklist | Admin (4 items), BD (2 items), Contributor (1 item) | Pending steps: fill profile, add case study, create BD, create Contributor (Admin) / add prospect, create deal (BD) / set GitHub username (Contributor). Disappears when done. **Display order: first widget on dashboard** (above KPI widgets). | Each item links to relevant page. "Create BD" links to `/backend/users/create` with note: "Assign the partner_member role." |
-| WIP Count | PM (cross-org table), BD (own org number) | PM: all agencies WIP table (cross-org query, visible on PM's home-org dashboard). BD: own agency WIP count. | PM: click agency row → org switches → see agency CRM |
-| Tier Status | Admin, BD (Phase 2+) | Current tier, progress to next, grace period warning | Link to tier detail page |
+| Onboarding Checklist | Admin (4 items), BD (2 items), Contributor (1 item) | Pending steps: fill profile, add case study, create BD, create Contributor (Admin) / add prospect, create deal (BD) / set GitHub username with format hint (Contributor). Shows brief "All done!" flash before disappearing. **Display order: first widget on dashboard** (above KPI widgets). | Each item links to relevant page. "Create BD" links to `/backend/users/create` with note: "Assign the partner_member role." |
+| WIP Count | PM (cross-org table), BD (own org number) | PM: all agencies WIP table (cross-org query, visible on PM's home-org dashboard). BD: own agency WIP count. Clicking agency row in WIP widget triggers same org switch as org switcher dropdown — header org label updates. | PM: click agency row → org switches → see agency CRM |
+| Tier Status | Admin, BD (Phase 2+) | Current tier, KPI values vs thresholds, progress %, grace period warning (EnumBadge: OK/Grace/Downgrade) | Link to `/backend/partnerships/my-tier` (read-only tier history + KPI breakdown for own agency) |
+| Pending Proposals | PM (Phase 2+) | Count of TierChangeProposals in PendingApproval state. Badge shows count. | Link to `/backend/partnerships/tier-review` |
+| Incoming RFPs | BD, Admin (Phase 3+) | Active RFP campaigns where agency is in audience. Shows: title, deadline, response status (Not submitted / Submitted). | Link to `/backend/partnerships/rfp/[id]/respond` |
+| WIC Score | Contributor (Phase 2+), Admin (aggregate in Tier widget) | Contributor: total WIC this month. "View breakdown" link. | Link to `/backend/partnerships/my-wic` (DataTable of ContributionUnits) |
 
 ### Custom Pages
 
 | Page | URL pattern | Role | Purpose | OM pattern |
 |------|------------|------|---------|------------|
-| Add Agency | `/backend/partnerships/add-agency` | PM | One-step agency creation: name + email + demo data checkbox. Returns invite message. | Custom form (not CrudForm — custom submit with atomic multi-entity creation) |
-| Agency List | `/backend/partnerships/agencies` | PM | DataTable of all agencies: name, org, admin email, tier, WIP count, onboarding status (EnumBadge: complete/incomplete), created date | DataTable with filters |
-| Tier Review | `/backend/partnerships/tier-review` | PM (Phase 2+) | Pending TierChangeProposals for approval/rejection | DataTable + detail dialog |
-| RFP Campaigns | `/backend/partnerships/rfp` | PM (Phase 3+) | Campaign list + create form + response comparison | DataTable + CrudForm |
-| RFP Response | `/backend/partnerships/rfp/[id]/respond` | Admin, BD (Phase 3+) | Submit response to RFP with text + attachments | CrudForm |
+| Add Agency | `/backend/partnerships/add-agency` | PM | One-step agency creation: name + email + demo data checkbox. ALWAYS creates agency company record in CRM (even without demo data). Returns invite message with clipboard copy button. After creation: shows "Go to Agency List" CTA. | Custom form with `em.transactional()` |
+| Agency List | `/backend/partnerships/agencies` | PM | DataTable: name, org, admin email, tier, WIP count, WIC count, onboarding status (EnumBadge), created date | DataTable with filters |
+| Tier Review | `/backend/partnerships/tier-review` | PM (Phase 2+) | Pending TierChangeProposals: agency name, current tier, proposed tier, type (upgrade/downgrade), period, KPIs vs thresholds, status. Last-run timestamp in PageHeader. | DataTable + detail dialog (approve/reject with reason) |
+| My Tier | `/backend/partnerships/my-tier` | Admin, BD (Phase 2+) | Read-only tier history + current KPI breakdown for own agency | DetailFieldsSection + DataTable (history) |
+| WIC Import | `/backend/partnerships/wic-import` | PM (Phase 2+) | Org selector (combobox), month picker, file upload (CSV/markdown). On submit: shows import result inline — matched units (DataTable), rejected/unmatched usernames (error DataTable with reasons). | CrudForm + result DataTable |
+| My WIC | `/backend/partnerships/my-wic` | Contributor (Phase 2+) | DataTable of own ContributionUnits: feature key, level, bonus, month. Allows Contributor to verify if a merged PR is missing. | DataTable |
+| RFP Campaigns | `/backend/partnerships/rfp` | PM (Phase 3+) | Campaign list: title, status (Draft/Published/Awaiting Evaluation/Awarded), deadline, audience, response count. Create form with explicit "Save as Draft" and "Publish" actions. | DataTable + CrudForm |
+| RFP Campaign Detail | `/backend/partnerships/rfp/[id]` | PM (Phase 3+) | Response comparison: per-agency response text, case studies, file attachments. "Award" action on winning agency (confirmation dialog). Shows deadline-expired state if past deadline. Phase 4: "Score Responses" button triggers n8n. | Custom page layout (comparison view) |
+| RFP Response | `/backend/partnerships/rfp/[id]/respond` | Admin, BD (Phase 3+) | Submit response with text + attachments. Shows "Deadline passed" EmptyState if past deadline (no form rendered). After submit: read-only view of submitted response. | CrudForm (pre-submit) / DetailFieldsSection (post-submit) |
 
 ### Widget Injections
 
@@ -498,13 +505,20 @@ PM has license sale -> opens "Create License Deal" -> searches all companies acr
 
 | Persona | Task | Flow (login → done) | Clicks | Notes |
 |---------|------|---------------------|--------|-------|
-| PM | Add new agency | Login → Dashboard → Sidebar "Add Agency" → Fill form → Copy invite message | 3 | One-step creation, no multi-page wizard |
-| PM | Check agency activity | Login → Dashboard (WIP widget shows all agencies) → Click agency row → Org switches → See agency CRM | 2 | WIP widget is the entry point, not sidebar |
-| Admin | Complete onboarding | Login → Dashboard (checklist widget) → Click "Fill profile" → Save → Back → Click "Add case study" → Save → ... | 2 per item | Checklist drives the flow, each item is a direct link |
-| Admin | Create BD account | Login → Sidebar "Users" → "Create User" → Fill email + password + select role → Done | 3 | Standard OM user creation page |
+| PM | Add new agency | Login → Dashboard → Sidebar "Add Agency" → Fill form → Copy invite message → "Go to Agency List" | 3 | One-step creation. Clipboard copy button. Post-creation CTA. |
+| PM | Check agency activity | Login → Dashboard (WIP widget shows all agencies) → Click agency row → Org switches (header updates) → See agency CRM | 2 | WIP widget is the entry point. Org switch updates header label. |
+| PM | Review tier proposals (Ph2+) | Login → Dashboard (Pending Proposals widget shows count) → Click → Tier Review page → Click row → Approve/Reject with reason | 3 | Widget badge surfaces pending proposals. |
+| PM | Import WIC scores (Ph2+) | Login → Sidebar "WIC Import" → Select org + month → Upload file → See result (matched + rejected) | 3 | Import result shows inline DataTable. |
+| PM | Create RFP (Ph3+) | Login → Sidebar "RFP Campaigns" → "New RFP" → Fill form → Save as Draft or Publish | 3 | Explicit Draft vs Publish actions. |
+| PM | Evaluate RFP responses (Ph3+) | Login → Sidebar "RFP Campaigns" → Click campaign row → Comparison page → "Award" on winner | 3 | Comparison shows all responses. Award = confirmation dialog. |
+| PM | Return to own org | Any page → Org switcher dropdown → Select "Open Mercato Backoffice" | 2 | Frequent action for PM. |
+| Admin | Complete onboarding | Login → Dashboard (checklist widget) → Click "Fill profile" → Save → Back → Click "Add case study" → Save → ... | 2 per item | Checklist drives the flow. "Fill profile" links to agency company record (always exists). |
+| Admin | Create BD account | Login → Sidebar "Users" → "Create User" → Fill email + password + select role → Done | 3 | Standard OM user creation page. Checklist note guides role selection. |
 | BD | Create deal | Login → Sidebar "Deals" → "New Deal" → Fill form → Save | 3 | Standard CRM deal creation |
-| BD | Move deal to SQL | Login → Sidebar "Pipeline" → Drag deal to SQL stage | 2 | Pipeline board view, drag & drop |
-| Contributor | Set GH username | Login → Dashboard (checklist: "Set GitHub username") → Click → Profile page → Fill field → Save | 3 | Checklist item links to profile page. OM profile page always accessible via header dropdown. |
+| BD | Move deal to SQL | Login → Sidebar "Pipeline" → Drag deal to SQL stage → Flash: "Deal qualified — WIP recorded" | 2 | Pipeline board. Flash confirms WIP stamp. |
+| BD | Respond to RFP (Ph3+) | Email link → Response page → Fill text + attachments → Submit → Read-only confirmation | 1 from email | Also accessible via dashboard "Incoming RFPs" widget. Deadline-expired state prevents submission after deadline. |
+| Contributor | Set GH username | Login → Dashboard (checklist: "Set GitHub username") → Click → Profile page → Fill field (format hint shown) → Save | 3 | GH username field shows helper text: "Enter your GitHub username (e.g. jsmith, not a URL)." |
+| Contributor | Check WIC score (Ph2+) | Login → Dashboard (WIC Score widget: total) → "View breakdown" → My WIC page (DataTable) | 2 | Breakdown shows per-contribution detail. |
 
 ### Empty States
 
