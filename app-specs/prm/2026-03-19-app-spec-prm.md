@@ -690,6 +690,15 @@ Success: PM opens "Create License Deal" -> searches all companies across all age
 **US-6.1** As PM, I switch between agency organizations so that I can review any agency's CRM, KPIs, and tier status.
 Success: Org switcher shows all agencies, PM selects one, sees that agency's data (procedural read-only per OM RBAC design — technically full write). PM's own actions (RFP, tier approval) remain in PM context.
 
+**US-6.2** As PM, I log in and see my own organization (Open Mercato Backoffice) by default so that I start in my management context, not in an agency context.
+Success: PM logs in, lands on dashboard. No agency KPI widgets visible (PM's own org has no deals/WIP). Org switcher shows all agencies. PM must switch to an agency to see their KPI dashboard.
+
+**US-6.3** As Agency Admin, I log in and see only my agency's data so that I cannot access other agencies' CRM, deals, or KPIs.
+Success: Admin logs in, sees CRM with only their agency's companies, deals, case studies. Org switcher shows only their own organization — no other agencies listed. Cannot navigate to or access data from other agencies.
+
+**US-6.4** As BD, I log in and see only my agency's deals and pipeline so that my work is isolated from other agencies.
+Success: BD logs in, sees CRM scoped to their org. Pipeline shows only their agency's deals. WIP count widget shows only their agency's WIP. No cross-org data visible.
+
 ### Distribution (SPEC-068)
 
 **US-7.1** As a Developer, I run `create-mercato-app --example prm` and get a running PRM app so that I can see how OM solves partner relationship management.
@@ -697,21 +706,22 @@ Success: One command → app scaffolded with PRM modules in `src/modules/`. `yar
 
 **US-7.2** As a Developer, I run `yarn initialize` and can immediately log in as any persona so that I can test every role's experience without manual user/role setup.
 Success:
-- Each role from §2 Identity Model has at least one seeded user with a known password (logged to console at seed time)
-- Demo user emails follow `{role}@demo.local` pattern (e.g. `partner-admin@demo.local`)
-- Login with each demo user shows only the UI and data their role permits
+- PM user: `partnership-manager@demo.local` — in default org (Open Mercato Backoffice), sees all orgs via switcher
+- Per-agency users: `{agency}-admin@demo.local`, `{agency}-bd@demo.local`, `{agency}-contributor@demo.local` — each in their agency's Organization, restricted via UserAcl
+- All passwords: `Demo123!` (logged to console at seed time)
+- Login with each demo user shows only the UI and data their role + org permits
+- Agency users cannot see other agencies' data via org switcher
 - Seeding is idempotent — running `yarn initialize` twice does not create duplicates
 
 **US-7.3** As a Developer, I run `yarn initialize` and see example data that exercises every workflow so that I understand what the app does without reading docs first.
 Success: `seedExamples` populates:
-- 3 demo agencies (different tiers: OM Agency, AI-native Agency, AI-native Expert) with company profiles and case studies
-- Demo BD users per agency with deals at various pipeline stages (some with `wip_registered_at` stamps)
-- Demo Contributor users with GH usernames linked
-- Demo WIC scores (ContributionUnits for current and previous month)
-- Demo PartnerLicenseDeals (MIN attribution for demo agencies)
-- Demo tier history (TierAssignments showing progression)
-- 1 demo RFP campaign (Published, with agency responses and a selected winner)
-All data is clearly labeled as demo (e.g., company names like "Acme Agency (Demo)").
+- 3 demo agencies, each as its own Organization with own CRM data (companies, deals, case studies, pipeline)
+- Acme Digital: Admin + BD + Contributor, full profile, 5 deals (some with WIP stamps)
+- Nordic AI Labs: Admin + BD, full profile, 3 deals
+- CloudBridge Solutions: Admin only, minimal profile, 2 deals (incomplete onboarding)
+- PM in default org with cross-org visibility
+- (Phase 2+) Demo WIC scores, PartnerLicenseDeals, tier history, RFP campaign
+All data is clearly labeled as demo (e.g., company names like "Acme Digital (Demo)").
 
 **US-7.4** As a Developer, I read any piece of PRM code and understand which OM pattern it uses so that I can apply the same pattern to my own app.
 Success: Every file follows OM conventions (auto-discovery paths, UMES patterns, setup.ts hooks). Code comments reference the pattern name when non-obvious. README in `src/modules/partnerships/` explains the module structure and which OM capabilities each file demonstrates.

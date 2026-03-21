@@ -9,6 +9,7 @@ import {
   CustomerPipelineStage,
 } from '@open-mercato/core/modules/customers/data/entities'
 import { Dictionary, DictionaryEntry } from '@open-mercato/core/modules/dictionaries/data/entities'
+import { Organization } from '@open-mercato/core/modules/directory/data/entities'
 import { User, Role, UserRole, UserAcl } from '@open-mercato/core/modules/auth/data/entities'
 import { ensureCustomFieldDefinitions } from '@open-mercato/core/modules/entities/lib/field-definitions'
 import { hashForLookup } from '@open-mercato/shared/lib/encryption/aes'
@@ -217,12 +218,19 @@ async function seedDictionaries(
 
 const DEMO_SENTINEL = 'Acme Digital (Demo)'
 
+type DemoAgencyUser = {
+  email: string
+  name: string
+  roleName: string
+}
+
 type DemoAgency = {
   name: string
   vertical: string
   teamSize: string
   profile: 'full' | 'minimal'
   customFields?: Record<string, unknown>
+  users: DemoAgencyUser[]
   caseStudies: Array<{
     title: string
     values: Record<string, unknown>
@@ -242,6 +250,11 @@ const DEMO_AGENCIES: DemoAgency[] = [
     vertical: 'FinTech',
     teamSize: '21-50',
     profile: 'full',
+    users: [
+      { email: 'acme-admin@demo.local', name: 'Alice Acme (Admin)', roleName: 'partner_admin' },
+      { email: 'acme-bd@demo.local', name: 'Bob Acme (BD)', roleName: 'partner_member' },
+      { email: 'acme-contributor@demo.local', name: 'Carol Acme (Contributor)', roleName: 'partner_contributor' },
+    ],
     customFields: {
       services: ['Software Development', 'Consulting', 'Integration'],
       industries: ['Finance', 'Technology'],
@@ -314,6 +327,10 @@ const DEMO_AGENCIES: DemoAgency[] = [
     vertical: 'HealthTech',
     teamSize: '6-20',
     profile: 'full',
+    users: [
+      { email: 'nordic-admin@demo.local', name: 'Nils Nordic (Admin)', roleName: 'partner_admin' },
+      { email: 'nordic-bd@demo.local', name: 'Saga Nordic (BD)', roleName: 'partner_member' },
+    ],
     customFields: {
       services: ['Software Development', 'Consulting'],
       industries: ['Healthcare', 'Technology'],
@@ -363,6 +380,9 @@ const DEMO_AGENCIES: DemoAgency[] = [
     vertical: 'RetailTech',
     teamSize: '1-5',
     profile: 'minimal',
+    users: [
+      { email: 'cloudbridge-admin@demo.local', name: 'Chris CloudBridge (Admin)', roleName: 'partner_admin' },
+    ],
     customFields: undefined,
     caseStudies: [],
     deals: [
@@ -457,69 +477,60 @@ type DemoUser = {
   roleName: string
 }
 
-// orgScoped: true = user can only see their own org (agency roles)
-// orgScoped: false = user can see all orgs (PM role — Program Scope)
-const DEMO_USERS: (DemoUser & { orgScoped: boolean })[] = [
-  { email: 'partner-admin@demo.local', name: 'Alice Partner (Admin)', roleName: 'partner_admin', orgScoped: true },
-  { email: 'partner-member@demo.local', name: 'Bob Partner (Member)', roleName: 'partner_member', orgScoped: true },
-  { email: 'partner-contributor@demo.local', name: 'Carol Partner (Contributor)', roleName: 'partner_contributor', orgScoped: true },
-  { email: 'partnership-manager@demo.local', name: 'Dave Manager', roleName: 'partnership_manager', orgScoped: false },
-]
-
-async function seedDemoUsers(
+/**
+ * Creates a user with role and optional org restriction.
+ * Returns the created User or null if already exists.
+ */
+async function seedUser(
   em: import('@mikro-orm/postgresql').EntityManager,
-  scope: SeedScope
-): Promise<void> {
-  const passwordHash = await hash(DEMO_PASSWORD, BCRYPT_COST)
+  opts: {
+    email: string
+    name: string
+    roleName: string
+    organizationId: string
+    tenantId: string
+    passwordHash: string
+    restrictToOrg: boolean // true = UserAcl restricts to own org only
+  }
+): Promise<User | null> {
+  const emailHash = hashForLookup(opts.email)
+  const existing = await em.findOne(User, { emailHash, deletedAt: null })
+  if (existing) return null
 
-  for (const demoUser of DEMO_USERS) {
-    const emailHash = hashForLookup(demoUser.email)
+  const user = em.create(User, {
+    email: opts.email,
+    emailHash,
+    passwordHash: opts.passwordHash,
+    name: opts.name,
+    isConfirmed: true,
+    organizationId: opts.organizationId,
+    tenantId: opts.tenantId,
+    createdAt: new Date(),
+  })
+  em.persist(user)
 
-    // Idempotency: skip if user already exists
-    const existing = await em.findOne(User, { emailHash, deletedAt: null })
-    if (existing) continue
-
-    const user = em.create(User, {
-      email: demoUser.email,
-      emailHash,
-      passwordHash,
-      name: demoUser.name,
-      isConfirmed: true,
-      organizationId: scope.organizationId,
-      tenantId: scope.tenantId,
-      createdAt: new Date(),
-    })
-    em.persist(user)
-
-    // Assign role
-    const role = await em.findOne(Role, {
-      name: demoUser.roleName,
-      tenantId: scope.tenantId,
-      deletedAt: null,
-    })
-    if (role) {
-      em.persist(em.create(UserRole, { user, role, createdAt: new Date() }))
-    } else {
-      console.warn(`[partnerships.seedExamples] Role "${demoUser.roleName}" not found — user "${demoUser.email}" created without role`)
-    }
-
-    // Restrict org-scoped users to their own organization via UserAcl
-    if (demoUser.orgScoped) {
-      const existingUserAcl = await em.findOne(UserAcl, { user, tenantId: scope.tenantId })
-      if (!existingUserAcl) {
-        em.persist(em.create(UserAcl, {
-          user,
-          tenantId: scope.tenantId,
-          organizationsJson: [scope.organizationId],
-          isSuperAdmin: false,
-          createdAt: new Date(),
-        }))
-      }
-    }
+  const role = await em.findOne(Role, {
+    name: opts.roleName,
+    tenantId: opts.tenantId,
+    deletedAt: null,
+  })
+  if (role) {
+    em.persist(em.create(UserRole, { user, role, createdAt: new Date() }))
+  } else {
+    console.warn(`[partnerships.seedExamples] Role "${opts.roleName}" not found — user "${opts.email}" created without role`)
   }
 
-  await em.flush()
-  console.log(`[partnerships.seedExamples] Demo users seeded (password: ${DEMO_PASSWORD})`)
+  if (opts.restrictToOrg) {
+    em.persist(em.create(UserAcl, {
+      user,
+      tenantId: opts.tenantId,
+      organizationsJson: [opts.organizationId],
+      isSuperAdmin: false,
+      createdAt: new Date(),
+    }))
+  }
+
+  return user
 }
 
 // ---------------------------------------------------------------------------
@@ -534,43 +545,89 @@ async function seedPrmExamples(
   // Idempotency: check if demo data already exists
   const alreadySeeded = await em.findOne(CustomerEntity, {
     tenantId: scope.tenantId,
-    organizationId: scope.organizationId,
     displayName: DEMO_SENTINEL,
     kind: 'company',
   })
   if (alreadySeeded) return
 
-  // Resolve the PRM pipeline and its stages
-  const pipeline = await em.findOne(CustomerPipeline, {
-    tenantId: scope.tenantId,
-    organizationId: scope.organizationId,
-    name: PRM_PIPELINE_NAME,
-  })
-  if (!pipeline) {
-    console.warn('[partnerships.seedExamples] PRM Pipeline not found — run seedDefaults first')
-    return
-  }
-
-  const stages = await em.find(CustomerPipelineStage, {
-    tenantId: scope.tenantId,
-    organizationId: scope.organizationId,
-    pipelineId: pipeline.id,
-  })
-  const stageByName = new Map(stages.map((s) => [s.label, s]))
-
+  const passwordHash = await hash(DEMO_PASSWORD, BCRYPT_COST)
   const dataEngine = new DefaultDataEngine(em, container)
   const customFieldAssignments: Array<() => Promise<void>> = []
 
-  // Seed demo users with PRM roles
-  await seedDemoUsers(em, scope)
+  // Step 1: Seed PM user in the default org (Open Mercato Backoffice)
+  await seedUser(em, {
+    email: 'partnership-manager@demo.local',
+    name: 'Dave Manager (PM)',
+    roleName: 'partnership_manager',
+    organizationId: scope.organizationId,
+    tenantId: scope.tenantId,
+    passwordHash,
+    restrictToOrg: false, // PM sees all orgs (Program Scope)
+  })
+  await em.flush()
 
-  const companyEntities = new Map<string, CustomerEntity>()
-  const companyProfiles = new Map<string, { id: string }>()
-
-  // Step 1-2: Create companies (as CRM company entities)
+  // Step 2: Create each agency as its own Organization + CRM company + users
   for (const agency of DEMO_AGENCIES) {
+    // 2a: Create Organization in directory module
+    const orgSlug = agency.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-demo-?$/, '')
+    let agencyOrg = await em.findOne(Organization, {
+      tenant: scope.tenantId,
+      slug: orgSlug,
+    })
+    if (!agencyOrg) {
+      agencyOrg = em.create(Organization, {
+        tenant: scope.tenantId,
+        name: agency.name.replace(' (Demo)', ''),
+        slug: orgSlug,
+        isActive: true,
+      })
+      em.persist(agencyOrg)
+      await em.flush()
+    }
+    const agencyOrgId = agencyOrg.id
+
+    // 2b: Seed pipeline for this org (each org needs its own pipeline)
+    const existingPipeline = await em.findOne(CustomerPipeline, {
+      tenantId: scope.tenantId,
+      organizationId: agencyOrgId,
+      name: PRM_PIPELINE_NAME,
+    })
+    if (!existingPipeline) {
+      await seedPrmPipeline(em, { tenantId: scope.tenantId, organizationId: agencyOrgId })
+    }
+
+    // Resolve pipeline stages for this org
+    const pipeline = await em.findOne(CustomerPipeline, {
+      tenantId: scope.tenantId,
+      organizationId: agencyOrgId,
+      name: PRM_PIPELINE_NAME,
+    })
+    const stages = pipeline
+      ? await em.find(CustomerPipelineStage, {
+          tenantId: scope.tenantId,
+          organizationId: agencyOrgId,
+          pipelineId: pipeline.id,
+        })
+      : []
+    const stageByName = new Map(stages.map((s) => [s.label, s]))
+
+    // 2c: Create agency users in the agency org
+    for (const agencyUser of agency.users) {
+      await seedUser(em, {
+        email: agencyUser.email,
+        name: agencyUser.name,
+        roleName: agencyUser.roleName,
+        organizationId: agencyOrgId,
+        tenantId: scope.tenantId,
+        passwordHash,
+        restrictToOrg: true, // agency users see only their own org
+      })
+    }
+    await em.flush()
+
+    // 2d: Create CRM company entity in the agency's org
     const companyEntity = em.create(CustomerEntity, {
-      organizationId: scope.organizationId,
+      organizationId: agencyOrgId,
       tenantId: scope.tenantId,
       kind: 'company',
       displayName: agency.name,
@@ -587,7 +644,7 @@ async function seedPrmExamples(
       updatedAt: new Date(),
     })
     const companyProfile = em.create(CustomerCompanyProfile, {
-      organizationId: scope.organizationId,
+      organizationId: agencyOrgId,
       tenantId: scope.tenantId,
       entity: companyEntity,
       legalName: agency.name.replace(' (Demo)', ''),
@@ -602,11 +659,9 @@ async function seedPrmExamples(
     })
     em.persist(companyEntity)
     em.persist(companyProfile)
+    await em.flush()
 
-    companyEntities.set(agency.name, companyEntity)
-    companyProfiles.set(agency.name, companyProfile)
-
-    // Step 3: Fill company profiles with custom fields (full profiles only)
+    // 2e: Fill company profiles with custom fields
     if (agency.customFields && Object.keys(agency.customFields).length > 0) {
       const values = { ...agency.customFields } as Record<string, unknown>
       customFieldAssignments.push(async () => {
@@ -614,7 +669,7 @@ async function seedPrmExamples(
           await dataEngine.setCustomFields({
             entityId: E.customers.customer_company_profile,
             recordId: companyProfile.id,
-            organizationId: scope.organizationId,
+            organizationId: agencyOrgId,
             tenantId: scope.tenantId,
             values: values as Record<string, string | number | boolean | null>,
             notify: false,
@@ -624,26 +679,18 @@ async function seedPrmExamples(
         }
       })
     }
-  }
 
-  // Flush companies before creating deals (need company IDs for links)
-  await em.flush()
-
-  // Step 4: Create case studies (custom entity records)
-  for (const agency of DEMO_AGENCIES) {
-    const companyProfile = companyProfiles.get(agency.name)
-    if (!companyProfile) continue
-
+    // 2f: Create case studies in the agency's org
     for (const cs of agency.caseStudies) {
       const caseStudyValues = {
         ...cs.values,
-        organization_id: scope.organizationId,
+        organization_id: agencyOrgId,
       }
       customFieldAssignments.push(async () => {
         try {
           await dataEngine.createCustomEntityRecord({
             entityId: 'partnerships:case_study',
-            organizationId: scope.organizationId,
+            organizationId: agencyOrgId,
             tenantId: scope.tenantId,
             values: caseStudyValues,
             notify: false,
@@ -653,24 +700,17 @@ async function seedPrmExamples(
         }
       })
     }
-  }
 
-  // Step 5-6: Create deals at various pipeline stages
-  const dealsToStamp: Array<{ deal: CustomerDeal; wipRegisteredAt: string }> = []
-
-  for (const agency of DEMO_AGENCIES) {
-    const companyEntity = companyEntities.get(agency.name)
-    if (!companyEntity) continue
-
+    // 2g: Create deals in the agency's org
     for (const dealDef of agency.deals) {
       const stage = stageByName.get(dealDef.stageName)
       const deal = em.create(CustomerDeal, {
-        organizationId: scope.organizationId,
+        organizationId: agencyOrgId,
         tenantId: scope.tenantId,
         title: dealDef.title,
         description: null,
         status: dealDef.status,
-        pipelineId: pipeline.id,
+        pipelineId: pipeline?.id ?? null,
         pipelineStage: dealDef.stageName,
         pipelineStageId: stage?.id ?? null,
         valueAmount: dealDef.valueAmount.toFixed(2),
@@ -692,34 +732,38 @@ async function seedPrmExamples(
       em.persist(companyLink)
 
       if (dealDef.wipRegisteredAt) {
-        dealsToStamp.push({ deal, wipRegisteredAt: dealDef.wipRegisteredAt })
+        customFieldAssignments.push(async () => {
+          try {
+            await dataEngine.setCustomFields({
+              entityId: E.customers.customer_deal,
+              recordId: deal.id,
+              organizationId: agencyOrgId,
+              tenantId: scope.tenantId,
+              values: { [WIP_REGISTERED_AT_FIELD.key]: dealDef.wipRegisteredAt },
+              notify: false,
+            })
+          } catch (err) {
+            console.warn(`[partnerships.seedExamples] Failed to stamp wip_registered_at on deal "${deal.title}"`, err)
+          }
+        })
       }
     }
-  }
 
-  await em.flush()
-
-  // Step 7: Stamp wip_registered_at on qualifying deals
-  for (const { deal, wipRegisteredAt } of dealsToStamp) {
-    customFieldAssignments.push(async () => {
-      try {
-        await dataEngine.setCustomFields({
-          entityId: E.customers.customer_deal,
-          recordId: deal.id,
-          organizationId: scope.organizationId,
-          tenantId: scope.tenantId,
-          values: { [WIP_REGISTERED_AT_FIELD.key]: wipRegisteredAt },
-          notify: false,
-        })
-      } catch (err) {
-        console.warn(`[partnerships.seedExamples] Failed to stamp wip_registered_at on deal "${deal.title}"`, err)
-      }
-    })
+    await em.flush()
+    console.log(`[partnerships.seedExamples] Agency "${agency.name}" seeded: org=${agencyOrgId}, ${agency.users.length} users, ${agency.deals.length} deals`)
   }
 
   // Execute all deferred custom field assignments
   for (const assign of customFieldAssignments) {
     await assign()
+  }
+
+  console.log(`[partnerships.seedExamples] All demo data seeded (password: ${DEMO_PASSWORD})`)
+  console.log(`[partnerships.seedExamples] PM: partnership-manager@demo.local (all orgs)`)
+  for (const agency of DEMO_AGENCIES) {
+    for (const u of agency.users) {
+      console.log(`[partnerships.seedExamples] ${agency.name}: ${u.email} (${u.roleName})`)
+    }
   }
 }
 
