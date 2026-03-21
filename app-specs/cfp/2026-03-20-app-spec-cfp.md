@@ -679,6 +679,7 @@ Pre-event planning (scenario simulation) gets client in
 - Retroactive recalculation of historical data (use factor_value_snapshot instead)
 - Leaving scaffold boilerplate modules (`example/`, empty dirs) from `create-mercato-app` in the app
 - Leaving unused modules from `create-mercato-app` template in `modules.ts` -- only register modules listed in §4.5 Module Architecture. Remove corresponding imports from `layout.tsx` (e.g., AiAssistant, third-party analytics scripts)
+- Seeding org-scoped users without `UserAcl.organizationsJson` restriction -- if a role should only see its own org (e.g., event_manager), the seed must create a `UserAcl` with `organizationsJson: [orgId]`. Without it, `null` = all orgs in tenant, and the org switcher exposes cross-org data.
 
 #### Checklist
 - [ ] Every piece of new code passes the "copy test"
