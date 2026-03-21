@@ -436,8 +436,11 @@ const PRM_ROLE_FEATURES: Record<string, string[]> = {
     'partnerships.manage',
     'partnerships.widgets.wip-count',
     'auth.*',
-    // NOTE: PM gets full customers.* and auth.* because OM RBAC doesn't support
-    // per-org feature scoping. Cross-org read-only is procedural, not enforced (by design).
+    'directory.organizations.manage',
+    'directory.organizations.view',
+    // NOTE: PM gets full customers.*, auth.*, directory.organizations.* because
+    // PM is the platform operator. Creates agency orgs + admin accounts.
+    // Cross-org read-only is procedural, not enforced (by design).
   ],
 }
 

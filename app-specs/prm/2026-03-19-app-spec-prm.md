@@ -254,7 +254,7 @@ API contracts use standard OM entities module: `POST /api/entities/definitions.b
 
 | Persona | Role key | Identity | Org scope | Sees | Does |
 |---------|----------|----------|-----------|------|------|
-| Partnership Manager | `partnership_manager` | User | Program Scope (all orgs) | CRM full write all orgs (procedural read-only on agencies per OM RBAC design), all KPIs, all tiers, RFP campaigns, cross-org company search, full user management (`auth.*`) | Creates agency admin accounts, creates RFP, evaluates responses, approves tiers, attributes MIN via cross-org company search |
+| Partnership Manager | `partnership_manager` | User | Program Scope (all orgs) | CRM full write all orgs (procedural read-only on agencies per OM RBAC design), all KPIs, all tiers, RFP campaigns, cross-org company search, full user management (`auth.*`), organization management (`directory.organizations.*`) | Creates agency organizations, creates agency admin accounts, creates RFP, evaluates responses, approves tiers, attributes MIN via cross-org company search |
 | Agency Admin | `partner_admin` | User | own org only | CRM full write (own org), KPI (WIC/WIP/MIN), tier, case studies, RFP responses, user management for own org (`auth.users.*`) | Fills profile, manages case studies, creates BD/Contributor accounts, creates deals, responds to RFP |
 | Business Developer | `partner_member` | User | own org only | CRM full write (own org — OM has no per-record ownership scoping), KPI (WIC/WIP/MIN), tier, RFP responses, dashboard, messages | Creates deals, edits profile + case studies, responds to RFP. NO user management. |
 | Contributor | `partner_contributor` | User | own org only | Dashboard + backend baseline (dashboards, messages, attachments), onboarding checklist widget | Views onboarding checklist, configures own profile (e.g. GH username). CRM not visible (no `customers.*` feature). WIC/tier visibility added in Phase 2. |
@@ -289,7 +289,7 @@ API contracts use standard OM entities module: `POST /api/entities/definitions.b
 
 ### WF1: Agency Onboarding
 
-**Journey:** PM creates Agency Admin account in backend (assigns org + role, shares credentials out-of-band) -> Admin logs in -> Admin onboarding sub-workflow (fill company profile -> add min 1 case study -> create BD account -> create Contributor account) -> BD onboarding sub-workflow (add prospect company -> create deal -> move deal to "Contacted") -> Agency is operational
+**Journey:** PM creates Organization for agency (directory module) -> PM creates Agency Admin account (assigns agency org + partner_admin role, shares credentials out-of-band) -> Admin logs in -> Admin onboarding sub-workflow (fill company profile -> add min 1 case study -> create BD account -> create Contributor account) -> BD onboarding sub-workflow (add prospect company -> create deal -> move deal to "Contacted") -> Agency is operational
 
 **ROI:** Each new agency = 1-15 WIP/month + 1-5 MIN/year. Zero agencies = zero indirect pipeline. Target: 15+ active agencies.
 
@@ -593,8 +593,8 @@ RFP lifecycle uses workflows module: START → SEND_EMAIL → WAIT_FOR_TIMER →
 
 ### WF1: Agency Onboarding
 
-**US-1.1** (Phase 1) As PM, I create an agency admin account in the backend so that a new agency can join the partner program.
-Success: PM opens `/backend/users/create`, enters email + password, selects agency organization, assigns `partner_admin` role. Account created. PM shares credentials out-of-band (email, Slack, phone). Admin logs in, sees scoped backend dashboard for their org.
+**US-1.1** (Phase 1) As PM, I onboard a new agency by creating their organization and admin account so that they can join the partner program.
+Success: PM opens `/backend/directory/organizations/create`, creates organization (e.g., "Acme Digital"). Then opens `/backend/users/create`, enters admin email + password, selects the newly created agency organization, assigns `partner_admin` role. PM shares credentials out-of-band (email, Slack, phone). Admin logs in, sees scoped backend dashboard for their org. Agency data is isolated — no cross-org visibility.
 
 **US-1.1b** (Phase 4, upstream dependency) As PM, I invite an agency admin by email so that onboarding is automated without manual credential sharing.
 Success: PM enters email, system sends invitation link, Admin clicks link, sets own password, sees scoped backend dashboard. Requires upstream invitation flow (SPEC-038).
