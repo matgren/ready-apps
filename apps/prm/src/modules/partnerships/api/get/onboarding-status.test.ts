@@ -114,7 +114,7 @@ describe('onboarding-status', () => {
       expect(items[2].label).toBe('partnerships.widgets.onboardingChecklist.inviteBd')
       expect(items[3].label).toBe('partnerships.widgets.onboardingChecklist.inviteContributor')
       // Verify links
-      expect(items[0].link).toBe('/backend/customers/companies')
+      expect(items[0].link).toBe('/backend/directory/organizations/org-001/edit')
       expect(items[1].link).toBe('/backend/partnerships')
       expect(items[2].link).toBe('/backend/auth/users')
       expect(items[3].link).toBe('/backend/auth/users')

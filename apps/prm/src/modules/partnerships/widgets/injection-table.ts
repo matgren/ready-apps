@@ -3,11 +3,15 @@ import type { ModuleInjectionTable } from '@open-mercato/shared/modules/widgets/
 const injectionTable: ModuleInjectionTable = {
   'dashboard:widgets': [
     {
-      widgetId: 'partnerships.dashboard.wip-count',
-      priority: 10,
+      widgetId: 'partnerships.dashboard.cross-org-wip',
+      priority: 5,
     },
     {
       widgetId: 'partnerships.dashboard.onboarding-checklist',
+      priority: 10,
+    },
+    {
+      widgetId: 'partnerships.dashboard.wip-count',
       priority: 20,
     },
   ],

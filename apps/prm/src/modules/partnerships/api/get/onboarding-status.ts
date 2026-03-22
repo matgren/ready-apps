@@ -82,7 +82,7 @@ export type CompletionContext = {
 
 export async function checkProfileFilled(ctx: CompletionContext): Promise<boolean> {
   const cfvCount = await ctx.em.count(CustomFieldValue, {
-    entityId: 'customers:customer_company_profile',
+    entityId: 'directory:organization',
     tenantId: ctx.tenantId,
     ...(ctx.organizationId ? { organizationId: ctx.organizationId } : {}),
     fieldKey: { $in: ['services', 'industries'] },
@@ -152,12 +152,16 @@ export async function buildAdminItems(ctx: CompletionContext): Promise<Onboardin
     checkContributorInvited(ctx),
   ])
 
+  const profileLink = ctx.organizationId
+    ? `/backend/directory/organizations/${ctx.organizationId}/edit`
+    : '/backend/directory/organizations'
+
   return [
     {
       id: 'fill_profile',
       label: 'partnerships.widgets.onboardingChecklist.fillProfile',
       completed: profileFilled,
-      link: '/backend/customers/companies',
+      link: profileLink,
     },
     {
       id: 'add_case_study',

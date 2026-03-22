@@ -82,8 +82,8 @@ type FieldDefinition = {
   options?: string[];
 };
 
-// Company profile custom fields (entity: customers:customer_company_profile)
-export const COMPANY_PROFILE_FIELDS: FieldDefinition[] = [
+// Agency profile custom fields (entity: directory:organization)
+export const AGENCY_PROFILE_FIELDS: FieldDefinition[] = [
   {
     key: 'services',
     type: 'multi_select',
@@ -252,16 +252,6 @@ export const CASE_STUDY_FIELDS: FieldDefinition[] = [
     key: 'is_public',
     type: 'boolean',
     label: 'Is Public',
-  },
-  {
-    key: 'attachments_count',
-    type: 'number',
-    label: 'Attachments Count',
-  },
-  {
-    key: 'organization_id',
-    type: 'text',
-    label: 'Organization ID',
   },
 ];
 

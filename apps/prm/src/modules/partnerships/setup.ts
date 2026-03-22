@@ -20,7 +20,7 @@ import { E } from '#generated/entities.ids.generated'
 import {
   PRM_PIPELINE_NAME,
   PRM_PIPELINE_STAGES,
-  COMPANY_PROFILE_FIELDS,
+  AGENCY_PROFILE_FIELDS,
   CASE_STUDY_FIELDS,
   WIP_REGISTERED_AT_FIELD,
   SERVICES_OPTIONS,
@@ -59,7 +59,7 @@ const DICTIONARIES: DictionaryDef[] = [
  * via the cf.* DSL helpers.
  */
 function mapFieldDefinitions(
-  fields: typeof COMPANY_PROFILE_FIELDS | typeof CASE_STUDY_FIELDS
+  fields: typeof AGENCY_PROFILE_FIELDS | typeof CASE_STUDY_FIELDS
 ) {
   return fields.map((field) => {
     const opts: Record<string, unknown> = { label: field.label }
@@ -144,8 +144,8 @@ async function seedCustomFields(
       ],
     },
     {
-      entity: E.customers.customer_company_profile,
-      fields: mapFieldDefinitions(COMPANY_PROFILE_FIELDS),
+      entity: E.directory.organization,
+      fields: mapFieldDefinitions(AGENCY_PROFILE_FIELDS),
     },
     {
       entity: 'partnerships:case_study',
@@ -420,6 +420,7 @@ const PRM_ROLE_FEATURES: Record<string, string[]> = {
     'partnerships.manage',
     'partnerships.widgets.onboarding-checklist',
     'auth.users.*',
+    'directory.organizations.manage',
   ],
   partner_member: [
     ...BACKEND_BASELINE_FEATURES,
@@ -436,6 +437,7 @@ const PRM_ROLE_FEATURES: Record<string, string[]> = {
     'customers.*',
     'partnerships.manage',
     'partnerships.widgets.wip-count',
+    'partnerships.widgets.cross-org-wip',
     'auth.*',
     'directory.organizations.manage',
     'directory.organizations.view',
@@ -676,31 +678,28 @@ async function seedPrmExamples(
     em.persist(companyProfile)
     await em.flush()
 
-    // 2e: Fill company profiles with custom fields
+    // 2e: Fill agency organization profile with custom fields
     if (agency.customFields && Object.keys(agency.customFields).length > 0) {
       const values = { ...agency.customFields } as Record<string, unknown>
       customFieldAssignments.push(async () => {
         try {
           await dataEngine.setCustomFields({
-            entityId: E.customers.customer_company_profile,
-            recordId: companyProfile.id,
+            entityId: E.directory.organization,
+            recordId: agencyOrgId,
             organizationId: agencyOrgId,
             tenantId: scope.tenantId,
             values: values as Record<string, string | number | boolean | null>,
             notify: false,
           })
         } catch (err) {
-          console.warn(`[partnerships.seedExamples] Failed to set company profile custom fields for ${agency.name}`, err)
+          console.warn(`[partnerships.seedExamples] Failed to set organization profile custom fields for ${agency.name}`, err)
         }
       })
     }
 
     // 2f: Create case studies in the agency's org
     for (const cs of agency.caseStudies) {
-      const caseStudyValues = {
-        ...cs.values,
-        organization_id: agencyOrgId,
-      }
+      const caseStudyValues = { ...cs.values }
       customFieldAssignments.push(async () => {
         try {
           await dataEngine.createCustomEntityRecord({
@@ -799,7 +798,7 @@ export const setup: ModuleSetupConfig = {
     // Agency roles get per-agency widgets (visible when in agency org).
     // seedDashboardDefaultsForTenant with explicit widgetIds does a full replace.
     const PM_WIDGETS = [
-      'partnerships.dashboard.wip-count', // cross-org table variant for PM
+      'partnerships.dashboard.cross-org-wip', // cross-org table for PM
       // Phase 2+: 'partnerships.dashboard.pending-proposals',
     ]
     const AGENCY_WIDGETS = [

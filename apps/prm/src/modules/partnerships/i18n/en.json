@@ -1,5 +1,14 @@
 {
   "partnerships": {
+    "nav": {
+      "group": "Partnerships"
+    },
+    "addAgency": {
+      "title": "Add Agency"
+    },
+    "agencies": {
+      "title": "Agencies"
+    },
     "widgets": {
       "wipCount": {
         "title": "WIP This Month",
@@ -7,15 +16,19 @@
         "wicPlaceholder": "WIC: —",
         "noData": "No WIP data for this period"
       },
+      "crossOrgWip": {
+        "title": "Agency Pipeline Activity"
+      },
       "onboardingChecklist": {
         "title": "Getting Started",
-        "fillProfile": "Fill your company profile",
+        "fillProfile": "Fill your agency profile",
         "addCaseStudy": "Add a case study",
         "inviteBd": "Invite a Business Developer",
         "inviteContributor": "Invite a Contributor",
         "addProspect": "Add a prospect company",
         "createDeal": "Create your first deal",
-        "allDone": "All set! You're ready to go."
+        "allDone": "All set! You're ready to go.",
+        "error": "Failed to load onboarding status"
       }
     }
   }

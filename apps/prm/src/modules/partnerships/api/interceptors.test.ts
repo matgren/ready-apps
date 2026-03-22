@@ -67,12 +67,16 @@ function makeMockEm(stageOrder: number, existingWipValue: string | null = null) 
     return Promise.resolve(null)
   }
 
-  return {
+  const em = {
     findOne: jest.fn(findOneResult),
     persist: jest.fn(),
     flush: jest.fn().mockResolvedValue(undefined),
     create: jest.fn((entity: unknown, data: Record<string, unknown>) => ({ ...data })),
+    fork: jest.fn(),
   }
+  // fork() returns self (same mock instance) for simplicity
+  em.fork.mockReturnValue(em)
+  return em
 }
 
 function makeContext(
