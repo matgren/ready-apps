@@ -65,15 +65,18 @@ At the start of each session, determine how the app consumes `@open-mercato/*` p
    ```bash
    npm view @open-mercato/core versions --json | grep develop | tail -1
    ```
-3. **If open PRs exist** -> use Verdaccio local build from the fix branch:
-   - **Open, no review comments** -> build + publish to Verdaccio
-   - **Open, has review comments** -> flag to user BEFORE starting any other work
+3. **If open PRs exist** -> use Verdaccio local build that includes **all** open PR branches:
+   - Create a temporary integration branch from `develop`, merge all open PR branches into it, then build + publish to Verdaccio
+   - **If any PR has review comments** -> flag to user BEFORE starting any other work
    - **Merged but no canary yet** -> keep Verdaccio until canary is published
 4. **Report to user:** "We're on [canary X / Verdaccio local 0.4.8]. PRs: [status]."
 
 **Verdaccio workflow (local build):**
 ```bash
-cd open-mercato && git checkout <fix-branch>
+cd open-mercato && git checkout develop && git pull
+# Create temp integration branch with all open PRs
+git checkout -b temp-integration
+git merge origin/<pr-branch-1> origin/<pr-branch-2> ...
 yarn build:packages && bash scripts/registry/publish.sh
 # App:
 yarn cache clean && rm -rf node_modules yarn.lock && yarn install
