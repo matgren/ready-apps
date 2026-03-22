@@ -173,7 +173,7 @@ test.describe('TC-PRM-002: WIP Count KPI Dashboard Widget API', () => {
    * Expected: { count: 2, month: "YYYY-MM" }
    *
    * Note: admin does NOT have partnerships.widgets.wip-count feature.
-   * Use admin for setup (create/move deals), partner-member for wip-count queries.
+   * Use admin for setup (create/move deals), BD user for wip-count queries.
    */
   test('T1: counts only deals moved to SQL stage within the queried month', async ({ request }) => {
     let token: string | null = null
@@ -206,7 +206,7 @@ test.describe('TC-PRM-002: WIP Count KPI Dashboard Widget API', () => {
       // deal3 stays at pre-SQL — no WIP stamp
 
       const currentMonth = toYearMonth()
-      // Use partner-member token — has partnerships.widgets.wip-count feature
+      // Use BD user token — has partnerships.widgets.wip-count feature
       const res = await apiRequest(request, 'GET', `/api/partnerships/wip-count?month=${currentMonth}`, { token: wipToken })
 
       expect(res.ok(), `GET /api/partnerships/wip-count returned ${res.status()}`).toBeTruthy()
@@ -233,7 +233,7 @@ test.describe('TC-PRM-002: WIP Count KPI Dashboard Widget API', () => {
    * Expected: { count: 0 } (deal not in next month)
    *
    * Note: admin does NOT have partnerships.widgets.wip-count feature.
-   * Use admin for setup, partner-member for wip-count queries.
+   * Use admin for setup, BD user for wip-count queries.
    */
   test('T2: deal stamped in current month does not appear in next month count', async ({ request }) => {
     let token: string | null = null
@@ -266,7 +266,7 @@ test.describe('TC-PRM-002: WIP Count KPI Dashboard Widget API', () => {
 
       // Query for next month — deal should NOT appear
       const nextMonth = monthOffset(new Date(), 1)
-      // Use partner-member token — has partnerships.widgets.wip-count feature
+      // Use BD user token — has partnerships.widgets.wip-count feature
       const res = await apiRequest(request, 'GET', `/api/partnerships/wip-count?month=${nextMonth}`, { token: wipToken })
 
       expect(res.ok(), `GET /api/partnerships/wip-count returned ${res.status()}`).toBeTruthy()
@@ -286,7 +286,7 @@ test.describe('TC-PRM-002: WIP Count KPI Dashboard Widget API', () => {
    * Expected: returns current month's count (not an error).
    *
    * Note: admin does NOT have partnerships.widgets.wip-count feature.
-   * Use admin for setup, partner-member for wip-count queries.
+   * Use admin for setup, BD user for wip-count queries.
    */
   test('T3: omitting month param defaults to current month', async ({ request }) => {
     let token: string | null = null
@@ -317,7 +317,7 @@ test.describe('TC-PRM-002: WIP Count KPI Dashboard Widget API', () => {
       // Stamp wip_registered_at so we have at least 1 WIP deal this month
       await moveDealToStage(request, token, dealId, sqlStageId)
 
-      // Query without month param — use partner-member token (has wip-count feature)
+      // Query without month param — use BD user token (has wip-count feature)
       const resNoMonth = await apiRequest(request, 'GET', '/api/partnerships/wip-count', { token: wipToken })
       expect(resNoMonth.ok(), `GET /api/partnerships/wip-count (no month) returned ${resNoMonth.status()}`).toBeTruthy()
       const bodyNoMonth = await readJsonSafe<{ count: number; month?: string }>(resNoMonth)
@@ -348,7 +348,7 @@ test.describe('TC-PRM-002: WIP Count KPI Dashboard Widget API', () => {
    * Expected: 400 error response.
    *
    * Note: admin does NOT have partnerships.widgets.wip-count feature (would get 403
-   * before reaching validation). Use partner-member token so the 400 validation is
+   * before reaching validation). Use BD user token so the 400 validation is
    * actually exercised.
    */
   test('T4: invalid month format returns 400', async ({ request }) => {

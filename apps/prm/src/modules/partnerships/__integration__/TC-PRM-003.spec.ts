@@ -211,7 +211,7 @@ test.describe('TC-PRM-003: BD role — onboarding checklist API contract', () =>
   /**
    * T5 — BD queries onboarding status after company and deal exist.
    * The seeded org already has companies and deals. This test creates additional
-   * fixtures using the admin token (BD/partner-member may not have permission to
+   * fixtures using the admin token (BD user may not have permission to
    * create companies and deals directly), then queries onboarding status as BD,
    * and cleans up fixtures with admin token in teardown.
    */
@@ -226,7 +226,7 @@ test.describe('TC-PRM-003: BD role — onboarding checklist API contract', () =>
     let dealId: string | null = null
 
     try {
-      // Create company and deal as admin (partner-member may lack create permissions)
+      // Create company and deal as admin (BD user may lack create permissions)
       const companyResponse = await apiRequest(request, 'POST', '/api/customers/companies', {
         token: adminToken,
         data: { displayName: companyName },
