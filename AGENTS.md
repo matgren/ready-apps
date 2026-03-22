@@ -182,6 +182,52 @@ Before the first domain commit of any new app scaffolded from `create-mercato-ap
 
 This is a prerequisite, not a domain commit — it does not count toward the phase commit total.
 
+### OM Package Strategy
+
+At the start of each session, determine how the app consumes `@open-mercato/*` packages:
+
+1. **Check for open upstream PRs:** `gh pr list -R open-mercato/open-mercato --author matgren --state open`
+2. **If no open PRs** → use latest canary from npm. Update `package.json` to newest version:
+   ```bash
+   npm view @open-mercato/core versions --json | grep develop | tail -1
+   ```
+3. **If open PRs exist** → use Verdaccio local build from the fix branch:
+   - **Open, no review comments** → build + publish to Verdaccio
+   - **Open, has review comments** → flag to user BEFORE starting any other work. Address review feedback first.
+   - **Merged but no canary yet** → keep Verdaccio until canary is published
+4. **Report to user:** "We're on [canary X / Verdaccio local 0.4.8]. PRs: [status]."
+
+**Verdaccio workflow (local build):**
+```bash
+# OM monorepo (fix branch):
+cd open-mercato && git checkout <fix-branch>
+yarn build:packages && bash scripts/registry/publish.sh
+# If Verdaccio cached old version:
+docker exec mercato-verdaccio rm -rf /verdaccio/storage/@open-mercato/<pkg>
+bash scripts/registry/publish.sh
+
+# App (e.g., apps/prm):
+# .npmrc: @open-mercato:registry=http://localhost:4873
+# package.json: @open-mercato/* pinned to 0.4.8 (Verdaccio version)
+yarn cache clean && rm -rf node_modules yarn.lock && yarn install
+yarn generate && yarn reinstall
+```
+
+**Canary workflow (all PRs merged):**
+```bash
+# Remove or comment out Verdaccio line in .npmrc
+# Update package.json to latest canary version
+yarn install && yarn reinstall
+```
+
+**Iteration loop (changed OM code):**
+```bash
+cd open-mercato && yarn build:packages && bash scripts/registry/publish.sh
+cd ../apps/<app> && rm -rf node_modules/@open-mercato && yarn install --force && yarn reinstall
+```
+
+**Never patch `node_modules` manually.** Use Verdaccio — it's the OM-supported pattern for testing local changes.
+
 ### Per-Commit Loop
 
 ```
