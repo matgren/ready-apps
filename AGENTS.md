@@ -58,35 +58,21 @@ Before writing any spec or code, read these files in order:
 
 ## §2. OM Package Strategy
 
-At the start of each session, determine how the app consumes `@open-mercato/*` packages:
+The OM monorepo lives at `open-mercato/` (gitignored). Build and publish to Verdaccio from whichever branch has the changes you need.
 
 1. **Check for open upstream PRs:** `gh pr list -R open-mercato/open-mercato --author matgren --state open`
-2. **If no open PRs** -> use latest canary from npm:
-   ```bash
-   npm view @open-mercato/core versions --json | grep develop | tail -1
-   ```
-3. **If open PRs exist** -> use Verdaccio local build that includes **all** open PR branches:
-   - Create a temporary integration branch from `develop`, merge all open PR branches into it, then build + publish to Verdaccio
-   - **If any PR has review comments** -> flag to user BEFORE starting any other work
-   - **Merged but no canary yet** -> keep Verdaccio until canary is published
-4. **Report to user:** "We're on [canary X / Verdaccio local 0.4.8]. PRs: [status]."
+2. **If any PR has review comments** -> flag to user BEFORE starting any other work
+3. **Report to user:** "We're on [branch X / Verdaccio]. PRs: [status]."
 
-**Verdaccio workflow (local build):**
+**Verdaccio build:**
 ```bash
-cd open-mercato && git checkout develop && git pull
-# Create temp integration branch with all open PRs
-git checkout -b temp-integration
-git merge origin/<pr-branch-1> origin/<pr-branch-2> ...
+cd open-mercato && git checkout <branch-with-changes> && git pull
 yarn build:packages && bash scripts/registry/publish.sh
-# App:
-yarn cache clean && rm -rf node_modules yarn.lock && yarn install
-yarn generate && yarn reinstall
 ```
 
-**Iteration loop (changed OM code):**
+**App install (after Verdaccio publish):**
 ```bash
-cd open-mercato && yarn build:packages && bash scripts/registry/publish.sh
-cd ../apps/<app> && rm -rf node_modules/@open-mercato && yarn install --force && yarn reinstall
+cd apps/<app> && rm -rf node_modules/@open-mercato && yarn install --force && yarn reinstall
 ```
 
 **Never patch `node_modules` manually.** Use Verdaccio.

@@ -211,7 +211,7 @@ MIN(org, year) = COUNT(DISTINCT license_deals)
 - ContributionUnit.organization_id is set at PR merge time based on contributor's org membership at that moment.
 
 **Onboarding requirements:**
-- Agency Admin must: fill company profile, add min 1 case study, invite min 1 BD, invite min 1 Contributor
+- Agency Admin must: fill organization profile, add min 1 case study, invite min 1 BD, invite min 1 Contributor
 - BD must: add first prospect company, create first deal, move deal to "Contacted"
 - Both are sub-workflows tracked by the system
 
@@ -219,29 +219,31 @@ MIN(org, year) = COUNT(DISTINCT license_deals)
 
 These are the canonical field definitions for PRM. setup.ts seeds them exactly as defined below.
 
-**Company Profile** (`customers:customer_company_profile`) — 13 fields:
+**Agency Profile** (`directory:organization`) — 13 custom fields on Organization:
 - `positioning_summary` (multiline), `services` (dictionary, multi), `industries` (dictionary, multi), `tech_capabilities` (dictionary, multi)
 - `delivery_models` (select, multi), `compliance_tags` (dictionary, multi)
 - `team_size_bucket` (select), `min_project_size_bucket` (select), `hourly_rate_bucket` (select, hidden)
 - `regions` (dictionary, multi, hidden), `languages` (dictionary, multi, hidden)
 - `clutch_url` (text, hidden), `profile_confidence` (integer, hidden)
 
-**Case Study** (`user:case_study`) — 19 fields:
-- `title` (text), `summary` (multiline), `provider_company` (relation to company), `provider_company_name` (text)
+**Case Study** (`user:case_study`) — 17 fields:
+- `title` (text), `summary` (multiline)
 - `technologies` (dictionary, multi), `industry` (dictionary, multi), `project_type` (select)
 - `duration_bucket` (select), `duration_weeks` (integer), `budget_known` (boolean), `budget_bucket` (select)
 - `budget_min_usd` (float), `budget_max_usd` (float), `delivery_models` (select, multi)
 - `compliance_tags` (dictionary, multi), `outcome_kpis` (multiline), `source_url` (text)
 - `related_deals` (relation to deals), `confidence_score` (integer), `is_public_reference` (boolean), `completed_year` (integer)
 
+**Removed:** `provider_company` and `provider_company_name` — agency = Organization, case study ownership is implicit via org scoping.
+
 **Dictionaries** (seeded in setup.ts): `services`, `industries`, `tech_capabilities`, `compliance_tags`, `regions`, `languages`
 
 **Minimum required for creation:** `title`, at least one `industry`, at least one `technologies`, `budget_bucket`, `duration_bucket`. Other fields optional but improve RFP matching quality.
 
-API contracts use standard OM entities module: `POST /api/entities/definitions.batch` for field definitions, `POST /api/entities/records` for records, `POST /api/dictionaries` for taxonomies.
+API contracts use standard OM entities module: `POST /api/entities/definitions.batch` for field definitions, `POST /api/entities/records` for records, `POST /api/dictionaries` for taxonomies. Agency profile fields use `entityId: 'directory:organization'` — rendered automatically on org edit page.
 
 #### Domain Model Checklist
-- [x] Domain entities identified — PartnerAgency, tiers, KPIs, case studies, RFP, license deals, ContributionUnit, TierChangeProposal, TierEvaluationState
+- [x] Domain entities identified — tiers (TierAssignment), KPIs, case studies, RFP, license deals, ContributionUnit, TierChangeProposal, TierEvaluationState
 - [x] Domain rules documented — tier thresholds, KPI formulas, onboarding requirements, grace period state machine, MIN invariants
 - [x] Tiers: all 4 real tiers with thresholds and benefits (was 3 in old spec, caught and fixed)
 - [x] Tiers: governance rules complete — grace period state machine (OK → GracePeriod → ProposedDowngrade), TierChangeProposal with uniqueness invariant
@@ -261,7 +263,7 @@ API contracts use standard OM entities module: `POST /api/entities/definitions.b
 | Persona | Role key | Identity | Org scope | Sees | Does |
 |---------|----------|----------|-----------|------|------|
 | Partnership Manager | `partnership_manager` | User | Program Scope (all orgs) | CRM full write all orgs (procedural read-only on agencies per OM RBAC design), all KPIs, all tiers, RFP campaigns, cross-org company search, full user management (`auth.*`), organization management (`directory.organizations.*`) | Creates agency organizations, creates agency admin accounts, creates RFP, evaluates responses, approves tiers, attributes MIN via cross-org company search |
-| Agency Admin | `partner_admin` | User | own org only | CRM full write (own org), KPI (WIC/WIP/MIN), tier, case studies, RFP responses, user management for own org (`auth.users.*`) | Fills profile, manages case studies, creates BD/Contributor accounts, creates deals, responds to RFP |
+| Agency Admin | `partner_admin` | User | own org only | CRM full write (own org), KPI (WIC/WIP/MIN), tier, case studies, RFP responses, user management for own org (`auth.users.*`), own org profile edit (`directory.organizations.manage`) | Fills organization profile, manages case studies, creates BD/Contributor accounts, creates deals, responds to RFP |
 | Business Developer | `partner_member` | User | own org only | CRM full write (own org — OM has no per-record ownership scoping), KPI (WIC/WIP/MIN), tier, RFP responses, dashboard, messages | Creates deals, edits profile + case studies, responds to RFP. NO user management. |
 | Contributor | `partner_contributor` | User | own org only | Dashboard + backend baseline (dashboards, messages, attachments), onboarding checklist widget | Views onboarding checklist, configures own profile (e.g. GH username). CRM not visible (no `customers.*` feature). WIC/tier visibility added in Phase 2. |
 
@@ -295,7 +297,7 @@ API contracts use standard OM entities module: `POST /api/entities/definitions.b
 
 ### WF1: Agency Onboarding
 
-**Journey:** PM opens "Add Agency" page -> fills agency name + admin email -> optional: demo data checkbox -> click Create -> system creates org + admin + optional demo data -> PM copies invite message from screen -> sends to Admin out-of-band -> Admin logs in (sees demo data or onboarding checklist) -> Admin completes onboarding (profile, case studies, creates BD/Contributor) -> BD creates deals -> Agency is operational
+**Journey:** PM opens "Add Agency" page -> fills agency name + admin email -> optional: demo data checkbox -> click Create -> system creates org + admin + optional demo data (CRM prospects, deals, case studies — not agency company record) -> PM copies invite message from screen -> sends to Admin out-of-band -> Admin logs in (sees demo data or onboarding checklist) -> Admin completes onboarding (org profile, case studies, creates BD/Contributor) -> BD creates deals -> Agency is operational
 
 **ROI:** Each new agency = 1-15 WIP/month + 1-5 MIN/year. Zero agencies = zero indirect pipeline. Target: 15+ active agencies.
 
@@ -311,12 +313,12 @@ API contracts use standard OM entities module: `POST /api/entities/definitions.b
 2. Admin leaves agency after onboarding -> zombie org, nobody manages it
 3. Admin fills profile but never creates BD account -> onboarding "done" but no WIP generated
 4. PM creates agency with email that already exists -> system rejects (email uniqueness constraint), org not created (atomic operation)
-5. PM creates agency with demo data -> Admin logs in and sees realistic CRM data, can start exploring immediately without manual setup
+5. PM creates agency with demo data -> Admin logs in and sees realistic CRM data (prospect companies, deals, case studies), can start exploring immediately without manual setup
 
 **OM readiness:**
 - User creation + RBAC -> `auth` module ✅
 - Org scoping -> platform ✅
-- Company profile custom fields -> `entities` module ✅
+- Agency profile custom fields on Organization -> `entities` module (`directory:organization`) ✅
 - Case studies custom entity -> `entities` module ✅
 - Pipeline stages for deals -> `customers` module ✅
 - Sub-workflows (onboarding steps) -> `workflows` module ✅
@@ -464,9 +466,9 @@ PM has license sale -> opens "Create License Deal" -> searches all companies acr
 | Role | Sidebar groups | Notes |
 |------|---------------|-------|
 | Partnership Manager | **CRM** (Companies, People, Deals, Pipeline), **Partnerships** (Add Agency, Agencies list, WIC Import, Tier Review), **Directory** (Organizations) | PM spends most time in CRM (cross-org) and Partnerships (manage agencies, import WIC, review tiers). Directory needed for org management. |
-| Agency Admin | **CRM** (Companies, People, Deals, Pipeline), **Users** (manage team) | Admin works primarily in CRM. Users section for creating BD/Contributor accounts. No Partnerships group — that's PM-only. |
+| Agency Admin | **CRM** (Companies, People, Deals, Pipeline), **Settings** (Agency Profile, Case Studies, Users) | Admin works primarily in CRM. Settings groups agency management: org profile, case studies (custom entity list + create), user management. No Partnerships group — that's PM-only. |
 | Business Developer | **CRM** (Companies, People, Deals, Pipeline) | BD lives in CRM. Creates prospects, manages deals. No user management, no partnerships. |
-| Contributor | _(minimal — dashboard + profile)_ | Contributor sees dashboard with onboarding checklist (1 item: set GH username). Profile page always accessible via header dropdown. No CRM sidebar items (no `customers.*` feature). Phase 2 adds WIC score widget. |
+| Contributor | **Settings** (Profile) | Contributor sees dashboard with onboarding checklist (1 item: set GH username). Profile page accessible via Settings sidebar (GH username, personal details). No CRM sidebar items (no `customers.*` feature). Phase 2 adds WIC score widget. |
 
 ### Dashboard Widgets (per role)
 
@@ -489,7 +491,7 @@ PM has license sale -> opens "Create License Deal" -> searches all companies acr
 
 | Page | URL pattern | Role | Purpose | OM pattern |
 |------|------------|------|---------|------------|
-| Add Agency | `/backend/partnerships/add-agency` | PM | One-step agency creation: name + email + demo data checkbox. ALWAYS creates agency company record in CRM (even without demo data). Returns invite message with clipboard copy button. After creation: shows "Go to Agency List" CTA. | Custom form with `em.transactional()` |
+| Add Agency | `/backend/partnerships/add-agency` | PM | One-step agency creation: name + email + demo data checkbox. Creates Organization + Admin user. Optional demo data seeds CRM prospects, deals, case studies. Returns invite message with clipboard copy button. After creation: shows "Go to Agency List" CTA. | Custom form with `em.transactional()` |
 | Agency List | `/backend/partnerships/agencies` | PM | DataTable: name, org, admin email, tier, WIP count, WIC count, onboarding status (EnumBadge), created date | DataTable with filters |
 | Tier Review | `/backend/partnerships/tier-review` | PM (Phase 2+) | Pending TierChangeProposals: agency name, current tier, proposed tier, type (upgrade/downgrade), period, KPIs vs thresholds, status. Last-run timestamp in PageHeader. | DataTable + detail dialog (approve/reject with reason) |
 | My Tier | `/backend/partnerships/my-tier` | Admin, BD (Phase 2+) | Read-only tier history + current KPI breakdown for own agency | DetailFieldsSection + DataTable (history) |
@@ -518,7 +520,7 @@ PM has license sale -> opens "Create License Deal" -> searches all companies acr
 | PM | Create RFP (Ph3+) | Login → Sidebar "RFP Campaigns" → "New RFP" → Fill form → Save as Draft or Publish | 3 | Explicit Draft vs Publish actions. |
 | PM | Evaluate RFP responses (Ph3+) | Login → Sidebar "RFP Campaigns" → Click campaign row → Comparison page → "Award" on winner | 3 | Comparison shows all responses. Award = confirmation dialog. |
 | PM | Return to own org | Any page → Org switcher dropdown → Select "Open Mercato Backoffice" | 2 | Frequent action for PM. |
-| Admin | Complete onboarding | Login → Dashboard (checklist widget) → Click "Fill profile" → Save → Back → Click "Add case study" → Save → ... | 2 per item | Checklist drives the flow. "Fill profile" links to agency company record (always exists). |
+| Admin | Complete onboarding | Login → Dashboard (checklist widget) → Click "Fill profile" → Save → Back → Click "Add case study" → Save → ... | 2 per item | Checklist drives the flow. "Fill profile" links to org edit page (`/backend/directory/organizations/[orgId]/edit`). |
 | Admin | Create BD account | Login → Sidebar "Users" → "Create User" → Fill email + password + select role → Done | 3 | Standard OM user creation page. Checklist note guides role selection. |
 | BD | Create deal | Login → Sidebar "Deals" → "New Deal" → Fill form → Save | 3 | Standard CRM deal creation |
 | BD | Move deal to SQL | Login → Sidebar "Pipeline" → Drag deal to SQL stage → Flash: "Deal qualified — WIP recorded" | 2 | Pipeline board. Flash confirms WIP stamp. |
@@ -575,7 +577,7 @@ Each gap is measured in **atomic commits** — one self-contained, testable incr
 |------|-----------|-----|---------|-------|-------|
 | PM invites agency admin | auth module | No invite-by-email in auth | 0 (Ph1) / 2 (Ph4) | `app` (Ph1 zero commits) / `core-module` (Ph4 — FLAG: invitation flow requires auth module changes) | Phase 1: self-onboard workaround. Phase 4: invitation flow (email template + API route + UI) — upstream PR + core team approval required |
 | Admin sets password | auth module | Covered | 0 | — | Standard password reset flow |
-| Admin fills company profile | entities module (custom fields) | Covered | 1 | `app` | Seed custom field definitions in setup.ts |
+| Admin fills organization profile | entities module (custom fields on `directory:organization`) | Covered | 1 | `app` | Seed custom field definitions in setup.ts |
 | Admin adds case study | entities module (custom entity) | Covered | 0 | — | Bundled with profile seed above (same commit) |
 | Admin invites BD/Contributor | auth module | Same as invite gap | 0 | — | Shared with PM invite mechanism |
 | BD onboarding sub-workflow | workflows module | Covered (SUB_WORKFLOW) | 1 | `app` | Workflow JSON definition |
@@ -659,8 +661,8 @@ RFP lifecycle uses workflows module: START → SEND_EMAIL → WAIT_FOR_TIMER →
 
 | Module | Usage | Extension points used | Notes |
 |--------|-------|----------------------|-------|
-| `customers` | extend | Custom fields on company entity (profile data), custom entity (case studies) | Agencies ARE customers — no separate agency entity |
-| `customer_accounts` | extend | `defaultCustomerRoleFeatures` in setup.ts | Portal auth for agency roles (partner_admin, partner_member, partner_contributor) |
+| `customers` | extend | Pipeline stages, CRM for agency prospects | Agencies use CRM for prospect pipeline (WIP). Agency itself = Organization, not Company. |
+| `directory` | extend | Custom fields on Organization (`directory:organization`) | Agency profile (13 fields) stored as custom fields on Organization entity |
 | `entities` | extend | Custom entities via `ce.ts`, custom fields via setup.ts | Case studies, tier proposals, WIC snapshots |
 | `workflows` | extend | Workflow JSON seed | SEND_EMAIL on stage transitions, tier review notifications |
 | `auth` | as-is | — | User management for PM role. No customization. |
@@ -678,10 +680,12 @@ RFP lifecycle uses workflows module: START → SEND_EMAIL → WAIT_FOR_TIMER →
 | `partnerships` | All PRM domain logic: onboarding, WIP tracking, WIC assessment, tier management, RFP | case_study, tier_change_proposal, wic_snapshot, rfp, rfp_response | Single module — all entities share invariants (org scoping, tier rules, WIP/WIC calculations) |
 
 #### Checklist
-- [x] Every OM core module listed with explicit usage type and extension points `Piotr`
+- [x] Every OM core module listed with explicit usage type and extension points (5 core modules: customers, directory, entities, workflows, auth) `Piotr`
+- [x] Every listed module traces to a user story or workflow — `customer_accounts` removed (§2 rejects portal) `Piotr`
 - [x] Every official module listed — none needed, all gaps are app-specific `Piotr`
 - [x] Reusability check: PRM domain logic (tiers, WIP/WIC, RFP) is specific to partner relationship management — not reusable as official module `Piotr`
 - [x] App module count justified — 1 module (`partnerships`). All entities share org-scoped invariants and tier calculation dependencies. Splitting would break transactional consistency. `Piotr`
+- [x] Every `core-module` gap has upstream investigation — documented in `piotr-notes/upstream-flags.md` (4 PRs: #1046, #1047, #1048, #1049) `Piotr`
 - [x] No direct modification of core or official module code — all extensions via UMES (interceptors, widget injection, custom fields, defaultCustomerRoleFeatures) `Mat + Piotr`
 - [x] Module boundaries align with bounded context boundaries — partnerships is one bounded context: agency lifecycle from onboarding through tier management `Vernon`
 
@@ -699,7 +703,7 @@ Success: PM opens "Add Agency" page. Fills two fields: agency name + admin email
 1. Creates Organization (directory module) with agency name
 2. Generates a random password
 3. Creates Admin user (partner_admin role) in the new org with UserAcl restricting to that org
-4. If "Create demo data" checked: seeds sample company profile, case study, prospect companies, deals at various pipeline stages — so Admin can explore a working CRM immediately
+4. If "Create demo data" checked: seeds sample org profile fields, case studies, prospect companies, deals at various pipeline stages — so Admin can explore a working CRM immediately
 5. Displays invite message on screen for PM to copy:
    ```
    Your agency account has been created on Open Mercato PRM.
@@ -714,23 +718,23 @@ PM copies message, sends via email/Slack/phone. Admin logs in, sees populated CR
 **US-1.1b** (Phase 4, upstream dependency) As PM, I invite an agency admin by email directly from the platform so that credential sharing is automated.
 Success: Same "Add Agency" form but with "Send invitation email" option. System sends email with login link + temporary password. Requires upstream invitation flow (SPEC-038).
 
-**US-1.2** As Agency Admin, I fill my company profile (services, industries, tech stack) so that OM has data for lead matching.
-Success: Profile saved, visible to PM via org switcher, fields match case study categories.
+**US-1.2** As Agency Admin, I fill my agency's organization profile (services, industries, tech stack) so that OM has data for lead matching.
+Success: Custom fields on Organization saved via org edit page (`/backend/directory/organizations/[orgId]/edit`), visible to PM via org switcher, fields match case study categories.
 
 **US-1.3** As Agency Admin, I add at least one case study (project type, tech, budget, duration) so that PM has evidence for RFP scoring.
-Success: Case study saved as custom entity, visible in agency profile, linked to company.
+Success: Case study saved as custom entity, visible in agency profile, scoped to agency's organization.
 
 **US-1.4** As Agency Admin, I create a BD account in the backend so that someone can start building pipeline.
-Success: Admin opens `/backend/users/create`, enters email + password, selects own organization, assigns `partner_member` role. Shares credentials out-of-band. BD logs in, sees CRM + KPI dashboard scoped to their org. (Phase 4: replaced by email invitation via SPEC-038.)
+Success: Admin opens `/backend/users/create`, enters email + password, organization is pre-filled (Admin sees only own org via UserAcl), assigns `partner_member` role. Shares credentials out-of-band. BD logs in, sees CRM + KPI dashboard scoped to their org. (Phase 4: replaced by email invitation via SPEC-038.)
 
 **US-1.5** As Agency Admin, I create a Contributor account in the backend so that their code contributions are tracked under our agency.
-Success: Admin opens `/backend/users/create`, enters email + password, selects own organization, assigns `partner_contributor` role. Shares credentials out-of-band. Contributor logs in, sees WIC score dashboard scoped to their org. Nothing else visible. (Phase 4: replaced by email invitation via SPEC-038.)
+Success: Admin opens `/backend/users/create`, enters email + password, organization is pre-filled (Admin sees only own org via UserAcl), assigns `partner_contributor` role. Shares credentials out-of-band. Contributor logs in, sees WIC score dashboard scoped to their org. Nothing else visible. (Phase 4: replaced by email invitation via SPEC-038.)
 
 **US-1.6** As BD, I add my first prospect and create a deal so that my onboarding is complete.
 Success: Company + Deal created in CRM, onboarding workflow marks BD step as done.
 
 **US-1.7** As Agency Admin, I see a checklist on my dashboard showing which onboarding steps I've completed and which remain so that I know what to do next without asking PM.
-Success: Dashboard widget shows checklist: fill company profile (done/pending), add case study (done/pending), invite BD (done/pending), invite Contributor (done/pending). Each item links to the relevant page. Completed items show checkmark. Widget disappears when all items are done.
+Success: Dashboard widget shows checklist: fill organization profile (done/pending), add case study (done/pending), invite BD (done/pending), invite Contributor (done/pending). Each item links to the relevant page. Completed items show checkmark. Widget disappears when all items are done.
 
 **US-1.8** As BD, I see a checklist on my dashboard showing my onboarding steps so that I know I need to create my first deal.
 Success: Dashboard widget shows: add prospect company (done/pending), create first deal (done/pending). Links to CRM. Disappears when done.
@@ -915,7 +919,7 @@ Success: Every file follows OM conventions (auto-discovery paths, UMES patterns,
 | Story | What ships | Commits |
 |-------|-----------|---------|
 | US-1.1 | "Add Agency" page — PM creates org + admin + optional demo data in one step. Emits `AgencyCreated` event. Returns invite message for PM to copy. | 1 |
-| US-1.2 + US-1.3 | Company profile custom fields + case study custom entity + CaseStudy minimum required fields (seed in setup.ts) | 1 |
+| US-1.2 + US-1.3 | Organization profile custom fields (`directory:organization`) + case study custom entity + CaseStudy minimum required fields (seed in setup.ts) | 1 |
 | US-1.4 | Admin creates BD account via `/backend/users/create` (has `auth.users.*` feature) | 0 |
 | US-1.5 | Admin creates Contributor account (same mechanism) | 0 |
 | US-1.6 | BD creates first deal (CRM ready) | 0 |
@@ -924,6 +928,9 @@ Success: Every file follows OM conventions (auto-discovery paths, UMES patterns,
 | US-2.3 | WIP count widget on PM dashboard (live query: `COUNT WHERE wip_registered_at IN month`) | 1 |
 | US-1.7 + US-1.8 | Onboarding checklist widget — Admin sees profile/case study/create BD steps, BD sees prospect/deal steps. Disappears when done. | 1 |
 | US-6.1-6.4 | Org isolation — PM sees all via switcher, agency users restricted to own org (UserAcl). | 0 |
+| US-7.1 | `create-mercato-app --example prm` bootstraps running PRM app (SPEC-068) | 0 |
+| US-7.2 + US-7.3 | `yarn initialize` seeds demo users + example data exercising WF1/WF2 | 0 |
+| US-7.4 | Code follows OM patterns, module README | 0 |
 
 **Total: 5 atomic commits** (Add Agency route + setup.ts seed + WIP interceptor + KPI dashboard widget + onboarding checklist widget)
 **Known limitations Phase 1:** No forced password change on first login (Phase 4 invitation flow replaces). Admin can technically assign any role (domain rule enforcement deferred — procedural for 15 agencies).
@@ -960,7 +967,7 @@ Success: Every file follows OM conventions (auto-discovery paths, UMES patterns,
 **Platform ROI** (example app patterns demonstrated):
 - RBAC roles with org scoping — `partner_admin`, `partner_member`, `partner_contributor` via setup.ts
 - CRM as core tool — agencies use `customers` module backend, not custom CRUD
-- Custom fields + custom entities via `entities` module — company profile, case studies
+- Custom fields + custom entities via `entities` module — agency profile on Organization (`directory:organization`), case studies
 - UMES API interceptor — `wip_registered_at` stamp on deal stage change
 - Widget injection — KPI dashboard widget + onboarding checklist widget (role-conditional, data-driven)
 - Org switcher for cross-org visibility — PM sees all agencies read-only
@@ -968,7 +975,7 @@ Success: Every file follows OM conventions (auto-discovery paths, UMES patterns,
 - **Copy test:** Every piece of Phase 1 code shows "this is how you extend OM with RBAC + CRM + UMES"
 
 **seedExamples for Phase 1** (SPEC-068, US-7.2):
-- 3 demo agencies with company profiles + case studies (different verticals)
+- 3 demo agencies with organization profiles + case studies (different verticals)
 - 1 PM user, 1 Admin + 1 BD + 1 Contributor per agency
 - Demo deals at various pipeline stages (some with `wip_registered_at` stamps, some not yet at SQL)
 - All demo data labeled clearly (e.g., "Acme Digital (Demo)")
@@ -1180,13 +1187,13 @@ All LLM work lives in n8n. PRM app has zero LLM dependencies. One integration po
 ### Rollout Summary
 
 ```
-Phase 1: Core Loop              4 commits    WF1 (partial + onboarding checklist) + WF2 (stamp-based WIP)
+Phase 1: Core Loop              5 commits    WF1 (partial + onboarding checklist) + WF2 (stamp-based WIP)
 Phase 2: Governance + KPI + MIN 8 commits    WF5 + WF3 (manual) + MIN attribution + cron
 Phase 3: RFP (manual scoring)   4 commits    WF4 (workflows, comparison page)
 Phase 4: n8n Automation + AI    6-8 commits  WIC (n8n) + RFP scoring (n8n) + WF1 (full)
                                 ---------
-                                21-23 atomic commits total
-                                15 commits for Phases 1-3 (production-ready loop)
+                                23-25 atomic commits total
+                                17 commits for Phases 1-3 (production-ready loop)
 ```
 
 Each phase delivers a complete, usable increment. No phase leaves a workflow half-done. Phase 2 now includes MIN so tier evaluation has all 3 KPI inputs.
@@ -1195,9 +1202,11 @@ Each phase delivers a complete, usable increment. No phase leaves a workflow hal
 - [x] Phases ordered by: business priority x gap score x blocker status
 - [x] Each phase delivers complete, usable increment
 - [x] Workarounds documented for high-gap blockers — WIC manual import, self-onboard
-- [x] Total atomic commits estimated per phase — 3/8/4/6-8 `Piotr`
+- [x] Total atomic commits estimated per phase — 5/8/4/6-8 `Piotr`
 - [x] Challenger review: MIN moved to Phase 2 (Vernon finding: tier eval needs all 3 KPIs). Phase 1 WIP uses live query (no batch dependency).
-- [x] Acceptance criteria per phase — business value + ROI metric defined for each phase
+- [x] Acceptance criteria per phase: Vernon wrote domain criteria, Mat wrote business criteria `Vernon + Mat`
+- [x] Mat challenged Vernon's criteria — over-engineered criteria deferred (case study snapshots Ph3), essential ones accepted. Documented per phase in "Mat's challenges" `Mat`
+- [x] Business value + ROI metric stated per phase
 - [x] No artificial phases — every phase delivers measurable business value
 
 ---
@@ -1217,26 +1226,25 @@ Each phase delivers a complete, usable increment. No phase leaves a workflow hal
 
 | Entity | Owner | Used by |
 |--------|-------|---------|
-| PartnerAgency (org + tier + profile) | partnerships module | all workflows |
-| PartnerTierAssignment | partnerships module | tier governance (WF5) |
+| TierAssignment | partnerships module | tier governance (WF5) |
 | TierChangeProposal | partnerships module | tier governance (WF5) |
 | TierEvaluationState | partnerships module | tier governance (WF5) |
-| PartnerMetricSnapshot (WIC/WIP/MIN per period) | partnerships module | KPI aggregation, tier evaluation |
 | ContributionUnit | partnerships module | WIC scoring (WF3) |
 | PartnerRfpCampaign | partnerships module | RFP (WF4) |
 | PartnerRfpResponse | partnerships module | RFP (WF4) |
 | PartnerLicenseDeal (MIN source) | partnerships module | MIN attribution (WF5) |
-| Case Study (`user:case_study`, 19 fields) | entities module (custom entity) | RFP matching, company profile |
-| Company Profile (13 custom fields on `customers:customer_company_profile`) | entities module (custom fields) | agency profile, RFP matching |
-| Dictionaries (services, industries, tech_capabilities, compliance_tags, regions, languages) | dictionaries module (seeded) | company profile, case studies |
+| Case Study (`user:case_study`, 17 fields) | entities module (custom entity) | RFP matching, agency profile |
+| Agency Profile (13 custom fields on `directory:organization`) | entities module (custom fields) | agency profile, RFP matching |
+| Dictionaries (services, industries, tech_capabilities, compliance_tags, regions, languages) | dictionaries module (seeded) | agency profile, case studies |
 | Pipeline stages (PRM-specific) | customers module (seeded) | WIP tracking (WF2) |
 
 #### Checklist
 - [x] Identity model consistent — conflict resolved, User wins
 - [x] Terminology consistent — glossary §1.3 is source of truth
 - [x] Shared entities owned by one module — partnerships module owns all PRM entities, entities module owns profile/case study schema
+- [x] Every entity in this table exists in §1.3 UL and is referenced by at least one user story — no phantom entities. Removed: PartnerAgency (agency = Organization), PartnerMetricSnapshot (no UL/story reference). Fixed: PartnerTierAssignment → TierAssignment (UL term). `Mat`
 - [x] Every conflict resolved — all four resolved with clear rationale
-- [x] Field definitions self-contained — company profile (13 fields) + case study (19 fields) + 6 dictionaries defined in §1.4.3
+- [x] Field definitions self-contained — agency profile on Organization (13 fields) + case study (17 fields) + 6 dictionaries defined in §1.4.3
 
 ---
 
@@ -1287,6 +1295,8 @@ Each phase delivers a complete, usable increment. No phase leaves a workflow hal
 - [x] SPEC-068 distribution model acknowledged — `prm` is the first official example
 - [x] seedExamples defined per phase — demo data exercises every workflow
 - [x] Developer persona and user stories (US-7.x) documented in §5
+- [x] Integration tests import helpers from `@open-mercato/core/testing/integration` — no local copies of platform utilities
+- [x] Tests run via `mercato test` / `yarn test:integration` — no app-local playwright config
 
 ---
 

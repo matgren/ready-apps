@@ -292,6 +292,7 @@ Piotr saves detailed commit plans to `app-specs/<app>/piotr-notes/commits-WF<N>.
 
 #### Checklist
 - [ ] Every OM core module listed with explicit usage type (as-is / extend) and extension points `Piotr`
+- [ ] Every listed module traces to a user story or workflow — template defaults don't count; if §2 rejects portal, don't list portal modules `Piotr`
 - [ ] Every official module listed — existing ones with extension points, proposed ones with rationale `Piotr`
 - [ ] Every gap scored `official-module` or `core-module` in §4 has upstream investigation (specs, issues, PRs) `Piotr`
 - [ ] Reusability check: no reusable pattern hidden inside an app module — if 2+ apps would need it, propose as official module `Piotr`
@@ -452,6 +453,7 @@ Phase 2: [name]    [N] commits    [which workflows]
 - [ ] Identity model consistent across specs
 - [ ] Terminology consistent — matches glossary
 - [ ] Shared entities owned by one spec — if two specs reference the same entity, one is the owner
+- [ ] Every entity in this table exists in §1.3 UL and is referenced by at least one user story — no phantom entities `Mat`
 - [ ] Every conflict has a resolution, not "TBD"
 
 ---
