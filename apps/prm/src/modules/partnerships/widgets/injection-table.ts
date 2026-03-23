@@ -14,6 +14,10 @@ const injectionTable: ModuleInjectionTable = {
       widgetId: 'partnerships.dashboard.wip-count',
       priority: 20,
     },
+    {
+      widgetId: 'partnerships.dashboard.wic-summary',
+      priority: 25,
+    },
   ],
 }
 

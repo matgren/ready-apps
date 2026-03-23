@@ -443,6 +443,7 @@ const PRM_ROLE_FEATURES: Record<string, string[]> = {
   partner_contributor: [
     ...BACKEND_BASELINE_FEATURES,
     'partnerships.widgets.onboarding-checklist',
+    'partnerships.widgets.wic-summary',
   ],
   partnership_manager: [
     ...BACKEND_BASELINE_FEATURES,
@@ -817,6 +818,7 @@ export const setup: ModuleSetupConfig = {
     const AGENCY_WIDGETS = [
       'partnerships.dashboard.onboarding-checklist',
       'partnerships.dashboard.wip-count', // per-org single-number variant
+      'partnerships.dashboard.wic-summary', // contributor WIC score summary
       // Phase 2+: 'partnerships.dashboard.tier-status',
       // Phase 3+: 'partnerships.dashboard.incoming-rfps',
     ]

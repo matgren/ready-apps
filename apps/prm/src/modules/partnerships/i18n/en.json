@@ -9,12 +9,28 @@
     "agencies": {
       "title": "Agencies"
     },
+    "myWic": {
+      "title": "WIC Scores",
+      "noData": "No WIC scores for this month."
+    },
+    "wicImport": {
+      "title": "Import WIC Scores",
+      "organization": "Agency",
+      "month": "Month",
+      "jsonInput": "WIC Scoring Results (JSON)",
+      "importButton": "Import"
+    },
     "widgets": {
       "wipCount": {
         "title": "WIP This Month",
         "subtitle": "{{month}}",
         "wicPlaceholder": "WIC: —",
         "noData": "No WIP data for this period"
+      },
+      "wicSummary": {
+        "noData": "No WIC data",
+        "subtitle": "WIC Score — {{month}}",
+        "viewDetails": "View details"
       },
       "crossOrgWip": {
         "title": "Agency Pipeline Activity"
