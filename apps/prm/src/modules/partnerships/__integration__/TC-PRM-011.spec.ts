@@ -99,9 +99,9 @@ async function importWicForUser(
 // ---------------------------------------------------------------------------
 
 test.describe('TC-PRM-011: GH Username Guard', () => {
-  const ts = Date.now()
-  const GH_USERNAME_A = `qa-guard-a-${ts}`
-  const GH_USERNAME_B = `qa-guard-b-${ts}`
+  // carol-acme is seeded on acme-contributor via dataEngine.setCustomFields in setup.ts
+  const SEEDED_GH_USERNAME = 'carol-acme'
+  const NEW_GH_USERNAME = `qa-guard-new-${Date.now()}`
   const GUARD_MONTH = '2097-01'
 
   let pmToken: string
@@ -126,8 +126,8 @@ test.describe('TC-PRM-011: GH Username Guard', () => {
   // T1: Set GH username before WIC import — allowed
   // -------------------------------------------------------------------------
   test('T1: Set GH username before WIC import is allowed', async ({ request }) => {
-    // Admin sets a fresh GH username on the contributor — no WIC exists yet for this username
-    const res = await setGhUsernameRaw(request, adminToken, contributorUserId, GH_USERNAME_A)
+    // Admin sets a fresh GH username on the BD user — no WIC exists for BD user
+    const res = await setGhUsernameRaw(request, adminToken, bdUserId, NEW_GH_USERNAME)
     expect(
       res.ok(),
       `Setting GH username before WIC import should succeed, got ${res.status()}`,
@@ -141,15 +141,12 @@ test.describe('TC-PRM-011: GH Username Guard', () => {
   // T2: Change GH username after WIC import (non-PM) — rejected
   // -------------------------------------------------------------------------
   test('T2: Change GH username after WIC import by non-PM is rejected', async ({ request }) => {
-    // First, ensure the contributor has a GH username set
-    const setRes = await setGhUsernameRaw(request, adminToken, contributorUserId, GH_USERNAME_A)
-    expect(setRes.ok(), `Setting initial GH username failed: ${setRes.status()}`).toBeTruthy()
-
-    // Import WIC data referencing this username
-    await importWicForUser(request, pmToken, acmeOrgId, GH_USERNAME_A, GUARD_MONTH)
+    // Contributor already has seeded GH username 'carol-acme'.
+    // Import WIC data referencing this seeded username.
+    await importWicForUser(request, pmToken, acmeOrgId, SEEDED_GH_USERNAME, GUARD_MONTH)
 
     // Now try to change the GH username as admin (non-PM) — should be rejected
-    const changeRes = await setGhUsernameRaw(request, adminToken, contributorUserId, GH_USERNAME_B)
+    const changeRes = await setGhUsernameRaw(request, adminToken, contributorUserId, NEW_GH_USERNAME)
 
     // The interceptor should block this with 403
     // Note: If the interceptor doesn't fire (custom route without CRUD wiring),
@@ -185,12 +182,8 @@ test.describe('TC-PRM-011: GH Username Guard', () => {
   // T3: Duplicate GH username on different user — rejected
   // -------------------------------------------------------------------------
   test('T3: Duplicate GH username on a different user is rejected', async ({ request }) => {
-    // First, ensure the contributor has GH_USERNAME_A set
-    const setRes = await setGhUsernameRaw(request, adminToken, contributorUserId, GH_USERNAME_A)
-    expect(setRes.ok(), `Setting initial GH username failed: ${setRes.status()}`).toBeTruthy()
-
-    // Try to set the same GH username on the BD user — should be rejected due to uniqueness
-    const dupRes = await setGhUsernameRaw(request, adminToken, bdUserId, GH_USERNAME_A)
+    // Contributor has seeded 'carol-acme'. Try to set it on BD user — should be rejected.
+    const dupRes = await setGhUsernameRaw(request, adminToken, bdUserId, SEEDED_GH_USERNAME)
 
     // The interceptor should block this with 403 (uniqueness check)
     // Same caveat as T2: depends on interceptor wiring for custom routes
