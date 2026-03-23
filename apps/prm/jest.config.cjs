@@ -3,9 +3,10 @@
 const fs = require('fs')
 const path = require('path')
 
-// Use monorepo source paths when available (dev), fall back to node_modules (standalone)
+// Use monorepo source paths when in ready-apps dev context, fall back to node_modules (standalone)
 const omMonorepo = path.resolve(__dirname, '../../open-mercato')
-const useMonorepo = fs.existsSync(path.join(omMonorepo, 'packages/core/src'))
+const inReadyApps = fs.existsSync(path.resolve(__dirname, '../../AGENTS.md')) && fs.existsSync(path.resolve(__dirname, '../../app-specs'))
+const useMonorepo = inReadyApps && fs.existsSync(path.join(omMonorepo, 'packages/core/src'))
 
 const moduleNameMapper = useMonorepo
   ? {
@@ -42,6 +43,8 @@ module.exports = {
       },
     ],
   },
+  // In standalone mode, transform @open-mercato ESM packages for Jest (CJS)
+  ...(useMonorepo ? {} : { transformIgnorePatterns: ['node_modules/(?!@open-mercato/)'] }),
   testMatch: ['<rootDir>/src/**/*.test.(ts|tsx)'],
   passWithNoTests: true,
 }
