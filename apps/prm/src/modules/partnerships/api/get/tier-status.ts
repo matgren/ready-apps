@@ -9,7 +9,7 @@ import type { EntityManager } from '@mikro-orm/postgresql'
 import type { OpenApiMethodDoc, OpenApiRouteDoc } from '@open-mercato/shared/lib/openapi'
 import { TierAssignment, TierEvaluationState, TierChangeProposal } from '../../data/entities'
 import { PartnerLicenseDeal } from '../../data/entities'
-import { TIER_THRESHOLDS, tierOrder } from '../../data/tier-thresholds'
+import { TIER_THRESHOLDS } from '../../data/tier-thresholds'
 
 export const metadata = {
   path: '/partnerships/tier-status',
@@ -109,12 +109,6 @@ async function readMin(
 
 type TierThreshold = { wic: number; wip: number; min: number }
 
-function getNextTierThreshold(currentTier: string): TierThreshold | null {
-  const currentOrder = tierOrder(currentTier)
-  const nextTier = TIER_THRESHOLDS.find((t) => t.order === currentOrder + 1)
-  return nextTier ? { wic: nextTier.wic, wip: nextTier.wip, min: nextTier.min } : null
-}
-
 function getCurrentTierThreshold(currentTier: string): TierThreshold {
   const found = TIER_THRESHOLDS.find((t) => t.tier === currentTier)
   return found ? { wic: found.wic, wip: found.wip, min: found.min } : { wic: 1, wip: 1, min: 1 }
@@ -179,9 +173,9 @@ async function GET(req: Request) {
     })
     const pendingProposal = !!openProposal
 
-    // Compute thresholds: use next tier if available, otherwise current tier
+    // Compute thresholds: current tier requirements (minimum to maintain)
     const thresholds = tier
-      ? getNextTierThreshold(tier) ?? getCurrentTierThreshold(tier)
+      ? getCurrentTierThreshold(tier)
       : getCurrentTierThreshold('OM Agency')
 
     return NextResponse.json({
