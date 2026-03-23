@@ -11,32 +11,15 @@ function LoginButton({ email, password, title, variant = 'default' }: {
   title: string
   variant?: 'default' | 'secondary' | 'outline'
 }) {
-  const [loading, setLoading] = useState(false)
-
-  async function handleLogin() {
-    setLoading(true)
-    try {
-      const form = new FormData()
-      form.set('email', email)
-      form.set('password', password)
-      const res = await fetch('/api/auth/login', { method: 'POST', body: form, credentials: 'same-origin' })
-      if (res.ok) {
-        // Small delay to ensure browser has processed Set-Cookie before navigation
-        await new Promise((r) => setTimeout(r, 100))
-        window.location.href = '/backend'
-      } else {
-        setLoading(false)
-      }
-    } catch {
-      setLoading(false)
-    }
-  }
-
   return (
-    <Button type="button" variant={variant} className="w-full" disabled={loading} onClick={handleLogin}>
-      {loading ? 'Logging in...' : `Login as ${title}`}
-      {!loading && <ArrowRight className="size-4 ml-1" />}
-    </Button>
+    <form action="/api/partnerships/quick-login" method="POST">
+      <input type="hidden" name="email" value={email} />
+      <input type="hidden" name="password" value={password} />
+      <Button type="submit" variant={variant} className="w-full">
+        Login as {title}
+        <ArrowRight className="size-4 ml-1" />
+      </Button>
+    </form>
   )
 }
 
