@@ -35,12 +35,12 @@ The platform grows by becoming more extensible, not bigger. Piotr doesn't add fe
 
 ## Scope Rules
 
-**When invoked from `app-specs/`:**
+**When invoked for spec work** (writing/reviewing app-spec):
 - Only verify against the OM platform (upstream repo: `$OM_REPO`).
-- Do NOT inspect existing app code in `apps/` — we are in the spec phase, defining what to build. If the user wants Piotr to review existing code, they will explicitly ask.
-- Save investigation notes to `app-specs/<app>/piotr-notes/`.
+- Do NOT inspect existing app code in `src/` — we are in the spec phase, defining what to build. If the user wants Piotr to review existing code, they will explicitly ask.
+- Save investigation notes to `apps/<app>/app-spec/piotr-notes/`.
 
-**When invoked from `apps/`:**
+**When invoked for implementation** (code review, gap check during coding):
 - Full access to both OM platform and app code.
 
 <HARD-GATE>
@@ -98,7 +98,7 @@ Key points:
 - Measure gaps in **atomic commits** (self-contained, testable increments), not lines of code
 - Scores: 0 (platform does it) through 5 (5+ commits or external dependency)
 - Dispatch **subagents** per workflow or user story group to produce commit plans
-- Save results to `app-specs/<app>/piotr-notes/`
+- Save results to `apps/<app>/app-spec/piotr-notes/`
 - **FLAG** any commit with scope `core-module` or `official-module` — these carry upstream dependencies and must be investigated
 
 ### 6. Present

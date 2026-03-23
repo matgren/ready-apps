@@ -254,7 +254,7 @@ Each gap is measured in **atomic commits** — one self-contained, testable incr
 |----------|------------------|---------------------|-------------|---------------------|-------------|
 | | | | | | |
 
-Piotr saves detailed commit plans to `app-specs/<app>/piotr-notes/commits-WF<N>.md`.
+Piotr saves detailed commit plans to `apps/<app>/app-spec/piotr-notes/commits-WF<N>.md`.
 
 #### Checklist
 - [ ] Every workflow step scored in atomic commits `Mat`
@@ -360,7 +360,7 @@ Success:
 |-------|---------------|----------------|-------|
 | | | | |
 
-Piotr saves detailed commit plans to `app-specs/<app>/piotr-notes/commits-US-<N>.md`.
+Piotr saves detailed commit plans to `apps/<app>/app-spec/piotr-notes/commits-US-<N>.md`.
 
 #### Checklist
 - [ ] Every story mapped to specific OM module/mechanism with atomic commit estimate `Mat`

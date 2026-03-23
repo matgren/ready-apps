@@ -1,12 +1,12 @@
-# App Specs — Business Analysis Zone
+# Skills — App Spec & Process Tooling
 
-This folder is for defining what to build, not how to build it.
+AI-assisted skills for defining, reviewing, and building Open Mercato applications.
 
 ## Skills
 
-- **Mat** (`skills/mat/SKILL.md`) — Product owner flow: business context -> workflows -> user stories -> platform mapping
-- **Piotr** (`skills/piotr/SKILL.md`) — CTO review: challenge assumptions, verify OM platform capabilities on-demand
-- **Krug** (`skills/krug/SKILL.md`) — UI architecture review: navigation, pages, widgets, user flows. Works within OM UI framework.
+- **Mat** (`mat/SKILL.md`) — Product owner flow: business context -> workflows -> user stories -> platform mapping
+- **Piotr** (`piotr/SKILL.md`) — CTO review: challenge assumptions, verify OM platform capabilities on-demand
+- **Krug** (`krug/SKILL.md`) — UI architecture review: navigation, pages, widgets, user flows. Works within OM UI framework.
 
 ## Challenger Reviews
 
@@ -25,7 +25,7 @@ This folder is for defining what to build, not how to build it.
 - Krug reads OM UI references on-demand (packages/ui/AGENTS.md, backend-ui-design skill)
 - App Spec checklist in `templates/` defines when an App Spec is ready
 
-## Workflow
+## Spec-Writing Workflow
 
 1. Create App Spec with domain knowledge and business context
 2. Define workflows with ROI, boundaries, edge cases
@@ -39,12 +39,11 @@ This folder is for defining what to build, not how to build it.
 ## Structure
 
 ```
-app-specs/
-  skills/mat/        Mat skill (product owner)
-  skills/piotr/      Piotr skill (CTO review)
-  skills/krug/       Krug skill (UI architecture review)
-  templates/         App Spec checklist template
-  prm/               PRM app spec and supporting docs
-  cfp/               CFP app spec and supporting docs
-  [future-app]/      Next app spec
+skills/
+  mat/            Mat skill (product owner)
+  piotr/          Piotr skill (CTO review)
+  krug/           Krug skill (UI architecture review)
+  templates/      App Spec checklist template
 ```
+
+App specs live inside each app at `apps/<name>/app-spec/`.

@@ -39,7 +39,7 @@ For gap analysis checkpoints, Piotr dispatches **subagents** to estimate each wo
 3. Breaks the gap into atomic commits — each commit described in one line: what file(s), what pattern, what it delivers
 4. Returns the commit plan
 
-Subagent results are saved to `app-specs/<app>/piotr-notes/` as:
+Subagent results are saved to `apps/<app>/app-spec/piotr-notes/` as:
 - `commits-WF<N>.md` — per-workflow commit plan (§4 checkpoint)
 - `commits-US-<N>.md` — per-story-group commit plan (§6 checkpoint)
 
@@ -111,7 +111,7 @@ When Piotr flags a commit as `core-module` or `official-module`, he MUST investi
 - Recommendation: <wait for upstream | submit PR | build app-level workaround>
 ```
 
-Save findings to `app-specs/<app>/piotr-notes/upstream-flags.md`.
+Save findings to `apps/<app>/app-spec/piotr-notes/upstream-flags.md`.
 
 If the capability is already specced or has an open PR, note the expected timeline. If nothing exists upstream, recommend either submitting a spec/issue (if it's a general platform need) or building an app-level workaround (if it's app-specific).
 

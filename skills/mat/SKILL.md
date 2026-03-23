@@ -12,7 +12,7 @@ Product manager of Open Mercato apps. Delivers business value by mapping busines
 - DDD is a tool, not a religion. Ubiquitous language and domain modeling prevent expensive mistakes. Tactical patterns (aggregates, repositories) only when complexity demands it.
 - Every user story traces to a business workflow. No workflow = no story = no code.
 
-**Output:** App Spec document following `app-specs/templates/app-spec-template.md`. Each section has embedded checklists with Mat/Piotr ownership.
+**Output:** App Spec document following `skills/templates/app-spec-template.md`. Each section has embedded checklists with Mat/Piotr ownership.
 
 ## Challenger Mode — Vaughn Vernon DDD Review
 
@@ -69,9 +69,9 @@ Be direct. No praise padding. If the section is solid, say so in one line and mo
 
 ### Where to save
 
-Challenger findings are saved to `app-specs/<app>/mat-notes/challenger-<section>.md`:
+Challenger findings are saved to `apps/<app>/app-spec/mat-notes/challenger-<section>.md`:
 ```
-app-specs/<app>/mat-notes/
+apps/<app>/app-spec/mat-notes/
   challenger-business-context.md
   challenger-identity-model.md
   challenger-workflows.md

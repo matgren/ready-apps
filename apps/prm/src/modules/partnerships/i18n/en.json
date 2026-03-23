@@ -49,6 +49,13 @@
         "isRenewal": "This is a renewal"
       }
     },
+    "companySearch": {
+      "title": "Attribute License Deal",
+      "placeholder": "Search companies across all agencies...",
+      "noResults": "No companies found matching your search.",
+      "confirmButton": "Attribute License Deal",
+      "success": "License deal attributed successfully."
+    },
     "errors": {
       "tenant_required": "Tenant context is required.",
       "organization_required": "Organization context is required.",

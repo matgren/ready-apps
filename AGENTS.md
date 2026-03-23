@@ -5,12 +5,15 @@ Build Open Mercato applications from App Specs. Each app follows the same proces
 ## Repo Structure
 
 ```
+skills/                          # Shared AI skills (Mat, Piotr, Krug) + templates
 open-mercato/                    # OM monorepo (gitignored, local reference copy)
-app-specs/<app-name>/            # Business analysis (App Spec + supporting docs)
-apps/<app-name>/                 # Implementation (OM application code)
+apps/<app-name>/                 # Ready app (code + app-spec + docs)
+  app-spec/                      # Business analysis (forkable, drives AI-assisted dev)
+  src/modules/                   # Application code
+  docs/specs/                    # Implementation specs
 ```
 
-`app-specs/<app>/` is the business spec, `apps/<app>/` is the implementation. Same `<app>` name in both.
+Each app is self-contained: code, spec, and docs live together in `apps/<app>/`.
 
 ## OM Monorepo Reference
 
@@ -29,7 +32,7 @@ cd open-mercato && git checkout develop && git pull
 
 | Task | Where to work | What to read |
 |------|---------------|--------------|
-| Define a new app | `app-specs/<app>/` | Mat skill + Piotr skill + template |
+| Define a new app | `apps/<app>/app-spec/` | `skills/` (Mat + Piotr + Krug) + template |
 | Write implementation specs | `apps/<app>/docs/specs/` | [docs/agent-guides/writing-specs.md](docs/agent-guides/writing-specs.md) |
 | Implement a spec | `apps/<app>/src/modules/` | [docs/agent-guides/implementing.md](docs/agent-guides/implementing.md) + OM `implement-spec` skill |
 | Review implementation | `apps/<app>/` | OM `code-review` skill |
@@ -40,15 +43,15 @@ cd open-mercato && git checkout develop && git pull
 
 Before writing any spec or code, read these files in order:
 
-1. **App Spec** — `app-specs/<app>/YYYY-MM-DD-app-spec-<app>.md`
+1. **App Spec** — `apps/<app>/app-spec/YYYY-MM-DD-app-spec-<app>.md`
    - §1: Business Context + Domain Model
    - §2: Identity Model
    - §3: Workflows
    - §7: Phasing + acceptance criteria
 
-2. **Commit Plans** — `app-specs/<app>/piotr-notes/commits-WF*.md`
+2. **Commit Plans** — `apps/<app>/app-spec/piotr-notes/commits-WF*.md`
 
-3. **Upstream Flags** — `app-specs/<app>/piotr-notes/upstream-flags.md`
+3. **Upstream Flags** — `apps/<app>/app-spec/piotr-notes/upstream-flags.md`
 
 4. **App-specific overrides** — `apps/<app>/AGENTS.md`
 
