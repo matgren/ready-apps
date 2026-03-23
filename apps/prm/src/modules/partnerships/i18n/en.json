@@ -56,6 +56,16 @@
       "confirmButton": "Attribute License Deal",
       "success": "License deal attributed successfully."
     },
+    "tierStatus": {
+      "title": "Tier Status",
+      "currentTier": "Current Tier",
+      "noTier": "No tier assigned",
+      "gracePeriod": "Grace period active — meet all KPI thresholds to recover",
+      "pendingApproval": "Tier change pending PM approval",
+      "wic": "WIC Score",
+      "wip": "WIP Count",
+      "min": "MIN Count"
+    },
     "errors": {
       "tenant_required": "Tenant context is required.",
       "organization_required": "Organization context is required.",

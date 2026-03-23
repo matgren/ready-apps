@@ -6,6 +6,7 @@ const features = [
   { id: 'partnerships.wic.import', title: 'Import WIC scores', module: 'partnerships' },
   { id: 'partnerships.widgets.wic-summary', title: 'View WIC summary widget', module: 'partnerships' },
   { id: 'partnerships.tier.approve', title: 'Approve tier change proposals', module: 'partnerships' },
+  { id: 'partnerships.widgets.tier-status', title: 'View tier status widget', module: 'partnerships' },
 ]
 
 export { features }

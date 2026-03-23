@@ -18,6 +18,10 @@ const injectionTable: ModuleInjectionTable = {
       widgetId: 'partnerships.dashboard.wic-summary',
       priority: 25,
     },
+    {
+      widgetId: 'partnerships.dashboard.tier-status',
+      priority: 20,
+    },
   ],
 }
 

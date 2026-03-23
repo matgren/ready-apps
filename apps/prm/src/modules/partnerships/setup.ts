@@ -431,6 +431,7 @@ const PRM_ROLE_FEATURES: Record<string, string[]> = {
     'entities.*',
     'partnerships.manage',
     'partnerships.widgets.onboarding-checklist',
+    'partnerships.widgets.tier-status',
     'auth.users.*',
     'directory.organizations.manage',
   ],
@@ -439,6 +440,7 @@ const PRM_ROLE_FEATURES: Record<string, string[]> = {
     'customers.*',
     'partnerships.widgets.wip-count',
     'partnerships.widgets.onboarding-checklist',
+    'partnerships.widgets.tier-status',
   ],
   partner_contributor: [
     ...BACKEND_BASELINE_FEATURES,
@@ -820,7 +822,7 @@ export const setup: ModuleSetupConfig = {
       'partnerships.dashboard.onboarding-checklist',
       'partnerships.dashboard.wip-count', // per-org single-number variant
       'partnerships.dashboard.wic-summary', // contributor WIC score summary
-      // Phase 2+: 'partnerships.dashboard.tier-status',
+      'partnerships.dashboard.tier-status', // tier progress + KPI bars
       // Phase 3+: 'partnerships.dashboard.incoming-rfps',
     ]
     // PM role — management widgets
