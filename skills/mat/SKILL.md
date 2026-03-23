@@ -131,6 +131,21 @@ What belongs here depends on the domain:
 | "System tracks WIP" | Who creates the data? | "BD creates deal in CRM. System counts deals in SQL+ stage per org per month." |
 | "Tiers are evaluated" | By whom, when, based on what? | "Monthly scheduled job compares WIC+WIP+MIN against 4 threshold sets. PM approves changes." |
 
+### 4. Identity & Portal Decision
+
+Before workflows, establish who uses the system and how they access it. This feeds §2 Identity Model.
+
+Ask:
+1. **Who is external?** Customers, partners, event participants — anyone outside the operating organization.
+2. **For each external persona: backend CRM UI or dedicated UX?** This is the portal decision.
+3. **If Portal: rough page count?** Each portal page = minimum 1 atomic commit in §4.
+
+Red flags to challenge:
+- Portal persona needing DataTable/pipeline/rich CRUD → probably should be User
+- External persona forced into backend → probably should be CustomerUser + Portal
+
+Don't copy the decision tree here — fill §2 Portal Decision Framework in the template.
+
 ## Phase 1: Workflows & ROI
 
 Workflows are the domain processes. Each workflow = a bounded context of value delivery.
@@ -219,7 +234,10 @@ Success: [concrete, testable criteria — what the user sees/does when it works]
 | "System tracks WIP" | "BD creates deal in CRM tagged to their agency. Success: deal appears in agency KPI dashboard within 1 minute, WIP count increments." |
 
 **Identity checkpoint per story:**
-- User (auth/backend) or CustomerUser (portal)?
+- User (backend) or CustomerUser (portal)? — verified against §2 Portal Decision Framework
+- If portal story: which portal page handles it? Must exist in §3.5 Portal Pages table.
+- If portal story needs a page not in §3.5 — add it before writing the story.
+- If multiple portal personas: do they share pages or need separate views? Shared pages with role-conditional content = less commits than separate pages per role.
 - What modules do they need?
 - If you can't answer — story is incomplete.
 

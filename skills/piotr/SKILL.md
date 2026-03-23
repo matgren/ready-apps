@@ -61,6 +61,11 @@ Read `$OM_REPO/AGENTS.md` (Task Router). Based on the topic, read 1-2 relevant m
 
 What's the claim? Does the platform already solve it? Would the approach duplicate something that exists?
 
+**Portal challenge (if §2 Portal = USED):**
+- Does each portal persona earn its portal cost? Count custom pages in §3.5 — each is 1+ atomic commits.
+- Could any portal persona be a User with RBAC instead? Challenge if pages are mostly CRUD.
+- Do portal personas share pages with role-conditional content, or need separate pages per role? Shared = fewer commits.
+
 ### 3. Map what exists
 
 Search against `upstream/main` first, then `upstream/develop`. Only merged, stable code counts.
@@ -86,6 +91,7 @@ Don't say "checked, nothing there." Show what you found.
 3. **Official module** — exists in `open-mercato/official-modules`? Install it.
 4. **Move / re-export** — code exists, wrong path
 5. **Extend via UMES** — widget injection, interceptors, enrichers, extensions, DI overrides
+5b. **Portal page** — if persona is CustomerUser (§2), custom portal page from §3.5 spec. Estimate per page in gap analysis based on: data fetching complexity, form validation, real-time events, role-conditional content. Don't use defaults — each page is different.
 6. **n8n workflow** — if it's external orchestration, LLM calls, or scheduled processing → n8n with `open-mercato/n8n-nodes`. Keep LLM/external API work out of OM.
 7. **Separate package** — if it's a provider/integration, it's a `packages/` workspace
 8. **New module code** — only if 1-7 failed. Explain why.
@@ -133,6 +139,8 @@ What exists. What's the gap. Atomic commit estimate. Recommendation. Wait for co
 | "Modify another module" | "Extensions. Interceptors. Widget injection." |
 | "Add to core" | "Should this be a separate package?" |
 | "It's small" | "Small waste is still waste." |
+| "15 custom portal pages" | "Does portal earn its cost? Or should these personas be Users?" |
+| "External user in backend" | "External = Portal. Agent generates pages. Identity model > shortcut." |
 
 ## Flow
 

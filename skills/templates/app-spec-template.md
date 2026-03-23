@@ -98,7 +98,34 @@
 |---------|----------|----------|-----------|------|------|
 | | | User / CustomerUser | | | |
 
-**Portal decision:** [USED / NOT USED. If not used, why. If used, which personas and why.]
+**Portal Decision Framework:**
+
+Every persona external to the operating organization is a candidate for CustomerUser + Portal.
+
+```
+External persona?
+├─ NO → User + Backend + RBAC
+└─ YES → Needs brand separation or different UX than CRM?
+          ├─ NO, CRM UI is fine → User + Backend + RBAC
+          └─ YES → CustomerUser + Portal
+```
+
+> **Portal red flag:** If a portal persona needs DataTable, pipeline views, or rich CRUD on many entities — reconsider. Portal doesn't have these building blocks. Exception: conscious decision for custom UX confirmed in decision log.
+>
+> **Backend red flag:** If a User persona is external, temporary, and sees 2-3 simple views — consider Portal. Agent generates pages, and the identity model stays clean.
+>
+> **Agentic cost note:** Portal requires custom pages (no DataTable/CrudForm). In agentic workflow the agent generates them from this spec. This is not a blocker — but §3.5 MUST spec every portal page with enough detail for an agent to implement without guessing. Each portal page = minimum 1 atomic commit in §4 gap analysis.
+
+**Portal decision:** [USED / NOT USED]
+
+**If USED — per persona justification:**
+
+| Portal persona | Why Portal, not Backend? | Custom pages needed? |
+|---|---|---|
+| | | |
+
+**If NOT USED — why:**
+[Justification — e.g., "All personas need CRM access. Portal doesn't expose CRM. One identity system simpler."]
 
 **Decision log:**
 [Per persona: why this identity type? What modules do they need? What was the alternative and why it was rejected?]
@@ -108,7 +135,9 @@
 - [ ] Identity decision justified per persona — what modules they need drives the choice `Mat`
 - [ ] No persona has two accounts — if someone needs both User and CustomerUser, the model is wrong `Piotr`
 - [ ] Org scoping defined per role — who sees which orgs, read-only vs read-write `Piotr`
-- [ ] Portal usage justified or explicitly rejected `Mat`
+- [ ] Portal decision justified with decision tree — not just "used/not used" `Mat`
+- [ ] If Portal USED: every portal persona has custom page estimate `Piotr`
+- [ ] If Portal USED: §3.5 includes Portal Pages subsection with full page specs `Mat`
 
 ---
 
@@ -184,6 +213,25 @@
 |------|------------|------|---------|------------|
 | | `/backend/...` | | | CrudForm / DataTable / custom |
 
+### Portal Pages (when §2 Portal = USED)
+
+> Portal pages are custom React pages at `src/modules/<module>/frontend/[orgSlug]/portal/<path>/page.tsx`.
+> Portal has NO DataTable, CrudForm, or pipeline views — every page is custom code.
+> In agentic workflow the agent generates pages from this spec.
+> The spec MUST be precise enough for an agent to implement without guessing.
+
+| Page | URL pattern | Portal role | Purpose | User actions | Stage gate | OM pattern |
+|------|------------|-------------|---------|--------------|------------|------------|
+| | `/portal/...` | | What the user accomplishes | What they can do | Stage/lifecycle condition, or "always" | portal dashboard widget / custom page / portal menu injection / portal form |
+
+> **Stage gate:** page available only at certain workflow/lifecycle stages. If always available, write "always".
+> Disabled pages show explanation tooltip — never hidden (preserve spatial memory).
+>
+> **Rules:**
+> - Each page = minimum 1 atomic commit in §4 gap analysis. Estimate per page based on: data fetching complexity, form validation, real-time events, role-conditional content.
+> - If page uses real-time (SSE): list events — maps to event architecture.
+> - If page has stage gate: maps to workflow state — verify in §3 Workflows.
+
 ### Widget Injections
 
 > Where custom widgets inject into existing OM pages (detail pages, list pages).
@@ -215,6 +263,9 @@
 - [ ] Empty states are helpful, not blank pages `Krug`
 - [ ] Custom pages use OM patterns (CrudForm, DataTable) — no custom UI `Piotr`
 - [ ] Click count from login to primary task is ≤ 3 for each persona `Krug`
+- [ ] If Portal USED: every portal page specced in table with OM pattern `Mat`
+- [ ] If Portal USED: real-time events mapped per page that uses SSE `Piotr`
+- [ ] If Portal USED: empty states + stage gates defined `Krug`
 
 ---
 
