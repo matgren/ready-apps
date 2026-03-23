@@ -48,7 +48,7 @@ cd "$OM_REPO" && git checkout develop && git pull
 
 Before writing any spec or code, read these files in order:
 
-1. **App Spec** — `apps/<app>/app-spec/YYYY-MM-DD-app-spec-<app>.md`
+1. **App Spec** — `apps/<app>/app-spec/app-spec.md`
    - §1: Business Context + Domain Model
    - §2: Identity Model
    - §3: Workflows
@@ -101,6 +101,7 @@ cd apps/<app> && rm -rf node_modules/@open-mercato && yarn install --force && ya
 - **Types:** no `any` — use Zod schemas with `z.infer`
 - **Cross-module:** FK IDs only, fetch separately. No direct ORM relationships between modules.
 - **Pagination:** `pageSize <= 100` on all list routes
+- **App Spec naming:** always `app-spec.md` inside `apps/<app>/app-spec/`. No dates in filenames — use git history for versioning. One main spec per app.
 
 ---
 
