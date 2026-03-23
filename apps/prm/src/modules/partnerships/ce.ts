@@ -7,6 +7,14 @@ const entities = [
     showInSidebar: false,
     fields: [],
   },
+  {
+    id: 'partnerships:contribution_unit',
+    label: 'Contribution Unit',
+    description: 'WIC scoring record for code contributions.',
+    labelField: 'feature_key',
+    showInSidebar: false,
+    fields: [],
+  },
 ]
 
 export { entities }

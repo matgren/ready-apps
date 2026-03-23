@@ -22,6 +22,7 @@ import {
   PRM_PIPELINE_STAGES,
   AGENCY_PROFILE_FIELDS,
   CASE_STUDY_FIELDS,
+  CONTRIBUTION_UNIT_FIELDS,
   WIP_REGISTERED_AT_FIELD,
   GH_USERNAME_FIELD,
   SERVICES_OPTIONS,
@@ -31,6 +32,7 @@ import {
   BUDGET_BUCKET_OPTIONS,
   DURATION_BUCKET_OPTIONS,
 } from './data/custom-fields'
+import type { FieldDefinition } from './data/custom-fields'
 
 // ---------------------------------------------------------------------------
 // Dictionary definitions
@@ -60,7 +62,7 @@ const DICTIONARIES: DictionaryDef[] = [
  * via the cf.* DSL helpers.
  */
 function mapFieldDefinitions(
-  fields: typeof AGENCY_PROFILE_FIELDS | typeof CASE_STUDY_FIELDS
+  fields: FieldDefinition[]
 ) {
   return fields.map((field) => {
     const opts: Record<string, unknown> = { label: field.label }
@@ -155,6 +157,10 @@ async function seedCustomFields(
     {
       entity: 'partnerships:case_study',
       fields: mapFieldDefinitions(CASE_STUDY_FIELDS),
+    },
+    {
+      entity: 'partnerships:contribution_unit',
+      fields: mapFieldDefinitions(CONTRIBUTION_UNIT_FIELDS),
     },
   ]
 

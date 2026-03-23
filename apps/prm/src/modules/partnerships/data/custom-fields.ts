@@ -73,7 +73,7 @@ export const DURATION_BUCKET_OPTIONS = [
 ] as const;
 
 // Field definition type
-type FieldDefinition = {
+export type FieldDefinition = {
   key: string;
   type: string;
   label: string;
@@ -271,3 +271,24 @@ export const GH_USERNAME_FIELD: FieldDefinition = {
   label: 'GitHub Username',
   required: false,
 };
+
+// WIC level options (per App Spec WicScoringResult schema)
+export const WIC_LEVEL_OPTIONS = ['L1', 'L2', 'L3', 'L4', 'routine'] as const;
+
+// WIC assessment source options
+export const WIC_SOURCE_OPTIONS = ['manual_import', 'automated_pipeline'] as const;
+
+// ContributionUnit custom fields (entity: partnerships:contribution_unit)
+export const CONTRIBUTION_UNIT_FIELDS: FieldDefinition[] = [
+  { key: 'contributor_github_username', type: 'text', label: 'Contributor GitHub Username', required: true },
+  { key: 'pr_id', type: 'text', label: 'PR ID', required: true },
+  { key: 'month', type: 'text', label: 'Month', required: true },
+  { key: 'feature_key', type: 'text', label: 'Feature Key', required: true },
+  { key: 'level', type: 'select', label: 'Level', required: true, options: [...WIC_LEVEL_OPTIONS] },
+  { key: 'impact_bonus', type: 'boolean', label: 'Impact Bonus', required: true },
+  { key: 'bounty_applied', type: 'boolean', label: 'Bounty Applied', required: true },
+  { key: 'wic_score', type: 'text', label: 'WIC Score', required: true }, // Stored as text; parsed to float at query time. cf.integer truncates decimals (0.25, 1.5, etc.)
+  { key: 'organization_id', type: 'text', label: 'Organization ID', required: true },
+  { key: 'assessment_id', type: 'text', label: 'Assessment ID', required: true },
+  { key: 'assessment_source', type: 'select', label: 'Assessment Source', required: true, options: [...WIC_SOURCE_OPTIONS] },
+];
