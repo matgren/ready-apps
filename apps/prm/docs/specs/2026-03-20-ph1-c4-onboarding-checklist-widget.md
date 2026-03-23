@@ -30,10 +30,10 @@ After this commit, when an Agency Admin logs in for the first time, they see a d
 | `src/modules/partnerships/i18n/en.json` | Create | i18n keys for onboarding checklist: step labels, links, completion messages |
 
 ## OM Patterns Used
-- **Dashboard widget** — Reference: `open-mercato/packages/core/src/modules/customers/widgets/dashboard/customer-todos/widget.ts`
-- **Widget client component** — Reference: `open-mercato/packages/core/src/modules/customers/widgets/dashboard/customer-todos/widget.client.tsx`
-- **Widget injection** — Reference: `open-mercato/packages/core/src/modules/customers/widgets/injection-table.ts`
-- **Custom GET route** — Reference: `open-mercato/packages/core/src/modules/customers/api/people/route.ts`
+- **Dashboard widget** — Reference: `$OM_REPO/packages/core/src/modules/customers/widgets/dashboard/customer-todos/widget.ts`
+- **Widget client component** — Reference: `$OM_REPO/packages/core/src/modules/customers/widgets/dashboard/customer-todos/widget.client.tsx`
+- **Widget injection** — Reference: `$OM_REPO/packages/core/src/modules/customers/widgets/injection-table.ts`
+- **Custom GET route** — Reference: `$OM_REPO/packages/core/src/modules/customers/api/people/route.ts`
 
 ## Implementation Notes
 

@@ -22,8 +22,8 @@ After this commit, running `yarn initialize` populates a complete Phase 1 demo e
 | `src/modules/partnerships/setup.ts` | Modify | Add `seedExamples` function with all demo data creation logic |
 
 ## OM Patterns Used
-- **setup.ts seedExamples** — Reference: `open-mercato/packages/core/src/modules/customers/setup.ts` (seedExamples function structure)
-- **Demo data seeding** — Reference: `open-mercato/packages/core/src/modules/customers/cli.ts` (seedCustomerExamples — creating people, companies, deals programmatically)
+- **setup.ts seedExamples** — Reference: `$OM_REPO/packages/core/src/modules/customers/setup.ts` (seedExamples function structure)
+- **Demo data seeding** — Reference: `$OM_REPO/packages/core/src/modules/customers/cli.ts` (seedCustomerExamples — creating people, companies, deals programmatically)
 
 ## Implementation Notes
 

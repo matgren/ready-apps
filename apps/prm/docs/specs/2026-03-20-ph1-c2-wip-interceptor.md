@@ -26,13 +26,13 @@ After this commit, when a BD moves a deal to SQL stage or above for the first ti
 | `src/modules/partnerships/api/interceptors.ts` | Create | `after` hook on `customers/deals` PATCH — stamps `wip_registered_at` on first SQL+ transition. `before` hook on `customers/deals` PATCH/POST — strips `wip_registered_at` from request body to prevent direct writes. |
 
 ## OM Patterns Used
-- **API interceptor (after hook)** — Reference: `open-mercato/packages/core/src/modules/payment_gateways/api/interceptors.ts` (interceptor structure with before/after hooks)
-- **ApiInterceptor type** — Import: `import type { ApiInterceptor } from '@open-mercato/shared/lib/crud/api-interceptor'`
+- **API interceptor (after hook)** — Reference: `$OM_REPO/packages/core/src/modules/payment_gateways/api/interceptors.ts` (interceptor structure with before/after hooks)
+- **ApiInterceptor type** — Import: `import type { ApiInterceptor } from '@$OM_REPO/shared/lib/crud/api-interceptor'`
 
 ## Implementation Notes
 
 ### Interceptor Targeting
-The interceptor must target `customers/deals` routes from the `partnerships` module. The OM interceptor auto-discovery at `api/interceptors.ts` exports an `interceptors` array. Each interceptor declares which routes it targets via the `routes` property (e.g., `routes: ['customers/deals']`) and which methods via `methods` (e.g., `methods: ['PATCH', 'POST']`). Reference: `open-mercato/packages/core/AGENTS.md` → API Interceptors section for the exact contract.
+The interceptor must target `customers/deals` routes from the `partnerships` module. The OM interceptor auto-discovery at `api/interceptors.ts` exports an `interceptors` array. Each interceptor declares which routes it targets via the `routes` property (e.g., `routes: ['customers/deals']`) and which methods via `methods` (e.g., `methods: ['PATCH', 'POST']`). Reference: `$OM_REPO/packages/core/AGENTS.md` → API Interceptors section for the exact contract.
 
 ### After Hook Logic (on `customers/deals` PATCH)
 1. Read `pipelineStageId` from the response body (the deal PATCH has already succeeded).

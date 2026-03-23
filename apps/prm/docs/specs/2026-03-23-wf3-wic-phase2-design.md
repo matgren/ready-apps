@@ -80,7 +80,7 @@ Phase 2 enables PM to import WIC scores from the external `wic_assessment.mjs` s
   "records": [
     {
       "contributorGithubUsername": "octocat",
-      "prId": "open-mercato/open-mercato#142",
+      "prId": "$OM_REPO/open-mercato#142",
       "month": "2026-03",
       "featureKey": "prm.wic-import",
       "level": "L2",

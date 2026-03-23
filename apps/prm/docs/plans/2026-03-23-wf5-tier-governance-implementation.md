@@ -18,12 +18,12 @@ Before implementing each task, read these reference files:
 
 | Pattern | Reference File |
 |---------|---------------|
-| ORM entity | `open-mercato/packages/core/src/modules/customers/data/entities.ts` |
-| makeCrudRoute | `open-mercato/packages/core/src/modules/customers/api/people/route.ts` |
-| Commands | `open-mercato/packages/core/src/modules/customers/commands/people.ts` |
-| Worker | `open-mercato/packages/queue/AGENTS.md` |
-| Workflow JSON | `open-mercato/packages/core/src/modules/workflows/examples/simple-approval-definition.json` |
-| Migration | `open-mercato/packages/core/src/modules/customers/migrations/` |
+| ORM entity | `$OM_REPO/packages/core/src/modules/customers/data/entities.ts` |
+| makeCrudRoute | `$OM_REPO/packages/core/src/modules/customers/api/people/route.ts` |
+| Commands | `$OM_REPO/packages/core/src/modules/customers/commands/people.ts` |
+| Worker | `$OM_REPO/packages/queue/AGENTS.md` |
+| Workflow JSON | `$OM_REPO/packages/core/src/modules/workflows/examples/simple-approval-definition.json` |
+| Migration | `$OM_REPO/packages/core/src/modules/customers/migrations/` |
 | API route | `apps/prm/src/modules/partnerships/api/get/wip-count.ts` |
 | Widget | `apps/prm/src/modules/partnerships/widgets/dashboard/wip-count/widget.ts` |
 | Page | `apps/prm/src/modules/partnerships/backend/partnerships/agencies/page.tsx` |
@@ -95,7 +95,7 @@ export class PartnerLicenseDeal {
 
 ### Steps
 
-- [ ] Read reference: `open-mercato/packages/core/src/modules/customers/data/entities.ts` for exact decorator patterns
+- [ ] Read reference: `$OM_REPO/packages/core/src/modules/customers/data/entities.ts` for exact decorator patterns
 - [ ] Create `data/entities.ts` with PartnerLicenseDeal entity
 - [ ] Create `commands/partner-license-deal.ts` — register create/update/delete commands following customers/commands/people.ts pattern
 - [ ] Create `api/partner-license-deals/route.ts` — makeCrudRoute with PM-only features, custom validation for (license_identifier, year) uniqueness, and company attribution uniqueness
@@ -200,7 +200,7 @@ export const TIER_THRESHOLDS = [
 
 ### Workflow Definition
 
-Follow `open-mercato/packages/core/src/modules/workflows/examples/simple-approval-definition.json` pattern.
+Follow `$OM_REPO/packages/core/src/modules/workflows/examples/simple-approval-definition.json` pattern.
 
 Steps: START → AUTOMATED (enqueue worker) → USER_TASK (PM review) → AUTOMATED (approve: update proposal + assignment + emit event + audit log) | AUTOMATED (reject: update proposal) → END
 

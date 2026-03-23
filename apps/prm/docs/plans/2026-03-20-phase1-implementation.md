@@ -12,7 +12,7 @@
 
 **App directory:** `apps/prm/` (scaffolded OM app — modules go in `src/modules/`)
 
-**OM monorepo:** `open-mercato/` (on `develop` branch, reference only)
+**OM monorepo:** `$OM_REPO/` (on `develop` branch, reference only)
 
 ---
 
@@ -68,7 +68,7 @@ Test files (colocated):
 
 Create `index.ts`:
 ```typescript
-import type { ModuleInfo } from '@open-mercato/shared/modules/registry'
+import type { ModuleInfo } from '@$OM_REPO/shared/modules/registry'
 
 export const metadata: ModuleInfo = {
   name: 'partnerships',
@@ -98,7 +98,7 @@ export const features = [
 
 Create `events.ts`:
 ```typescript
-import { createModuleEvents } from '@open-mercato/shared/modules/events'
+import { createModuleEvents } from '@$OM_REPO/shared/modules/events'
 
 const events = [] as const
 
@@ -108,7 +108,7 @@ export default eventsConfig
 
 - [ ] **Step 4: Create custom entity declaration for case studies**
 
-Create `ce.ts`. Reference `open-mercato/packages/core/src/modules/customers/ce.ts` for the exact structure. Declare `partnerships:case_study` with `labelField: 'title'`, `showInSidebar: false`, empty `fields: []` (actual fields are seeded via entities batch API in setup.ts).
+Create `ce.ts`. Reference `$OM_REPO/packages/core/src/modules/customers/ce.ts` for the exact structure. Declare `partnerships:case_study` with `labelField: 'title'`, `showInSidebar: false`, empty `fields: []` (actual fields are seeded via entities batch API in setup.ts).
 
 ```typescript
 export const entities = [
@@ -165,7 +165,7 @@ Create `data/custom-fields.ts`. This file exports:
 5. `PRM_PIPELINE_NAME = 'PRM Pipeline'` — pipeline name constant
 6. `PRM_PIPELINE_STAGES` — array of `{ name, value, order }` for 7 pipeline stages
 
-Reference `open-mercato/packages/shared/src/modules/dsl/` for `cf.*` helpers if available, otherwise use plain objects matching the entities batch API schema.
+Reference `$OM_REPO/packages/shared/src/modules/dsl/` for `cf.*` helpers if available, otherwise use plain objects matching the entities batch API schema.
 
 Dictionary value arrays for select/multi-select fields:
 - `SERVICES_OPTIONS`: Software Development, Consulting, Implementation, Training, Support, Integration
@@ -201,13 +201,13 @@ Pattern: OM custom fields DSL / entities batch API schema"
 - Create: `apps/prm/src/modules/partnerships/setup.ts`
 
 **Reference:**
-- `open-mercato/packages/core/src/modules/customers/setup.ts` — ModuleSetupConfig structure
-- `open-mercato/packages/core/src/modules/customers/cli.ts` — seedDefaultPipeline pattern
+- `$OM_REPO/packages/core/src/modules/customers/setup.ts` — ModuleSetupConfig structure
+- `$OM_REPO/packages/core/src/modules/customers/cli.ts` — seedDefaultPipeline pattern
 
 - [ ] **Step 1: Create setup.ts with defaultRoleFeatures**
 
 ```typescript
-import type { ModuleSetupConfig } from '@open-mercato/shared/modules/setup'
+import type { ModuleSetupConfig } from '@$OM_REPO/shared/modules/setup'
 
 export const setup: ModuleSetupConfig = {
   defaultRoleFeatures: {
@@ -294,8 +294,8 @@ Pattern: setup.ts seedDefaults + defaultRoleFeatures"
 - Create: `apps/prm/src/modules/partnerships/api/interceptors.test.ts`
 
 **Reference:**
-- `open-mercato/apps/mercato/src/modules/example/api/interceptors.ts` — cross-module interceptor pattern
-- `open-mercato/packages/shared/src/lib/crud/api-interceptor.ts` — ApiInterceptor type
+- `$OM_REPO/apps/mercato/src/modules/example/api/interceptors.ts` — cross-module interceptor pattern
+- `$OM_REPO/packages/shared/src/lib/crud/api-interceptor.ts` — ApiInterceptor type
 
 - [ ] **Step 1: Write failing unit tests for the WIP interceptor**
 
@@ -318,7 +318,7 @@ Expected: FAIL — module not found
 Create `api/interceptors.ts`:
 
 ```typescript
-import type { ApiInterceptor } from '@open-mercato/shared/lib/crud/api-interceptor'
+import type { ApiInterceptor } from '@$OM_REPO/shared/lib/crud/api-interceptor'
 import { PRM_SQL_STAGE_ORDER } from '../data/custom-fields'
 
 export const interceptors: ApiInterceptor[] = [
@@ -465,8 +465,8 @@ Pattern: OM custom GET route with openApi export"
 - Create: `apps/prm/src/modules/partnerships/i18n/en.json`
 
 **Reference:**
-- `open-mercato/packages/core/src/modules/customers/widgets/dashboard/customer-todos/widget.ts`
-- `open-mercato/packages/core/src/modules/customers/widgets/dashboard/customer-todos/widget.client.tsx`
+- `$OM_REPO/packages/core/src/modules/customers/widgets/dashboard/customer-todos/widget.ts`
+- `$OM_REPO/packages/core/src/modules/customers/widgets/dashboard/customer-todos/widget.client.tsx`
 
 - [ ] **Step 1: Create i18n translations**
 
@@ -515,7 +515,7 @@ Create `widgets/dashboard/wip-count/widget.client.tsx`:
 
 Create `widgets/injection-table.ts`:
 ```typescript
-import type { InjectionTableEntry } from '@open-mercato/shared/modules/widgets/injection-table'
+import type { InjectionTableEntry } from '@$OM_REPO/shared/modules/widgets/injection-table'
 
 export default [
   {
@@ -668,7 +668,7 @@ Pattern: OM dashboard widget injection (role-conditional rendering, data-driven)
 - Modify: `apps/prm/src/modules/partnerships/setup.ts`
 
 **Reference:**
-- `open-mercato/packages/core/src/modules/customers/cli.ts` — seedCustomerExamples pattern
+- `$OM_REPO/packages/core/src/modules/customers/cli.ts` — seedCustomerExamples pattern
 
 - [ ] **Step 1: Add seedExamples function to setup.ts**
 
@@ -735,7 +735,7 @@ Pattern: setup.ts seedExamples (3 agencies, users, deals, case studies, WIP stam
 - Create: `apps/prm/src/modules/partnerships/__integration__/TC-ONBOARD-001.spec.ts`
 
 **Reference:**
-- `open-mercato/.ai/skills/integration-tests/SKILL.md` — Playwright test conventions
+- `$OM_REPO/.ai/skills/integration-tests/SKILL.md` — Playwright test conventions
 
 - [ ] **Step 1: WIP interceptor integration tests (T1-T5 from spec)**
 

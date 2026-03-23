@@ -41,7 +41,7 @@ Key log lines to look for in a healthy init:
 - `[partnerships.seedExamples] Agency "Acme Digital (Demo)" seeded` — demo users created
 - `Module defaults seeded` — all module seedDefaults completed
 
-If `Seeded custom role ACLs` is missing, the `@open-mercato/cli` build doesn't include
+If `Seeded custom role ACLs` is missing, the `@$OM_REPO/cli` build doesn't include
 PR #1049. Rebuild Verdaccio with the `temp-integration` branch.
 
 ## RBAC gotcha: UserAcl overrides RoleAcl
@@ -79,9 +79,9 @@ npx mercato test integration
 
 ## Verifying the OM package version
 
-To confirm you're running against the correct `@open-mercato/*` build:
+To confirm you're running against the correct `@$OM_REPO/*` build:
 
 ```bash
-cat node_modules/@open-mercato/cli/package.json | grep '"version"'
+cat node_modules/@$OM_REPO/cli/package.json | grep '"version"'
 cat .npmrc   # Should show @open-mercato:registry=http://localhost:4873 for Verdaccio
 ```

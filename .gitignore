@@ -1,7 +1,9 @@
 node_modules/
 .DS_Store
 .mercato/
+# OM monorepo reference (local checkout or auto-cloned cache)
 open-mercato/
+.cache/
 *.tsbuildinfo
 
 # Claude Code internals

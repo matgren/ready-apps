@@ -1,6 +1,6 @@
 # Implementing Specs
 
-After a spec is written and reviewed, implement it. Read `open-mercato/.ai/skills/implement-spec/SKILL.md` for the OM implementation workflow, then follow the per-commit loop below.
+After a spec is written and reviewed, implement it. Read `$OM_REPO/.ai/skills/implement-spec/SKILL.md` for the OM implementation workflow, then follow the per-commit loop below.
 
 ## Pre-Implementation Cleanup
 
@@ -29,7 +29,7 @@ This is a prerequisite, not a domain commit — it does not count toward the pha
     - Mock external dependencies (DI services, data engine)
     - Run: yarn test
 7.  If spec has Test Scenarios -> implement Playwright integration tests
-    - Read open-mercato/.ai/skills/integration-tests/SKILL.md for conventions
+    - Read $OM_REPO/.ai/skills/integration-tests/SKILL.md for conventions
     - Place tests in src/modules/<module>/__integration__/TC-*.spec.ts
     - Tests MUST be self-contained: create fixtures in setup, clean up in teardown
     - Tests MUST NOT rely on seeded/demo data

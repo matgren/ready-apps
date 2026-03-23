@@ -31,11 +31,11 @@ After this commit, the PRM module exists with all foundational data: four partne
 | `src/modules/partnerships/ce.ts` | Create | Custom entity declaration for `partnerships:case_study` with labelField, showInSidebar config |
 
 ## OM Patterns Used
-- **setup.ts seed** — Reference: `open-mercato/packages/core/src/modules/customers/setup.ts` (seedDefaults, defaultRoleFeatures structure)
-- **acl.ts features** — Reference: `open-mercato/packages/core/src/modules/customers/acl.ts` (feature declaration array)
-- **Custom fields DSL** — Reference: `open-mercato/packages/shared/src/modules/dsl/` (`cf.text`, `cf.select`, `cf.dateTime` helpers)
-- **Custom entity declaration** — Reference: `open-mercato/packages/core/src/modules/customers/ce.ts` (entity array with id, label, fields)
-- **Pipeline seeding** — Reference: `open-mercato/packages/core/src/modules/customers/cli.ts` (`seedDefaultPipeline` pattern — POST to pipelines + pipeline-stages APIs)
+- **setup.ts seed** — Reference: `$OM_REPO/packages/core/src/modules/customers/setup.ts` (seedDefaults, defaultRoleFeatures structure)
+- **acl.ts features** — Reference: `$OM_REPO/packages/core/src/modules/customers/acl.ts` (feature declaration array)
+- **Custom fields DSL** — Reference: `$OM_REPO/packages/shared/src/modules/dsl/` (`cf.text`, `cf.select`, `cf.dateTime` helpers)
+- **Custom entity declaration** — Reference: `$OM_REPO/packages/core/src/modules/customers/ce.ts` (entity array with id, label, fields)
+- **Pipeline seeding** — Reference: `$OM_REPO/packages/core/src/modules/customers/cli.ts` (`seedDefaultPipeline` pattern — POST to pipelines + pipeline-stages APIs)
 
 ## Implementation Notes
 

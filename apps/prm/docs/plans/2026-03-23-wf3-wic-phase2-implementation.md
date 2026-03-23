@@ -209,13 +209,13 @@ Create `src/modules/partnerships/api/post/wic-import.ts`:
 
 ```typescript
 import { NextResponse } from 'next/server'
-import { createRequestContainer } from '@open-mercato/shared/lib/di/container'
-import { getAuthFromRequest } from '@open-mercato/shared/lib/auth/server'
-import { resolveOrganizationScopeForRequest } from '@open-mercato/core/modules/directory/utils/organizationScope'
-import { CrudHttpError } from '@open-mercato/shared/lib/crud/errors'
-import { CustomFieldValue } from '@open-mercato/core/modules/entities/data/entities'
+import { createRequestContainer } from '@$OM_REPO/shared/lib/di/container'
+import { getAuthFromRequest } from '@$OM_REPO/shared/lib/auth/server'
+import { resolveOrganizationScopeForRequest } from '@$OM_REPO/core/modules/directory/utils/organizationScope'
+import { CrudHttpError } from '@$OM_REPO/shared/lib/crud/errors'
+import { CustomFieldValue } from '@$OM_REPO/core/modules/entities/data/entities'
 import type { EntityManager } from '@mikro-orm/postgresql'
-import type { OpenApiMethodDoc, OpenApiRouteDoc } from '@open-mercato/shared/lib/openapi'
+import type { OpenApiMethodDoc, OpenApiRouteDoc } from '@$OM_REPO/shared/lib/openapi'
 import { v4 as uuidv4 } from 'uuid'
 import { wicImportRequestSchema, type WicScoringResult } from '../../data/validators'
 
@@ -290,7 +290,7 @@ async function resolveGithubUsers(
       continue
     }
     // Get user's organization from User entity
-    const { User } = await import('@open-mercato/core/modules/auth/data/entities')
+    const { User } = await import('@$OM_REPO/core/modules/auth/data/entities')
     const user = await em.findOne(User, { id: userId, deletedAt: null })
     if (!user || !user.organizationId) {
       unmatched.push(username)
@@ -504,7 +504,7 @@ curl -X POST http://localhost:3000/api/partnerships/wic/import \
     "source": "manual_import",
     "records": [{
       "contributorGithubUsername": "test-user",
-      "prId": "open-mercato/open-mercato#1",
+      "prId": "$OM_REPO/open-mercato#1",
       "month": "2026-03",
       "featureKey": "test.feature",
       "level": "L2",
@@ -556,13 +556,13 @@ Create `src/modules/partnerships/api/get/wic-scores.ts`:
 ```typescript
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-import { createRequestContainer } from '@open-mercato/shared/lib/di/container'
-import { getAuthFromRequest } from '@open-mercato/shared/lib/auth/server'
-import { resolveOrganizationScopeForRequest } from '@open-mercato/core/modules/directory/utils/organizationScope'
-import { CrudHttpError } from '@open-mercato/shared/lib/crud/errors'
-import { CustomFieldValue } from '@open-mercato/core/modules/entities/data/entities'
+import { createRequestContainer } from '@$OM_REPO/shared/lib/di/container'
+import { getAuthFromRequest } from '@$OM_REPO/shared/lib/auth/server'
+import { resolveOrganizationScopeForRequest } from '@$OM_REPO/core/modules/directory/utils/organizationScope'
+import { CrudHttpError } from '@$OM_REPO/shared/lib/crud/errors'
+import { CustomFieldValue } from '@$OM_REPO/core/modules/entities/data/entities'
 import type { EntityManager } from '@mikro-orm/postgresql'
-import type { OpenApiMethodDoc, OpenApiRouteDoc } from '@open-mercato/shared/lib/openapi'
+import type { OpenApiMethodDoc, OpenApiRouteDoc } from '@$OM_REPO/shared/lib/openapi'
 
 export const metadata = {
   path: '/partnerships/wic-scores',
@@ -782,10 +782,10 @@ Create `src/modules/partnerships/backend/partnerships/my-wic/page.tsx`:
 "use client"
 
 import * as React from 'react'
-import { Page, PageBody } from '@open-mercato/ui/backend/Page'
-import { apiCall } from '@open-mercato/ui/backend/utils/apiCall'
-import { useT } from '@open-mercato/shared/lib/i18n/context'
-import { Spinner } from '@open-mercato/ui/primitives/spinner'
+import { Page, PageBody } from '@$OM_REPO/ui/backend/Page'
+import { apiCall } from '@$OM_REPO/ui/backend/utils/apiCall'
+import { useT } from '@$OM_REPO/shared/lib/i18n/context'
+import { Spinner } from '@$OM_REPO/ui/primitives/spinner'
 
 type WicRecord = {
   recordId: string
@@ -939,10 +939,10 @@ Create `src/modules/partnerships/backend/partnerships/wic-import/page.tsx`:
 "use client"
 
 import * as React from 'react'
-import { Page, PageBody } from '@open-mercato/ui/backend/Page'
-import { apiCall } from '@open-mercato/ui/backend/utils/apiCall'
-import { useT } from '@open-mercato/shared/lib/i18n/context'
-import { Spinner } from '@open-mercato/ui/primitives/spinner'
+import { Page, PageBody } from '@$OM_REPO/ui/backend/Page'
+import { apiCall } from '@$OM_REPO/ui/backend/utils/apiCall'
+import { useT } from '@$OM_REPO/shared/lib/i18n/context'
+import { Spinner } from '@$OM_REPO/ui/primitives/spinner'
 
 type ImportResult = {
   imported: number
@@ -1106,7 +1106,7 @@ export default function WicImportPage() {
 Create `src/modules/partnerships/widgets/dashboard/wic-summary/widget.ts`:
 
 ```typescript
-import { lazyDashboardWidget, type DashboardWidgetModule } from '@open-mercato/shared/modules/dashboard/widgets'
+import { lazyDashboardWidget, type DashboardWidgetModule } from '@$OM_REPO/shared/modules/dashboard/widgets'
 
 const WicSummaryWidget = lazyDashboardWidget(() => import('./widget.client'))
 
@@ -1135,10 +1135,10 @@ Create `src/modules/partnerships/widgets/dashboard/wic-summary/widget.client.tsx
 "use client"
 
 import * as React from 'react'
-import type { DashboardWidgetComponentProps } from '@open-mercato/shared/modules/dashboard/widgets'
-import { apiCall } from '@open-mercato/ui/backend/utils/apiCall'
-import { Spinner } from '@open-mercato/ui/primitives/spinner'
-import { useT } from '@open-mercato/shared/lib/i18n/context'
+import type { DashboardWidgetComponentProps } from '@$OM_REPO/shared/modules/dashboard/widgets'
+import { apiCall } from '@$OM_REPO/ui/backend/utils/apiCall'
+import { Spinner } from '@$OM_REPO/ui/primitives/spinner'
+import { useT } from '@$OM_REPO/shared/lib/i18n/context'
 
 type WicScoresResponse = {
   month: string

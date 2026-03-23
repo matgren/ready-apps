@@ -6,12 +6,12 @@ For each phase, generate implementation specs from the App Spec. One spec per at
 
 Follow these steps in order. Do NOT skip the review step.
 
-1. **Load OM context** — Read `open-mercato/.ai/skills/spec-writing/SKILL.md` for OM spec-writing standards. Read `open-mercato/AGENTS.md` for platform conventions. Read reference module patterns from `open-mercato/packages/core/src/modules/customers/` as needed.
+1. **Load OM context** — Read `$OM_REPO/.ai/skills/spec-writing/SKILL.md` for OM spec-writing standards. Read `$OM_REPO/AGENTS.md` for platform conventions. Read reference module patterns from `$OM_REPO/packages/core/src/modules/customers/` as needed.
 2. **Read the App Spec** — Follow AGENTS.md §1 (App Spec -> commit plans -> upstream flags).
 3. **Reconcile commit plans** — Multiple workflow commit plans may overlap (e.g., both WF1 and WF2 seed roles). Merge overlapping commits and document the rationale.
 4. **Plan (if 5+ commits)** — If the phase has 5 or more commits, coordinate the work before writing individual specs.
 5. **Write specs** — For each atomic commit, write one implementation spec using the format below.
-6. **Review specs** — Read `open-mercato/.ai/skills/pre-implement-spec/SKILL.md` and apply its review process (adapted for app-level specs — BC audit is N/A for new apps). At minimum check: AGENTS.md compliance, spec completeness, gap analysis, risk assessment, cross-spec consistency.
+6. **Review specs** — Read `$OM_REPO/.ai/skills/pre-implement-spec/SKILL.md` and apply its review process (adapted for app-level specs — BC audit is N/A for new apps). At minimum check: AGENTS.md compliance, spec completeness, gap analysis, risk assessment, cross-spec consistency.
 7. **Fix findings** — Address all Critical and High findings before proceeding. Update specs in place.
 8. **Commit specs** — Commit all specs for the phase together before starting implementation.
 
@@ -43,7 +43,7 @@ Each spec must include:
 
 ## OM Patterns Used
 [Which auto-discovery path, UMES mechanism, or module convention applies]
-- Pattern: [name] — Reference: [where to find it in node_modules/@open-mercato/]
+- Pattern: [name] — Reference: [where to find it in node_modules/@$OM_REPO/]
 
 ## Implementation Notes
 [Any non-obvious decisions, edge cases from App Spec §3, ordering constraints]
@@ -72,6 +72,6 @@ Each spec must include:
 - **One spec = one atomic commit** from the commit plans. Not bigger.
 - **Acceptance criteria come from the App Spec** — copy the relevant domain + business criteria from §7, don't invent new ones.
 - **Files section is exhaustive** — every file created or modified, with exact path under `src/modules/`.
-- **OM patterns reference source code** — point to `open-mercato/packages/core/src/modules/` for reference implementations.
+- **OM patterns reference source code** — point to `$OM_REPO/packages/core/src/modules/` for reference implementations.
 - **No spec without a commit plan entry** — if it's not in `commits-WF*.md`, it shouldn't exist.
-- **Test Scenarios required for custom logic** — if the commit introduces custom business logic (API interceptors, custom API routes, workers, validators with domain rules), the spec MUST include a Test Scenarios section. Skip for purely declarative commits (setup.ts seeds, ce.ts, seedExamples). Read `open-mercato/.ai/skills/integration-tests/SKILL.md` for Playwright test conventions.
+- **Test Scenarios required for custom logic** — if the commit introduces custom business logic (API interceptors, custom API routes, workers, validators with domain rules), the spec MUST include a Test Scenarios section. Skip for purely declarative commits (setup.ts seeds, ce.ts, seedExamples). Read `$OM_REPO/.ai/skills/integration-tests/SKILL.md` for Playwright test conventions.

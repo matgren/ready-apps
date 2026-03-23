@@ -28,10 +28,10 @@ After this commit, the PM dashboard shows a "WIP This Month" tile displaying the
 | `src/modules/partnerships/i18n/en.json` | Create | i18n keys: `partnerships.widgets.wipCount.title` ("WIP This Month"), `partnerships.widgets.wipCount.subtitle` ("{{month}}"), `partnerships.widgets.wipCount.wicPlaceholder` ("WIC: —"), `partnerships.widgets.wipCount.noData` ("No WIP data for this period") |
 
 ## OM Patterns Used
-- **Dashboard widget** — Reference: `open-mercato/packages/core/src/modules/customers/widgets/dashboard/customer-todos/widget.ts` (metadata, lazy loading, feature gates)
-- **Widget client component** — Reference: `open-mercato/packages/core/src/modules/customers/widgets/dashboard/customer-todos/widget.client.tsx` (apiCall, loading states)
-- **Widget injection** — Reference: `open-mercato/packages/core/src/modules/customers/widgets/injection-table.ts` (spot registration)
-- **Custom GET route** — Reference: `open-mercato/packages/core/src/modules/customers/api/people/route.ts` (route with openApi export)
+- **Dashboard widget** — Reference: `$OM_REPO/packages/core/src/modules/customers/widgets/dashboard/customer-todos/widget.ts` (metadata, lazy loading, feature gates)
+- **Widget client component** — Reference: `$OM_REPO/packages/core/src/modules/customers/widgets/dashboard/customer-todos/widget.client.tsx` (apiCall, loading states)
+- **Widget injection** — Reference: `$OM_REPO/packages/core/src/modules/customers/widgets/injection-table.ts` (spot registration)
+- **Custom GET route** — Reference: `$OM_REPO/packages/core/src/modules/customers/api/people/route.ts` (route with openApi export)
 
 ## Implementation Notes
 
