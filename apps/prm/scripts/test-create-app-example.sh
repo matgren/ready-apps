@@ -245,6 +245,15 @@ BD_TOKEN=$(curl -sf http://localhost:5099/api/auth/login \
 checkpoint "BD can login (acme-bd@demo.local)" \
   test -n "$BD_TOKEN"
 
+# Login as Admin
+ADMIN_TOKEN=$(curl -sf http://localhost:5099/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"acme-admin@demo.local","password":"Demo123!"}' \
+  | grep -o '"token":"[^"]*"' | head -1 | cut -d'"' -f4)
+
+checkpoint "Admin can login (acme-admin@demo.local)" \
+  test -n "$ADMIN_TOKEN"
+
 # Login as Contributor
 CONTRIB_TOKEN=$(curl -sf http://localhost:5099/api/auth/login \
   -H "Content-Type: application/json" \

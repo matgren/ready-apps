@@ -103,6 +103,11 @@ test.describe('TC-PRM-003: Admin role — onboarding checklist API contract', ()
     const itemIds = body.items.map((item) => item.id)
     expect(itemIds).toEqual(['fill_profile', 'add_case_study', 'invite_bd', 'invite_contributor'])
 
+    // Verify fill_profile links to org edit page (not company page)
+    const fillProfileItem = body.items.find((item) => item.id === 'fill_profile')
+    expect(fillProfileItem!.link).toContain('/backend/directory/organizations/')
+    expect(fillProfileItem!.link).toMatch(/\/edit$/)
+
     // allCompleted must be consistent with the items array
     const expectedAllCompleted = body.items.length > 0 && body.items.every((item) => item.completed)
     expect(body.allCompleted).toBe(expectedAllCompleted)
@@ -311,6 +316,22 @@ test.describe('TC-PRM-003: Contributor role — onboarding checklist API contrac
     // allCompleted consistency
     const expectedAllCompleted = body!.items.every((i) => i.completed)
     expect(body!.allCompleted).toBe(expectedAllCompleted)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// PM role — no onboarding checklist
+// ---------------------------------------------------------------------------
+
+test.describe('TC-PRM-003: PM role — no onboarding checklist', () => {
+  test('T7: PM gets no checklist items (not an agency user)', async ({ request }) => {
+    const token = await getAuthToken(request, 'partnership-manager@demo.local', 'Demo123!')
+    // PM has partnerships.manage but NOT partnerships.widgets.onboarding-checklist
+    // The metadata guard (requireFeatures: ['partnerships.widgets.onboarding-checklist'])
+    // should block PM. Expect 403.
+    const response = await apiRequest(request, 'GET', '/api/partnerships/onboarding-status', { token })
+    // PM lacks the onboarding-checklist feature, so this should be 403
+    expect(response.status()).toBe(403)
   })
 })
 

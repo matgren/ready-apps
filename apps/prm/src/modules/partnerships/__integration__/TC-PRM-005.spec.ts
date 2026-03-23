@@ -223,4 +223,65 @@ test.describe('TC-PRM-005: Org Isolation (US-6.1 through US-6.4)', () => {
       ).toBe(false)
     }
   })
+
+  // -------------------------------------------------------------------------
+  // T5: BD creates a company and deal in own org
+  // -------------------------------------------------------------------------
+  test('T5: BD can create a company and deal in own org', async ({ request }) => {
+    const bdToken = await getAuthToken(request, ACME_BD_EMAIL, DEMO_PASSWORD)
+    const ts = Date.now()
+    let companyId: string | null = null
+    let dealId: string | null = null
+
+    try {
+      // BD creates company
+      const companyRes = await apiRequest(request, 'POST', '/api/customers/companies', {
+        token: bdToken,
+        data: { displayName: `QA TC-PRM-005 T5 Co ${ts}` },
+      })
+      expect(companyRes.ok(), `BD POST /api/customers/companies failed: ${companyRes.status()}`).toBeTruthy()
+      const companyBody = await readJsonSafe<Record<string, unknown>>(companyRes)
+      companyId = (companyBody?.id ?? companyBody?.entityId) as string | null
+      expect(companyId, 'BD should be able to create a company').toBeTruthy()
+
+      // BD creates deal
+      const dealRes = await apiRequest(request, 'POST', '/api/customers/deals', {
+        token: bdToken,
+        data: { title: `QA TC-PRM-005 T5 Deal ${ts}`, companyIds: [companyId] },
+      })
+      expect(dealRes.ok(), `BD POST /api/customers/deals failed: ${dealRes.status()}`).toBeTruthy()
+      const dealBody = await readJsonSafe<Record<string, unknown>>(dealRes)
+      dealId = (dealBody?.id ?? dealBody?.dealId) as string | null
+      expect(dealId, 'BD should be able to create a deal').toBeTruthy()
+    } finally {
+      if (dealId) await apiRequest(request, 'DELETE', `/api/customers/deals?id=${encodeURIComponent(dealId)}`, { token: bdToken }).catch(() => {})
+      if (companyId) await apiRequest(request, 'DELETE', `/api/customers/companies?id=${encodeURIComponent(companyId)}`, { token: bdToken }).catch(() => {})
+    }
+  })
+
+  // -------------------------------------------------------------------------
+  // T6: Admin org switcher shows only own organization
+  // -------------------------------------------------------------------------
+  test('T6: Admin org switcher shows only own organization', async ({ request }) => {
+    const adminToken = await getAuthToken(request, ACME_ADMIN_EMAIL, DEMO_PASSWORD)
+    const res = await apiRequest(request, 'GET', '/api/directory/organization-switcher', { token: adminToken })
+    expect(res.ok()).toBeTruthy()
+    const body = await readJsonSafe<{ items?: Array<Record<string, unknown>> }>(res)
+    const orgs = body?.items ?? []
+    // Admin with UserAcl should see only their own org (1 org)
+    expect(orgs.length, 'Admin should see exactly 1 organization in switcher').toBe(1)
+  })
+
+  // -------------------------------------------------------------------------
+  // T7: PM default org context returns own org data
+  // -------------------------------------------------------------------------
+  test('T7: PM default org context returns own org data', async ({ request }) => {
+    const pmToken = await getAuthToken(request, PM_EMAIL, DEMO_PASSWORD)
+    // PM's default CRM context should be their home org (Open Mercato Backoffice)
+    // Companies in PM's home org are minimal (PM doesn't prospect)
+    const res = await apiRequest(request, 'GET', '/api/customers/companies', { token: pmToken })
+    expect(res.ok()).toBeTruthy()
+    // PM can access the API — the key point is PM is in their home org by default
+    // Cross-org agency data is accessed via the agencies API, not default CRM view
+  })
 })

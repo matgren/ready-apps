@@ -16,6 +16,7 @@ import { createCompanyFixture, createDealFixture, deleteEntityIfExists } from '@
  * T3 — Demo users exist for each persona (PM, Admin, BD, Contributor)
  * T4 — Demo deals exist with pipeline stages and WIP stamps
  * T5 — Case study custom entity records exist
+ * T6 — Case study creation rejects missing required fields
  *
  * Source: apps/prm/src/modules/partnerships/setup.ts (seedDefaults + seedExamples)
  * Phase: 1
@@ -185,6 +186,31 @@ test.describe('TC-PRM-008: Seed Data Verification', () => {
     for (const deal of deals) {
       expect(typeof deal.title === 'string' && (deal.title as string).length > 0, 'Each deal must have a non-empty title').toBe(true)
     }
+
+    // At least one seeded Acme deal should have wip_registered_at stamped
+    // (seeded deals include deals at SQL+ stages which trigger WIP stamps)
+    let foundWipStamp = false
+    for (const deal of deals) {
+      const dealId = deal.id as string
+      const detailRes = await apiRequest(
+        request,
+        'GET',
+        `/api/customers/deals/${encodeURIComponent(dealId)}`,
+        { token: bdToken },
+      )
+      if (!detailRes.ok()) continue
+      const detailBody = await readJsonSafe<{ deal: JsonRecord; customFields: JsonRecord }>(detailRes)
+      const customFields = detailBody?.customFields as JsonRecord | undefined
+      const wipValue = customFields?.cf_wip_registered_at ?? customFields?.wip_registered_at
+      if (typeof wipValue === 'string' && wipValue.length > 0) {
+        foundWipStamp = true
+        break
+      }
+    }
+    expect(
+      foundWipStamp,
+      'Expected at least one seeded Acme deal to have a non-null wip_registered_at custom field',
+    ).toBe(true)
   })
 
   // -------------------------------------------------------------------------
@@ -219,5 +245,28 @@ test.describe('TC-PRM-008: Seed Data Verification', () => {
     const firstRecord = records[0] as JsonRecord
     const recordId = firstRecord?.id ?? firstRecord?.recordId
     expect(recordId, 'Case study record should have an id').toBeTruthy()
+  })
+
+  // -------------------------------------------------------------------------
+  // T6: Case study creation rejects missing required fields
+  // -------------------------------------------------------------------------
+  test('T6: case study creation rejects missing required fields', async ({ request }) => {
+    const adminToken = await getAuthToken(request, ADMIN_EMAIL, ADMIN_PASSWORD)
+
+    // Try creating a case study with only title (missing industry, technologies, budget_bucket, duration_bucket)
+    const res = await apiRequest(request, 'POST', '/api/entities/records', {
+      token: adminToken,
+      data: {
+        entityId: 'partnerships:case_study',
+        values: { title: 'Incomplete Case Study' },
+      },
+    })
+
+    // Should be rejected because required fields are missing
+    // Accept either 400 or 422 as validation error
+    expect(
+      [400, 422].includes(res.status()),
+      `Expected 400 or 422 for missing required fields, got ${res.status()}`,
+    ).toBe(true)
   })
 })
