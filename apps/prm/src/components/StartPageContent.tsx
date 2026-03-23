@@ -91,11 +91,9 @@ function RoleTile({
 
 interface StartPageContentProps {
   showStartPage: boolean
-  agencyCount: number
-  dealCount: number
 }
 
-export function StartPageContent({ showStartPage: initialShowStartPage, agencyCount, dealCount }: StartPageContentProps) {
+export function StartPageContent({ showStartPage: initialShowStartPage }: StartPageContentProps) {
   const [showStartPage, setShowStartPage] = useState(initialShowStartPage)
 
   const handleCheckboxChange = (checked: boolean) => {
@@ -112,21 +110,6 @@ export function StartPageContent({ showStartPage: initialShowStartPage, agencyCo
           Agencies contribute code, prospect clients, and close deals. PRM tracks all of this and governs
           the tier program that determines each agency's visibility and lead priority.
         </p>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="rounded-lg border bg-card p-4">
-            <div className="text-2xl font-bold text-primary">{agencyCount}</div>
-            <div className="text-sm text-muted-foreground">Partner Agencies</div>
-          </div>
-          <div className="rounded-lg border bg-card p-4">
-            <div className="text-2xl font-bold text-primary">{dealCount}</div>
-            <div className="text-sm text-muted-foreground">Deals in Pipeline</div>
-          </div>
-          <div className="rounded-lg border bg-card p-4">
-            <div className="text-2xl font-bold text-primary">4</div>
-            <div className="text-sm text-muted-foreground">Tier Levels</div>
-          </div>
-        </div>
       </section>
 
       <section className="rounded-lg border bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900 p-5">

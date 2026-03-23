@@ -3,8 +3,6 @@ import type { Metadata } from 'next'
 import { cookies } from 'next/headers'
 import Image from 'next/image'
 import Link from 'next/link'
-import { createRequestContainer } from '@open-mercato/shared/lib/di/container'
-import type { EntityManager } from '@mikro-orm/postgresql'
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -17,19 +15,6 @@ export default async function Home() {
   const cookieStore = await cookies()
   const showStartPageCookie = cookieStore.get('show_start_page')
   const showStartPage = showStartPageCookie?.value !== 'false'
-
-  let agencyCount = 0
-  let dealCount = 0
-  try {
-    const container = await createRequestContainer()
-    const em = container.resolve<EntityManager>('em')
-    // Count organizations (excluding the default OM backoffice org)
-    const totalOrgs = await em.count('Organization', {})
-    agencyCount = Math.max(0, totalOrgs - 1)
-    dealCount = await em.count('CustomerDeal', {})
-  } catch {
-    // Database not available — show zeros
-  }
 
   return (
     <main className="min-h-svh w-full p-8 flex flex-col gap-8 max-w-7xl mx-auto">
@@ -55,11 +40,7 @@ export default async function Home() {
         </Link>
       </header>
 
-      <StartPageContent
-        showStartPage={showStartPage}
-        agencyCount={agencyCount}
-        dealCount={dealCount}
-      />
+      <StartPageContent showStartPage={showStartPage} />
 
       <footer className="text-xs text-muted-foreground text-center">
         PRM is a reference application for Open Mercato — demonstrating RBAC, CRM, UMES interceptors, widget injection, and custom entities.
