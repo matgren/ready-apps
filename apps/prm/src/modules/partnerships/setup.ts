@@ -584,6 +584,13 @@ async function seedPrmExamples(
   const dataEngine = new DefaultDataEngine(em, container)
   const customFieldAssignments: Array<() => Promise<void>> = []
 
+  // Step 0: Ensure default org is named per App Spec §6 (US-6.2)
+  const defaultOrg = await em.findOne(Organization, { id: scope.organizationId })
+  if (defaultOrg && defaultOrg.name !== 'Open Mercato Backoffice') {
+    defaultOrg.name = 'Open Mercato Backoffice'
+    await em.flush()
+  }
+
   // Step 1: Seed PM user in the default org (Open Mercato Backoffice)
   await seedUser(em, {
     email: 'partnership-manager@demo.local',
