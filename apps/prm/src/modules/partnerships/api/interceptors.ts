@@ -1,6 +1,7 @@
 import type { ApiInterceptor } from '@open-mercato/shared/lib/crud/api-interceptor'
 import { CustomerPipelineStage } from '@open-mercato/core/modules/customers/data/entities'
 import { CustomFieldValue } from '@open-mercato/core/modules/entities/data/entities'
+import { User } from '@open-mercato/core/modules/auth/data/entities'
 import { ActionLogService } from '@open-mercato/core/modules/audit_logs/services/actionLogService'
 import type { RbacService } from './get/onboarding-status'
 import { PRM_SQL_STAGE_ORDER } from '../data/custom-fields'
@@ -14,6 +15,28 @@ const CONTRIBUTION_UNIT_ENTITY_ID = 'partnerships:contribution_unit'
 const CU_GH_USERNAME_FIELD_KEY = 'contributor_github_username'
 
 export const interceptors: ApiInterceptor[] = [
+  {
+    id: 'partnerships.pm-crm-readonly',
+    targetRoute: 'customers/*',
+    methods: ['POST', 'PUT', 'PATCH', 'DELETE'],
+    features: ['partnerships.widgets.cross-org-wip'], // Only fires for PM
+    priority: 100,
+    async before(_request, context) {
+      const em = context.em.fork()
+      const user = await em.findOne(User, { id: context.userId })
+      if (!user) return { ok: true }
+
+      if (context.organizationId === user.organizationId) {
+        return { ok: true }
+      }
+
+      return {
+        ok: false,
+        statusCode: 403,
+        body: { error: 'Agency CRM is read-only for Partnership Managers.' },
+      }
+    },
+  },
   {
     id: 'partnerships.wip-stamp-guard',
     targetRoute: 'customers/deals',
