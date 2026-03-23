@@ -8,6 +8,7 @@ import { useT } from '@open-mercato/shared/lib/i18n/context'
 
 type TierStatusResponse = {
   tier: string | null
+  year: number
   kpis: {
     wic: number
     wip: number
@@ -25,8 +26,9 @@ type TierStatusResponse = {
   }
 }
 
-async function loadTierStatus(): Promise<TierStatusResponse> {
-  const call = await apiCall<TierStatusResponse>('/api/partnerships/tier-status')
+async function loadTierStatus(year?: number): Promise<TierStatusResponse> {
+  const query = year ? `?year=${year}` : ''
+  const call = await apiCall<TierStatusResponse>(`/api/partnerships/tier-status${query}`)
   if (!call.ok) {
     const payload = call.result as Record<string, unknown> | null
     const message =
@@ -102,11 +104,28 @@ function TierBadge({ tier }: { tier: string | null }) {
 // Widget
 // ---------------------------------------------------------------------------
 
+function ChevronLeft() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-muted-foreground" aria-hidden="true">
+      <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+    </svg>
+  )
+}
+
+function ChevronRight() {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 text-muted-foreground" aria-hidden="true">
+      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+    </svg>
+  )
+}
+
 const TierStatusWidget: React.FC<DashboardWidgetComponentProps> = ({
   refreshToken,
   onRefreshStateChange,
 }) => {
   const t = useT()
+  const [selectedYear, setSelectedYear] = React.useState(() => new Date().getUTCFullYear())
   const [data, setData] = React.useState<TierStatusResponse | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
@@ -116,7 +135,7 @@ const TierStatusWidget: React.FC<DashboardWidgetComponentProps> = ({
     setLoading(true)
     setError(null)
     try {
-      const result = await loadTierStatus()
+      const result = await loadTierStatus(selectedYear)
       setData(result)
     } catch (err) {
       console.error('Failed to load tier status widget data', err)
@@ -127,7 +146,7 @@ const TierStatusWidget: React.FC<DashboardWidgetComponentProps> = ({
       setLoading(false)
       onRefreshStateChange?.(false)
     }
-  }, [onRefreshStateChange])
+  }, [selectedYear, onRefreshStateChange])
 
   React.useEffect(() => {
     refresh().catch(() => {})
@@ -151,7 +170,7 @@ const TierStatusWidget: React.FC<DashboardWidgetComponentProps> = ({
 
   return (
     <div className="flex flex-col gap-4 p-1">
-      {/* Tier badge */}
+      {/* Tier badge + year switcher */}
       <div className="flex flex-col items-center gap-1">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {t('partnerships.tierStatus.currentTier')}
@@ -163,6 +182,27 @@ const TierStatusWidget: React.FC<DashboardWidgetComponentProps> = ({
             {t('partnerships.tierStatus.noTier')}
           </p>
         )}
+      </div>
+
+      {/* Year switcher */}
+      <div className="flex items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={() => setSelectedYear((y) => y - 1)}
+          className="rounded p-1 hover:bg-muted/50 transition-colors"
+          aria-label="Previous year"
+        >
+          <ChevronLeft />
+        </button>
+        <span className="text-xs font-medium text-foreground tabular-nums">{selectedYear}</span>
+        <button
+          type="button"
+          onClick={() => setSelectedYear((y) => y + 1)}
+          className="rounded p-1 hover:bg-muted/50 transition-colors"
+          aria-label="Next year"
+        >
+          <ChevronRight />
+        </button>
       </div>
 
       {/* Grace period warning */}

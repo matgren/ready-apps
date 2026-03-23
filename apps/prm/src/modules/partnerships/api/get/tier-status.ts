@@ -90,16 +90,15 @@ async function readMin(
   em: EntityManager,
   organizationId: string,
   tenantId: string,
+  year: number,
 ): Promise<number> {
-  const currentYear = new Date().getUTCFullYear()
-
   return em.count(PartnerLicenseDeal, {
     organizationId,
     tenantId,
     type: 'enterprise',
     status: 'won',
     isRenewal: false,
-    year: currentYear,
+    year,
   })
 }
 
@@ -139,14 +138,23 @@ async function GET(req: Request) {
       return NextResponse.json({ error: 'Organization context required' }, { status: 400 })
     }
 
+    const url = new URL(req.url)
+    const yearParam = url.searchParams.get('year')
+    const requestedYear = yearParam ? parseInt(yearParam, 10) : null
+    if (yearParam && (isNaN(requestedYear!) || requestedYear! < 2000 || requestedYear! > 2200)) {
+      return NextResponse.json({ error: 'Invalid year parameter' }, { status: 400 })
+    }
+
     const em = container.resolve('em') as EntityManager
+    const now = new Date()
+    const year = requestedYear ?? now.getUTCFullYear()
     const month = currentYearMonth()
 
     // Read live KPIs (same queries as worker)
     const [wic, wip, min] = await Promise.all([
       readWic(em, organizationId, month, tenantId),
       readWip(em, organizationId, month, tenantId),
-      readMin(em, organizationId, tenantId),
+      readMin(em, organizationId, tenantId, year),
     ])
 
     // Current tier assignment (latest by effectiveDate)
@@ -180,6 +188,7 @@ async function GET(req: Request) {
 
     return NextResponse.json({
       tier,
+      year,
       kpis: {
         wic,
         wip,
