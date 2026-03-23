@@ -37,6 +37,7 @@ export const partnerLicenseDealCreateSchema = z.object({
   status: z.string().default('won'),
   isRenewal: z.boolean().default(false),
   closedAt: z.coerce.date(),
+  year: z.number().int(),
   tenantId: z.string().uuid(),
   createdBy: z.string().uuid(),
 })

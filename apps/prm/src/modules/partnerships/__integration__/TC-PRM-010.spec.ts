@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { getAuthToken, apiRequest } from '@open-mercato/core/helpers/integration/api'
-import { readJsonSafe, getTokenScope, getTokenContext } from '@open-mercato/core/helpers/integration/generalFixtures'
+import { readJsonSafe, getTokenContext } from '@open-mercato/core/helpers/integration/generalFixtures'
 
 /**
  * TC-PRM-010: WIC Score Display
@@ -52,27 +52,6 @@ type WicScoresResponse = {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Set a GH username on a user via entities/records PUT. */
-async function setGhUsername(
-  request: Parameters<typeof apiRequest>[0],
-  token: string,
-  userId: string,
-  username: string,
-): Promise<void> {
-  const res = await apiRequest(request, 'PUT', '/api/entities/records', {
-    token,
-    data: {
-      entityId: 'auth:user',
-      recordId: userId,
-      values: { github_username: username },
-    },
-  })
-  expect(
-    res.ok(),
-    `PUT /api/entities/records (set GH username) failed: ${res.status()} — user ${userId}`,
-  ).toBeTruthy()
-}
-
 /** Import WIC data for a contributor, returns assessmentId. */
 async function importWicData(
   request: Parameters<typeof apiRequest>[0],
@@ -115,24 +94,21 @@ async function importWicData(
 
 test.describe('TC-PRM-010: WIC Score Display', () => {
   // Use a unique month per test suite run to avoid collisions
-  const DISPLAY_MONTH = '2098-06'
-  const GH_USERNAME = `qa-display-${Date.now()}`
+  const _runId = Date.now() % 1200
+  const DISPLAY_MONTH = `${2200 + Math.floor(_runId / 12)}-${String((_runId % 12) + 1).padStart(2, '0')}`
+  // Use the seeded GH username from seedExamples (stored in custom_field_values)
+  const GH_USERNAME = 'carol-acme'
 
   let pmToken: string
   let adminToken: string
   let contributorToken: string
-  let contributorUserId: string
   let acmeOrgId: string
 
   test.beforeAll(async ({ request }) => {
     pmToken = await getAuthToken(request, PM_EMAIL, PM_PASSWORD)
     adminToken = await getAuthToken(request, ADMIN_EMAIL, ADMIN_PASSWORD)
     contributorToken = await getAuthToken(request, CONTRIBUTOR_EMAIL, CONTRIBUTOR_PASSWORD)
-    contributorUserId = getTokenScope(contributorToken).userId
     acmeOrgId = getTokenContext(adminToken).organizationId
-
-    // Set GH username on contributor
-    await setGhUsername(request, adminToken, contributorUserId, GH_USERNAME)
 
     // Import WIC data so there's something to display
     await importWicData(request, pmToken, {

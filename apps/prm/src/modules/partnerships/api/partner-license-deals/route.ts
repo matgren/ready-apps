@@ -98,7 +98,7 @@ const crud = makeCrudRoute({
         const scoped = withScopedPayload(raw ?? {}, ctx, translate)
         const parsed = partnerLicenseDealCreateSchema.parse({
           ...scoped,
-          createdBy: ctx.auth?.userId ?? scoped.createdBy,
+          createdBy: ctx.auth?.userId ?? ctx.auth?.sub ?? scoped.createdBy,
         })
         return parsed
       },
@@ -130,7 +130,52 @@ const crud = makeCrudRoute({
   },
 })
 
-export const GET = crud.GET
+export async function GET(req: Request) {
+  const { NextResponse } = await import('next/server')
+  try {
+    const { getAuthFromRequest } = await import('@open-mercato/shared/lib/auth/server')
+    const { createRequestContainer } = await import('@open-mercato/shared/lib/di/container')
+    const auth = await getAuthFromRequest(req)
+    if (!auth?.tenantId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const url = new URL(req.url)
+    const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10) || 1)
+    const pageSize = Math.min(100, Math.max(1, parseInt(url.searchParams.get('pageSize') ?? '50', 10) || 50))
+    const search = url.searchParams.get('search') ?? undefined
+    const orgFilter = url.searchParams.get('organizationId') ?? undefined
+    const yearFilter = url.searchParams.get('year') ? parseInt(url.searchParams.get('year')!, 10) : undefined
+    const statusFilter = url.searchParams.get('status') ?? undefined
+
+    const { resolve } = await createRequestContainer()
+    const em = resolve('em') as import('@mikro-orm/postgresql').EntityManager
+
+    const where: any = { tenantId: auth.tenantId }
+    if (orgFilter) where.organizationId = orgFilter
+    if (yearFilter) where.year = yearFilter
+    if (statusFilter) where.status = statusFilter
+    if (search) where.licenseIdentifier = { $ilike: `%${escapeLikePattern(search)}%` }
+
+    const [items, total] = await Promise.all([
+      em.find(PartnerLicenseDeal, where, {
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
+        orderBy: { createdAt: 'DESC' },
+      }),
+      em.count(PartnerLicenseDeal, where),
+    ])
+
+    return NextResponse.json({
+      items,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    })
+  } catch (err: any) {
+    console.error('[partnerships/partner-license-deals.GET]', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
 export const POST = crud.POST
 export const PUT = crud.PUT
 export const DELETE = crud.DELETE

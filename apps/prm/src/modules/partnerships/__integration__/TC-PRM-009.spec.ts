@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { getAuthToken, apiRequest } from '@open-mercato/core/helpers/integration/api'
-import { readJsonSafe, getTokenScope, getTokenContext } from '@open-mercato/core/helpers/integration/generalFixtures'
+import { readJsonSafe, getTokenContext } from '@open-mercato/core/helpers/integration/generalFixtures'
 
 /**
  * TC-PRM-009: WIC Import API
@@ -28,8 +28,6 @@ const PM_EMAIL = 'partnership-manager@demo.local'
 const PM_PASSWORD = 'Demo123!'
 const ADMIN_EMAIL = 'acme-admin@demo.local'
 const ADMIN_PASSWORD = 'Demo123!'
-const CONTRIBUTOR_EMAIL = 'acme-contributor@demo.local'
-const CONTRIBUTOR_PASSWORD = 'Demo123!'
 
 type JsonRecord = Record<string, unknown>
 
@@ -60,30 +58,17 @@ type WicScoresResponse = {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Use a test-specific month far in the future to avoid collisions with real data. */
+/**
+ * Generate a unique far-future month per test suite run to avoid collisions
+ * when the same ephemeral DB is reused across multiple test invocations.
+ */
+const _suiteRunId = Date.now()
 function testMonth(): string {
-  return '2099-01'
-}
-
-/** Set a GH username on a user via entities/records PUT. */
-async function setGhUsername(
-  request: Parameters<typeof apiRequest>[0],
-  token: string,
-  userId: string,
-  username: string,
-): Promise<void> {
-  const res = await apiRequest(request, 'PUT', '/api/entities/records', {
-    token,
-    data: {
-      entityId: 'auth:user',
-      recordId: userId,
-      values: { github_username: username },
-    },
-  })
-  expect(
-    res.ok(),
-    `PUT /api/entities/records (set GH username) failed: ${res.status()} — user ${userId}`,
-  ).toBeTruthy()
+  // Map timestamp to a unique YYYY-MM in the 2100–2199 range
+  const offset = _suiteRunId % 1200 // 100 years × 12 months
+  const year = 2100 + Math.floor(offset / 12)
+  const month = (offset % 12) + 1
+  return `${year}-${String(month).padStart(2, '0')}`
 }
 
 /** Get the Acme org's organizationId from an Acme user's token. */
@@ -98,22 +83,16 @@ function getAcmeOrgId(token: string): string {
 // ---------------------------------------------------------------------------
 
 test.describe('TC-PRM-009: WIC Import API', () => {
-  const GH_USERNAME = `qa-contrib-${Date.now()}`
+  // Use the seeded GH username from seedExamples (stored in custom_field_values)
+  const GH_USERNAME = 'carol-acme'
   let pmToken: string
   let adminToken: string
-  let contributorToken: string
-  let contributorUserId: string
   let acmeOrgId: string
 
   test.beforeAll(async ({ request }) => {
     pmToken = await getAuthToken(request, PM_EMAIL, PM_PASSWORD)
     adminToken = await getAuthToken(request, ADMIN_EMAIL, ADMIN_PASSWORD)
-    contributorToken = await getAuthToken(request, CONTRIBUTOR_EMAIL, CONTRIBUTOR_PASSWORD)
-    contributorUserId = getTokenScope(contributorToken).userId
     acmeOrgId = getAcmeOrgId(adminToken)
-
-    // Set a GH username on the contributor so WIC import can resolve them
-    await setGhUsername(request, adminToken, contributorUserId, GH_USERNAME)
   })
 
   // -------------------------------------------------------------------------

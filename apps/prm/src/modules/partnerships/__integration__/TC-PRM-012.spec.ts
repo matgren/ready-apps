@@ -26,6 +26,8 @@ const PM_EMAIL = 'partnership-manager@demo.local'
 const PM_PASSWORD = 'Demo123!'
 const ADMIN_EMAIL = 'acme-admin@demo.local'
 const ADMIN_PASSWORD = 'Demo123!'
+const CONTRIBUTOR_EMAIL = 'acme-contributor@demo.local'
+const CONTRIBUTOR_PASSWORD = 'Demo123!'
 
 type JsonRecord = Record<string, unknown>
 
@@ -179,11 +181,12 @@ test.describe('TC-PRM-012: PartnerLicenseDeal CRUD', () => {
   // -------------------------------------------------------------------------
   // T3: Non-PM cannot create PLD (403)
   // -------------------------------------------------------------------------
-  test('T3: Non-PM (admin) cannot create PLD — 403', async ({ request }) => {
+  test('T3: Non-PM (contributor) cannot create PLD — 403', async ({ request }) => {
     const ts = Date.now()
+    const contributorToken = await getAuthToken(request, CONTRIBUTOR_EMAIL, CONTRIBUTOR_PASSWORD)
 
     const res = await apiRequest(request, 'POST', '/api/partnerships/partner-license-deals', {
-      token: adminToken,
+      token: contributorToken,
       data: {
         organizationId: acmeOrgId,
         companyId,

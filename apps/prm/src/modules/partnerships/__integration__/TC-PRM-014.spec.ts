@@ -31,6 +31,8 @@ const PM_EMAIL = 'partnership-manager@demo.local'
 const PM_PASSWORD = 'Demo123!'
 const ADMIN_EMAIL = 'acme-admin@demo.local'
 const ADMIN_PASSWORD = 'Demo123!'
+const CONTRIBUTOR_EMAIL = 'acme-contributor@demo.local'
+const CONTRIBUTOR_PASSWORD = 'Demo123!'
 
 type JsonRecord = Record<string, unknown>
 
@@ -149,9 +151,10 @@ test.describe('TC-PRM-014: Tier Evaluation — Enqueue + Tier Status API', () =>
   // -------------------------------------------------------------------------
   // T4: Non-PM cannot enqueue evaluation (403)
   // -------------------------------------------------------------------------
-  test('T4: Non-PM (admin) cannot enqueue tier evaluation — 403', async ({ request }) => {
+  test('T4: Non-PM (contributor) cannot enqueue tier evaluation — 403', async ({ request }) => {
+    const contributorToken = await getAuthToken(request, CONTRIBUTOR_EMAIL, CONTRIBUTOR_PASSWORD)
     const res = await apiRequest(request, 'POST', '/api/partnerships/enqueue-tier-evaluation', {
-      token: adminToken,
+      token: contributorToken,
     })
 
     expect(res.status(), 'Non-PM user should get 403 for enqueue').toBe(403)

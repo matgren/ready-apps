@@ -24,8 +24,8 @@ import { readJsonSafe } from '@open-mercato/core/helpers/integration/generalFixt
 
 const PM_EMAIL = 'partnership-manager@demo.local'
 const PM_PASSWORD = 'Demo123!'
-const ADMIN_EMAIL = 'acme-admin@demo.local'
-const ADMIN_PASSWORD = 'Demo123!'
+const CONTRIBUTOR_EMAIL = 'acme-contributor@demo.local'
+const CONTRIBUTOR_PASSWORD = 'Demo123!'
 
 type CompanySearchItem = {
   companyId: string
@@ -46,11 +46,11 @@ type CompanySearchResponse = {
 
 test.describe('TC-PRM-013: Cross-Org Company Search', () => {
   let pmToken: string
-  let adminToken: string
+  let contributorToken: string
 
   test.beforeAll(async ({ request }) => {
     pmToken = await getAuthToken(request, PM_EMAIL, PM_PASSWORD)
-    adminToken = await getAuthToken(request, ADMIN_EMAIL, ADMIN_PASSWORD)
+    contributorToken = await getAuthToken(request, CONTRIBUTOR_EMAIL, CONTRIBUTOR_PASSWORD)
   })
 
   // -------------------------------------------------------------------------
@@ -106,12 +106,12 @@ test.describe('TC-PRM-013: Cross-Org Company Search', () => {
   // -------------------------------------------------------------------------
   // T3: Non-PM (admin) cannot search (403)
   // -------------------------------------------------------------------------
-  test('T3: Non-PM (admin) cannot search — 403', async ({ request }) => {
+  test('T3: Non-PM (contributor) cannot search — 403', async ({ request }) => {
     const res = await apiRequest(
       request,
       'GET',
       '/api/partnerships/company-search?q=test',
-      { token: adminToken },
+      { token: contributorToken },
     )
 
     expect(res.status(), 'Non-PM user should get 403').toBe(403)
