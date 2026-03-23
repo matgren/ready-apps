@@ -7,6 +7,9 @@ open-mercato/
 # Claude Code internals
 .claude/worktrees/
 
+# Scratch/temp
+ggg/
+
 # App-level generated (covered by apps/*/gitignore but also catch at root)
 **/generated/
 **/next/
