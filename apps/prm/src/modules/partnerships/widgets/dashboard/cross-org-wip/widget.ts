@@ -6,7 +6,7 @@ const widget: DashboardWidgetModule = {
   metadata: {
     id: 'partnerships.dashboard.cross-org-wip',
     title: 'Agency Pipeline Activity',
-    description: 'Cross-organization WIP table showing agency pipeline activity.',
+    description: 'Cross-organization summary table showing WIP, WIC, and MIN per agency with month switcher.',
     features: ['dashboards.view', 'partnerships.widgets.cross-org-wip'],
     defaultSize: 'lg',
     defaultEnabled: true,

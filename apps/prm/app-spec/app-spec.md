@@ -474,7 +474,7 @@ PM has license sale -> opens "Create License Deal" -> searches all companies acr
 
 | Widget | Roles | Org context | Data shown | Click-through |
 |--------|-------|-------------|------------|---------------|
-| **Cross-org WIP Table** | PM only | PM home org (Open Mercato Backoffice) | All agencies table: agency name, WIP count this month, trend. Cross-org query bypassing standard org scoping. **PM's primary dashboard content.** | Click agency row → org switches (header updates) → see agency CRM |
+| **Agency Pipeline Activity** | PM only | PM home org (Open Mercato Backoffice) | All agencies summary table with month switcher: agency name, WIP (monthly), WIC (monthly), MIN (yearly). Cross-org query bypassing standard org scoping. `?month=YYYY-MM` param. **PM's primary dashboard content.** | Click agency row → org switches (header updates) → see agency CRM |
 | **Pending Proposals** | PM only (Phase 2+) | PM home org | Count of TierChangeProposals in PendingApproval state. Badge shows count. | Link to `/backend/partnerships/tier-review` |
 | **Onboarding Checklist** | Admin (4 items), BD (2 items), Contributor (1 item) | Agency org only | Pending steps. Shows "All done!" flash before disappearing. **Display order: first widget** (above KPI widgets). | Each item links to relevant page |
 | **Per-org WIP Count** | Admin, BD | Agency org only | Own agency WIP count this month (single number). | — |
@@ -514,7 +514,7 @@ PM has license sale -> opens "Create License Deal" -> searches all companies acr
 | Persona | Task | Flow (login → done) | Clicks | Notes |
 |---------|------|---------------------|--------|-------|
 | PM | Add new agency | Login → Dashboard → Sidebar "Add Agency" → Fill form → Copy invite message → "Go to Agency List" | 3 | One-step creation. Clipboard copy button. Post-creation CTA. |
-| PM | Check agency activity | Login → Dashboard (WIP widget shows all agencies) → Click agency row → Org switches (header updates) → See agency CRM | 2 | WIP widget is the entry point. Org switch updates header label. |
+| PM | Check agency activity | Login → Dashboard (Pipeline Activity widget shows all agencies with WIP/WIC/MIN) → Click agency row → Org switches (header updates) → See agency CRM | 2 | Pipeline Activity widget is the entry point. Month switcher for period navigation. Org switch updates header label. |
 | PM | Review tier proposals (Ph2+) | Login → Dashboard (Pending Proposals widget shows count) → Click → Tier Review page → Click row → Approve/Reject with reason | 3 | Widget badge surfaces pending proposals. |
 | PM | Import WIC scores (Ph2+) | Login → Sidebar "WIC Import" → Select org + month → Upload file → See result (matched + rejected) | 3 | Import result shows inline DataTable. |
 | PM | Create RFP (Ph3+) | Login → Sidebar "RFP Campaigns" → "New RFP" → Fill form → Save as Draft or Publish | 3 | Explicit Draft vs Publish actions. |
@@ -533,7 +533,7 @@ PM has license sale -> opens "Create License Deal" -> searches all companies acr
 | Page/Widget | Empty state message | Action |
 |-------------|-------------------|--------|
 | Dashboard (Admin, first login) | Onboarding checklist widget shows all items pending | Each item links to relevant page |
-| Dashboard (PM, own org) | PM sees cross-org WIP widget (all agencies table) on their home-org dashboard. No generic empty state needed — if no agencies exist, WIP widget shows "No agencies yet" with link to Add Agency. | WIP widget is PM's primary dashboard content |
+| Dashboard (PM, own org) | PM sees Agency Pipeline Activity widget (all agencies table with WIP/WIC/MIN + month switcher) on their home-org dashboard. No generic empty state needed — if no agencies exist, widget shows "No agencies yet" with link to Add Agency. | Pipeline Activity widget is PM's primary dashboard content |
 | CRM Companies (new agency) | "No companies yet. Add your first prospect." | Link to Create Company |
 | CRM Deals (new agency) | "No deals yet. Create your first deal to start tracking pipeline." | Link to Create Deal |
 | WIP Widget (new agency) | "No WIP this month. Move a deal to Sales Qualified to start counting." | — |
@@ -543,7 +543,7 @@ PM has license sale -> opens "Create License Deal" -> searches all companies acr
 - [x] Every persona has a defined login-to-primary-task flow `Mat`
 - [x] Navigation grouping matches how users think about their work `Krug` — reviewed 2026-03-22, no blockers
 - [x] Dashboard widgets answer "what to do next" not just "data" `Krug` — checklist first, KPI widgets below
-- [x] Empty states are helpful, not blank pages `Krug` — PM dashboard uses cross-org WIP widget instead of empty state, agency empty states have CTAs
+- [x] Empty states are helpful, not blank pages `Krug` — PM dashboard uses Agency Pipeline Activity widget instead of empty state, agency empty states have CTAs
 - [x] Custom pages use OM patterns (CrudForm, DataTable) `Piotr`
 - [x] Click count from login to primary task is ≤ 3 for each persona `Krug` — all flows verified ≤ 3 clicks
 - [x] Contributor has actionable UI in Phase 1 `Krug` — onboarding checklist with "Set GitHub username" + profile page via header dropdown
