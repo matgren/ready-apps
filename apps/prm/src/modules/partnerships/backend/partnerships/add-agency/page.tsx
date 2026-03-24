@@ -6,6 +6,7 @@ import { Page, PageBody } from '@open-mercato/ui/backend/Page'
 import { apiCall } from '@open-mercato/ui/backend/utils/apiCall'
 import { flash } from '@open-mercato/ui/backend/FlashMessages'
 import { useT } from '@open-mercato/shared/lib/i18n/context'
+import { TIER_THRESHOLDS } from '../../../data/tier-thresholds'
 
 type CreateAgencyResponse = {
   organizationId: string
@@ -22,6 +23,7 @@ export default function AddAgencyPage() {
   const [agencyName, setAgencyName] = React.useState('')
   const [adminEmail, setAdminEmail] = React.useState('')
   const [seedDemoData, setSeedDemoData] = React.useState(true)
+  const [initialTier, setInitialTier] = React.useState('OM Agency')
   const [submitting, setSubmitting] = React.useState(false)
   const [result, setResult] = React.useState<CreateAgencyResponse | null>(null)
   const [error, setError] = React.useState<string | null>(null)
@@ -34,7 +36,7 @@ export default function AddAgencyPage() {
     const call = await apiCall<CreateAgencyResponse>('/api/partnerships/agencies', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ agencyName, adminEmail, seedDemoData }),
+      body: JSON.stringify({ agencyName, adminEmail, seedDemoData, initialTier }),
     })
 
     setSubmitting(false)
@@ -132,6 +134,22 @@ export default function AddAgencyPage() {
               <label htmlFor="seedDemoData" className="text-sm">
                 Create demo data (sample prospects, deals, case studies)
               </label>
+            </div>
+
+            <div>
+              <label htmlFor="initialTier" className="block text-sm font-medium mb-1">
+                {t('partnerships.addAgency.initialTier')}
+              </label>
+              <select
+                id="initialTier"
+                value={initialTier}
+                onChange={(e) => setInitialTier(e.target.value)}
+                className="w-full rounded-md border px-3 py-2 text-sm"
+              >
+                {TIER_THRESHOLDS.map((threshold) => (
+                  <option key={threshold.tier} value={threshold.tier}>{threshold.tier}</option>
+                ))}
+              </select>
             </div>
 
             {error && (

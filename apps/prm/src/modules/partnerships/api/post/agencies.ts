@@ -9,6 +9,7 @@ import { hash } from 'bcryptjs'
 import type { EntityManager } from '@mikro-orm/postgresql'
 import type { OpenApiMethodDoc, OpenApiRouteDoc } from '@open-mercato/shared/lib/openapi'
 import { seedAgencyDemoData } from '../../lib/seed-agency-demo'
+import { TierAssignment } from '../../data/entities'
 
 export const metadata = {
   path: '/partnerships/agencies',
@@ -19,10 +20,14 @@ export const metadata = {
 // Validation
 // ---------------------------------------------------------------------------
 
+import { TIER_THRESHOLDS } from '../../data/tier-thresholds'
+const TIER_NAMES = TIER_THRESHOLDS.map((t) => t.tier) as [string, ...string[]]
+
 const createAgencySchema = z.object({
   agencyName: z.string().min(1).max(200),
   adminEmail: z.string().email(),
   seedDemoData: z.boolean().default(true),
+  initialTier: z.enum(TIER_NAMES).default('OM Agency'),
 })
 
 // ---------------------------------------------------------------------------
@@ -58,7 +63,7 @@ async function POST(req: Request) {
     )
   }
 
-  const { agencyName, adminEmail, seedDemoData } = parsed.data
+  const { agencyName, adminEmail, seedDemoData, initialTier } = parsed.data
   const tenantId = auth.tenantId
   const em = container.resolve('em') as EntityManager
 
@@ -130,6 +135,18 @@ async function POST(req: Request) {
     }))
   }
 
+  await em.flush()
+
+  // Create initial tier assignment
+  const tierAssignment = em.create(TierAssignment, {
+    organizationId: org.id,
+    tier: initialTier,
+    effectiveDate: new Date(),
+    approvedBy: auth.sub,
+    reason: 'Initial onboarding',
+    tenantId,
+  })
+  em.persist(tierAssignment)
   await em.flush()
 
   // Emit AgencyCreated event

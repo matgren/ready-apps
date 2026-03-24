@@ -1,5 +1,8 @@
 import { z } from 'zod'
 import { WIC_LEVEL_OPTIONS, WIC_SOURCE_OPTIONS } from './custom-fields'
+import { TIER_THRESHOLDS } from './tier-thresholds'
+
+const TIER_NAMES = TIER_THRESHOLDS.map((t) => t.tier) as [string, ...string[]]
 
 const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/
 
@@ -27,6 +30,15 @@ export type WicImportRequest = z.infer<typeof wicImportRequestSchema>
 // ---------------------------------------------------------------------------
 // Partner License Deal
 // ---------------------------------------------------------------------------
+
+export const createAgencySchema = z.object({
+  agencyName: z.string().min(1).max(200),
+  adminEmail: z.string().email(),
+  seedDemoData: z.boolean().default(true),
+  initialTier: z.enum(TIER_NAMES).default('OM Agency'),
+})
+
+export type CreateAgencyInput = z.infer<typeof createAgencySchema>
 
 export const partnerLicenseDealCreateSchema = z.object({
   organizationId: z.string().uuid(),

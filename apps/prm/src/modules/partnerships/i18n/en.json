@@ -4,10 +4,16 @@
       "group": "Partnerships"
     },
     "addAgency": {
-      "title": "Add Agency"
+      "title": "Add Agency",
+      "initialTier": "Initial Tier"
     },
     "agencies": {
-      "title": "Agencies"
+      "title": "Agencies",
+      "currentTier": "Current Tier",
+      "changeTier": "Change Tier",
+      "changeTierReason": "Reason for tier change",
+      "tierChanged": "Tier updated successfully",
+      "noTier": "No tier"
     },
     "myWic": {
       "title": "WIC Scores",
@@ -66,10 +72,23 @@
       "wip": "WIP Count",
       "min": "MIN Count"
     },
+    "tierReview": {
+      "lastEvaluation": "Last auto-evaluation",
+      "evaluationNever": "Auto-evaluation has not run yet",
+      "runEvaluation": "Run Evaluation Now",
+      "evaluationRunning": "Evaluation running...",
+      "evaluationQueued": "Evaluation jobs queued"
+    },
     "errors": {
       "tenant_required": "Tenant context is required.",
       "organization_required": "Organization context is required.",
       "id_required": "Record identifier is required."
+    },
+    "caseStudies": {
+      "title": "Case Studies",
+      "add": "Add Case Study",
+      "addFirst": "Add your first case study",
+      "empty": "No case studies yet."
     },
     "widgets": {
       "wipCount": {
