@@ -2,10 +2,11 @@
 
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
-import { Page, PageBody } from '@open-mercato/ui/backend/Page'
+import { Page, PageBody, PageHeader } from '@open-mercato/ui/backend/Page'
 import { apiCall } from '@open-mercato/ui/backend/utils/apiCall'
 import { flash } from '@open-mercato/ui/backend/FlashMessages'
 import { useT } from '@open-mercato/shared/lib/i18n/context'
+import { Button } from '@open-mercato/ui/primitives/button'
 import { TIER_THRESHOLDS } from '../../../data/tier-thresholds'
 
 type CreateAgencyResponse = {
@@ -33,53 +34,50 @@ export default function AddAgencyPage() {
     setSubmitting(true)
     setError(null)
 
-    const call = await apiCall<CreateAgencyResponse>('/api/partnerships/agencies', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ agencyName, adminEmail, seedDemoData, initialTier }),
-    })
+    try {
+      const call = await apiCall<CreateAgencyResponse>('/api/partnerships/agencies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agencyName, adminEmail, seedDemoData, initialTier }),
+      })
 
-    setSubmitting(false)
+      if (!call.ok) {
+        const payload = call.result as Record<string, unknown> | null
+        setError(typeof payload?.error === 'string' ? payload.error : 'Failed to create agency')
+        return
+      }
 
-    if (!call.ok) {
-      const payload = call.result as Record<string, unknown> | null
-      setError(typeof payload?.error === 'string' ? payload.error : 'Failed to create agency')
-      return
+      setResult(call.result)
+      flash(t('partnerships.addAgency.created', 'Agency Created'), 'success')
+    } finally {
+      setSubmitting(false)
     }
-
-    setResult(call.result)
-    flash(`Agency "${agencyName}" created successfully`)
   }
 
   const handleCopy = async () => {
     if (!result) return
     await navigator.clipboard.writeText(result.inviteMessage)
-    flash('Invite message copied to clipboard')
+    flash(t('partnerships.addAgency.copyInvite', 'Copy Invite Message'), 'success')
   }
 
   if (result) {
     return (
       <Page>
+        <PageHeader title={t('partnerships.addAgency.title', 'Add Agency')} />
         <PageBody>
           <div className="mx-auto max-w-lg space-y-6">
             <div className="rounded-lg border bg-card p-6">
-              <h2 className="text-lg font-semibold mb-4">Agency Created</h2>
+              <h2 className="text-lg font-semibold mb-4">{t('partnerships.addAgency.created', 'Agency Created')}</h2>
               <pre className="whitespace-pre-wrap rounded-md bg-muted p-4 text-sm font-mono">
                 {result.inviteMessage}
               </pre>
               <div className="mt-4 flex gap-3">
-                <button
-                  onClick={handleCopy}
-                  className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-                >
-                  Copy Invite Message
-                </button>
-                <button
-                  onClick={() => router.push('/backend/partnerships/agencies')}
-                  className="inline-flex items-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted"
-                >
-                  Go to Agency List
-                </button>
+                <Button onClick={handleCopy}>
+                  {t('partnerships.addAgency.copyInvite', 'Copy Invite Message')}
+                </Button>
+                <Button variant="outline" onClick={() => router.push('/backend/partnerships/agencies')}>
+                  {t('partnerships.addAgency.goToList', 'Go to Agency List')}
+                </Button>
               </div>
             </div>
           </div>
@@ -90,12 +88,13 @@ export default function AddAgencyPage() {
 
   return (
     <Page>
+      <PageHeader title={t('partnerships.addAgency.title', 'Add Agency')} />
       <PageBody>
         <div className="mx-auto max-w-lg">
           <form onSubmit={handleSubmit} className="space-y-6 rounded-lg border bg-card p-6">
             <div>
               <label htmlFor="agencyName" className="block text-sm font-medium mb-1">
-                Agency Name
+                {t('partnerships.addAgency.agencyName', 'Agency Name')}
               </label>
               <input
                 id="agencyName"
@@ -110,7 +109,7 @@ export default function AddAgencyPage() {
 
             <div>
               <label htmlFor="adminEmail" className="block text-sm font-medium mb-1">
-                Admin Email
+                {t('partnerships.addAgency.adminEmail', 'Admin Email')}
               </label>
               <input
                 id="adminEmail"
@@ -132,7 +131,7 @@ export default function AddAgencyPage() {
                 className="rounded border"
               />
               <label htmlFor="seedDemoData" className="text-sm">
-                Create demo data (sample prospects, deals, case studies)
+                {t('partnerships.addAgency.seedDemoData', 'Seed Demo Data')}
               </label>
             </div>
 
@@ -156,13 +155,9 @@ export default function AddAgencyPage() {
               <p className="text-sm text-destructive">{error}</p>
             )}
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-            >
-              {submitting ? 'Creating...' : 'Create Agency'}
-            </button>
+            <Button type="submit" disabled={submitting} className="w-full">
+              {submitting ? t('partnerships.addAgency.creating', 'Creating...') : t('partnerships.addAgency.submit', 'Create Agency')}
+            </Button>
           </form>
         </div>
       </PageBody>

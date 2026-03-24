@@ -1,11 +1,14 @@
 "use client"
 
 import * as React from 'react'
-import { Page, PageBody } from '@open-mercato/ui/backend/Page'
+import { Page, PageBody, PageHeader } from '@open-mercato/ui/backend/Page'
 import { apiCall } from '@open-mercato/ui/backend/utils/apiCall'
 import { Button } from '@open-mercato/ui/primitives/button'
 import { flash } from '@open-mercato/ui/backend/FlashMessages'
-import { Spinner } from '@open-mercato/ui/primitives/spinner'
+import { LoadingMessage } from '@open-mercato/ui/backend/detail'
+import { EmptyState } from '@open-mercato/ui/backend/EmptyState'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@open-mercato/ui/primitives/dialog'
+import { useT } from '@open-mercato/shared/lib/i18n/context'
 
 type Proposal = {
   id: string
@@ -63,6 +66,7 @@ function ActionDialog({
   onClose: () => void
   onDone: () => void
 }) {
+  const t = useT()
   const [reason, setReason] = React.useState('')
   const [submitting, setSubmitting] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
@@ -71,7 +75,7 @@ function ActionDialog({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (isReject && !reason.trim()) {
-      setError('Reason is required when rejecting')
+      setError(t('partnerships.tierReview.reasonRequiredError', 'Reason is required when rejecting'))
       return
     }
     setSubmitting(true)
@@ -80,6 +84,7 @@ function ActionDialog({
       '/api/partnerships/tier-proposals/action',
       {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           proposalId: proposal.id,
           action,
@@ -92,24 +97,30 @@ function ActionDialog({
       onDone()
     } else {
       const msg = (call.result as Record<string, unknown>)?.error
-      setError(typeof msg === 'string' ? msg : 'Action failed')
+      setError(typeof msg === 'string' ? msg : t('partnerships.tierReview.actionFailed', 'Action failed'))
     }
   }
 
+  const dialogTitle = isReject
+    ? t('partnerships.tierReview.rejectProposal', 'Reject Proposal')
+    : t('partnerships.tierReview.approveProposal', 'Approve Proposal')
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
-      <div className="w-full max-w-md rounded-lg border bg-background p-6 shadow-lg" onClick={(e) => e.stopPropagation()}>
-        <h3 className="text-lg font-semibold mb-1">
-          {isReject ? 'Reject' : 'Approve'} Tier Change
-        </h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          {proposal.organizationName}: {proposal.currentTier} &rarr; {proposal.proposedTier}
-        </p>
+    <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{dialogTitle}</DialogTitle>
+          <p className="text-sm text-muted-foreground">
+            {proposal.organizationName}: {proposal.currentTier} &rarr; {proposal.proposedTier}
+          </p>
+        </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="text-sm font-medium" htmlFor="reason">
-              Reason {isReject ? '(required)' : '(optional)'}
+              {isReject
+                ? t('partnerships.tierReview.reasonRequired', 'Reason (required)')
+                : t('partnerships.tierReview.reasonOptional', 'Reason (optional)')}
             </label>
             <textarea
               id="reason"
@@ -117,7 +128,9 @@ function ActionDialog({
               rows={3}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder={isReject ? 'Why is this proposal being rejected?' : 'Optional note for the approval'}
+              placeholder={isReject
+                ? t('partnerships.tierReview.rejectPlaceholder', 'Why is this proposal being rejected?')
+                : t('partnerships.tierReview.approvePlaceholder', 'Optional note for the approval')}
             />
           </div>
 
@@ -127,23 +140,28 @@ function ActionDialog({
 
           <div className="flex justify-end gap-2">
             <Button type="button" variant="outline" onClick={onClose} disabled={submitting}>
-              Cancel
+              {t('common.cancel', 'Cancel')}
             </Button>
             <Button
               type="submit"
               variant={isReject ? 'destructive' : 'default'}
               disabled={submitting}
             >
-              {submitting ? 'Submitting...' : isReject ? 'Reject' : 'Approve'}
+              {submitting
+                ? t('partnerships.tierReview.submitting', 'Submitting...')
+                : isReject
+                  ? t('partnerships.tierReview.reject', 'Reject')
+                  : t('partnerships.tierReview.confirm', 'Confirm')}
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 
 export default function TierReviewPage() {
+  const t = useT()
   const [proposals, setProposals] = React.useState<Proposal[]>([])
   const [lastEvaluatedAt, setLastEvaluatedAt] = React.useState<string | null>(null)
   const [loading, setLoading] = React.useState(true)
@@ -181,19 +199,27 @@ export default function TierReviewPage() {
     const call = await apiCall<{ jobsEnqueued: number }>('/api/partnerships/enqueue-tier-evaluation', { method: 'POST' })
     if (call.ok && call.result) {
       const count = call.result.jobsEnqueued
-      flash(`Evaluation jobs queued: ${count} agencies`, 'success')
+      flash(`${t('partnerships.tierReview.evaluationQueued', 'Evaluation jobs queued')}: ${count} agencies`, 'success')
     }
     setEvaluationRunning(false)
   }
 
+  const filterLabels: Record<string, string> = {
+    '': t('partnerships.tierReview.filterAll', 'All'),
+    PendingApproval: t('partnerships.tierReview.filterPending', 'Pending'),
+    Approved: t('partnerships.tierReview.filterApproved', 'Approved'),
+    Rejected: t('partnerships.tierReview.filterRejected', 'Rejected'),
+  }
+
   return (
     <Page>
+      <PageHeader title={t('partnerships.tierReview.title', 'Tier Review')} />
       <PageBody>
         <div className={`flex items-center justify-between rounded-md border px-4 py-2 mb-4 text-sm ${isOverdue ? 'border-yellow-400 bg-yellow-50 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-200' : isNever ? 'border-orange-400 bg-orange-50 text-orange-800 dark:bg-orange-950 dark:text-orange-200' : 'border-border bg-muted/40 text-muted-foreground'}`}>
           <span>
             {isNever
-              ? 'Auto-evaluation has not run yet'
-              : `Last auto-evaluation: ${lastEval!.toLocaleDateString()}${isOverdue ? ' — Overdue' : ''}`}
+              ? t('partnerships.tierReview.evaluationNever', 'Auto-evaluation has not run yet')
+              : `${t('partnerships.tierReview.lastEvaluation', 'Last auto-evaluation')}: ${lastEval!.toLocaleDateString()}${isOverdue ? ` — ${t('partnerships.tierReview.overdue', 'Overdue')}` : ''}`}
           </span>
           <Button
             type="button"
@@ -202,14 +228,15 @@ export default function TierReviewPage() {
             onClick={handleRunEvaluation}
             disabled={evaluationRunning}
           >
-            {evaluationRunning ? 'Evaluation running...' : 'Run Evaluation Now'}
+            {evaluationRunning
+              ? t('partnerships.tierReview.evaluationRunning', 'Evaluation running...')
+              : t('partnerships.tierReview.runEvaluation', 'Run Evaluation Now')}
           </Button>
         </div>
 
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Tier Review</h2>
+        <div className="flex items-center justify-end mb-4">
           <div className="flex gap-1">
-            {['PendingApproval', 'Approved', 'Rejected', ''].map((s) => (
+            {(['PendingApproval', 'Approved', 'Rejected', ''] as const).map((s) => (
               <Button
                 key={s}
                 type="button"
@@ -217,35 +244,31 @@ export default function TierReviewPage() {
                 size="sm"
                 onClick={() => setStatusFilter(s)}
               >
-                {s === '' ? 'All' : s === 'PendingApproval' ? 'Pending' : s}
+                {filterLabels[s]}
               </Button>
             ))}
           </div>
         </div>
 
         {loading ? (
-          <div className="flex h-64 items-center justify-center">
-            <Spinner className="h-8 w-8 text-muted-foreground" />
-          </div>
+          <LoadingMessage label={t('common.loading', 'Loading...')} />
         ) : proposals.length === 0 ? (
-          <div className="flex h-64 items-center justify-center text-muted-foreground">
-            No proposals {statusFilter ? `with status "${statusFilter === 'PendingApproval' ? 'Pending' : statusFilter}"` : ''}.
-          </div>
+          <EmptyState title={t('partnerships.tierReview.noProposals', 'No tier proposals')} />
         ) : (
           <div className="rounded-lg border">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/50">
-                  <th className="px-4 py-3 text-left font-medium">Agency</th>
-                  <th className="px-4 py-3 text-left font-medium">Type</th>
-                  <th className="px-4 py-3 text-left font-medium">Current</th>
-                  <th className="px-4 py-3 text-left font-medium">Proposed</th>
-                  <th className="px-4 py-3 text-left font-medium">Period</th>
+                  <th className="px-4 py-3 text-left font-medium">{t('partnerships.tierReview.agency', 'Agency')}</th>
+                  <th className="px-4 py-3 text-left font-medium">{t('partnerships.tierReview.type', 'Type')}</th>
+                  <th className="px-4 py-3 text-left font-medium">{t('partnerships.tierReview.current', 'Current')}</th>
+                  <th className="px-4 py-3 text-left font-medium">{t('partnerships.tierReview.proposed', 'Proposed')}</th>
+                  <th className="px-4 py-3 text-left font-medium">{t('partnerships.tierReview.period', 'Period')}</th>
                   <th className="px-4 py-3 text-right font-medium">WIC</th>
                   <th className="px-4 py-3 text-right font-medium">WIP</th>
                   <th className="px-4 py-3 text-right font-medium">MIN</th>
-                  <th className="px-4 py-3 text-left font-medium">Status</th>
-                  <th className="px-4 py-3 text-right font-medium">Actions</th>
+                  <th className="px-4 py-3 text-left font-medium">{t('partnerships.tierReview.status', 'Status')}</th>
+                  <th className="px-4 py-3 text-right font-medium">{t('partnerships.tierReview.actions', 'Actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -269,7 +292,7 @@ export default function TierReviewPage() {
                             variant="outline"
                             onClick={() => setDialog({ proposal: p, action: 'approve' })}
                           >
-                            Approve
+                            {t('partnerships.tierReview.approve', 'Approve')}
                           </Button>
                           <Button
                             type="button"
@@ -278,7 +301,7 @@ export default function TierReviewPage() {
                             className="text-destructive"
                             onClick={() => setDialog({ proposal: p, action: 'reject' })}
                           >
-                            Reject
+                            {t('partnerships.tierReview.reject', 'Reject')}
                           </Button>
                         </div>
                       ) : p.rejectionReason ? (

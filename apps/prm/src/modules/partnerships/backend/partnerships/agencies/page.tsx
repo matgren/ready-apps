@@ -1,13 +1,15 @@
 "use client"
 
 import * as React from 'react'
-import { Page, PageBody } from '@open-mercato/ui/backend/Page'
+import { Page, PageBody, PageHeader } from '@open-mercato/ui/backend/Page'
 import { apiCall } from '@open-mercato/ui/backend/utils/apiCall'
 import { useT } from '@open-mercato/shared/lib/i18n/context'
-import { Spinner } from '@open-mercato/ui/primitives/spinner'
 import { Button } from '@open-mercato/ui/primitives/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@open-mercato/ui/primitives/dialog'
 import { flash } from '@open-mercato/ui/backend/FlashMessages'
+import { LoadingMessage, ErrorMessage } from '@open-mercato/ui/backend/detail'
+import { EmptyState } from '@open-mercato/ui/backend/EmptyState'
+import { useGuardedMutation } from '@open-mercato/ui/backend/injection/useGuardedMutation'
 import { TIER_THRESHOLDS } from '../../../data/tier-thresholds'
 
 type AgencyListItem = {
@@ -35,31 +37,43 @@ function ChangeTierDialog({
   const [reason, setReason] = React.useState('')
   const [submitting, setSubmitting] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const { runMutation } = useGuardedMutation<{ organizationId: string; tier: string }>({
+    contextId: `partnerships.tier-assign.${agency.organizationId}`,
+  })
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!reason.trim()) return
     setSubmitting(true)
     setError(null)
-    const call = await apiCall<{ success: boolean; error?: string }>(
-      '/api/partnerships/tier-assign',
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          organizationId: agency.organizationId,
-          tier: selectedTier,
-          reason: reason.trim(),
-        }),
-      },
-    )
-    setSubmitting(false)
-    if (call.ok) {
-      flash(t('partnerships.agencies.tierChanged', 'Tier updated successfully'))
-      onDone()
-    } else {
-      const msg = (call.result as Record<string, unknown>)?.error
-      setError(typeof msg === 'string' ? msg : 'Failed to update tier')
+    try {
+      const call = await runMutation({
+        operation: () => apiCall<{ success: boolean; error?: string }>(
+          '/api/partnerships/tier-assign',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              organizationId: agency.organizationId,
+              tier: selectedTier,
+              reason: reason.trim(),
+            }),
+          },
+        ),
+        context: { organizationId: agency.organizationId, tier: selectedTier },
+        mutationPayload: { organizationId: agency.organizationId, tier: selectedTier, reason: reason.trim() },
+      })
+      setSubmitting(false)
+      if (call.ok) {
+        flash(t('partnerships.agencies.tierChanged', 'Tier updated successfully'), 'success')
+        onDone()
+      } else {
+        const msg = (call.result as Record<string, unknown>)?.error
+        setError(typeof msg === 'string' ? msg : 'Failed to update tier')
+      }
+    } catch {
+      setSubmitting(false)
+      setError('Failed to update tier')
     }
   }
 
@@ -145,13 +159,17 @@ export default function AgenciesPage() {
   const t = useT()
   const [agencies, setAgencies] = React.useState<AgencyListItem[]>([])
   const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState<string | null>(null)
   const [dialogAgency, setDialogAgency] = React.useState<AgencyListItem | null>(null)
 
   const load = React.useCallback(async () => {
     setLoading(true)
+    setError(null)
     const call = await apiCall<{ agencies: AgencyListItem[] }>('/api/partnerships/agencies')
     if (call.ok && call.result) {
       setAgencies(call.result.agencies)
+    } else {
+      setError('Failed to load agencies')
     }
     setLoading(false)
   }, [])
@@ -168,10 +186,20 @@ export default function AgenciesPage() {
   if (loading) {
     return (
       <Page>
+        <PageHeader title={t('partnerships.agencies.title', 'Agencies')} />
         <PageBody>
-          <div className="flex h-64 items-center justify-center">
-            <Spinner className="h-8 w-8 text-muted-foreground" />
-          </div>
+          <LoadingMessage label={t('common.loading', 'Loading...')} />
+        </PageBody>
+      </Page>
+    )
+  }
+
+  if (error) {
+    return (
+      <Page>
+        <PageHeader title={t('partnerships.agencies.title', 'Agencies')} />
+        <PageBody>
+          <ErrorMessage label={t('common.errorTitle', 'Something went wrong')} description={error} />
         </PageBody>
       </Page>
     )
@@ -180,16 +208,14 @@ export default function AgenciesPage() {
   if (agencies.length === 0) {
     return (
       <Page>
+        <PageHeader title={t('partnerships.agencies.title', 'Agencies')} />
         <PageBody>
-          <div className="flex h-64 flex-col items-center justify-center gap-4 text-center">
-            <p className="text-muted-foreground">No agencies yet. Add your first agency to start the partner program.</p>
-            <a
-              href="/backend/partnerships/add-agency"
-              className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-            >
-              Add Agency
-            </a>
-          </div>
+          <EmptyState
+            title={t('partnerships.agencies.emptyTitle', 'No agencies yet')}
+            description={t('partnerships.agencies.emptyDescription', 'Add your first agency to start the partner program.')}
+            actionLabel={t('partnerships.addAgency.title', 'Add Agency')}
+            onAction={() => window.location.href = '/backend/partnerships/add-agency'}
+          />
         </PageBody>
       </Page>
     )
@@ -197,16 +223,15 @@ export default function AgenciesPage() {
 
   return (
     <Page>
+      <PageHeader
+        title={t('partnerships.agencies.title', 'Agencies')}
+        actions={
+          <Button onClick={() => window.location.href = '/backend/partnerships/add-agency'}>
+            {t('partnerships.addAgency.title', 'Add Agency')}
+          </Button>
+        }
+      />
       <PageBody>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">{agencies.length} Agencies</h2>
-          <a
-            href="/backend/partnerships/add-agency"
-            className="inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            Add Agency
-          </a>
-        </div>
         <div className="rounded-lg border">
           <table className="w-full text-sm">
             <thead>
