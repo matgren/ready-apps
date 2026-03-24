@@ -5,7 +5,8 @@ import { Page, PageBody } from '@open-mercato/ui/backend/Page'
 import { apiCall } from '@open-mercato/ui/backend/utils/apiCall'
 import { useT } from '@open-mercato/shared/lib/i18n/context'
 import { Spinner } from '@open-mercato/ui/primitives/spinner'
-import { Button } from '@/components/ui/button'
+import { Button } from '@open-mercato/ui/primitives/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@open-mercato/ui/primitives/dialog'
 import { flash } from '@open-mercato/ui/backend/FlashMessages'
 import { TIER_THRESHOLDS } from '../../../data/tier-thresholds'
 
@@ -74,21 +75,16 @@ function ChangeTierDialog({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onClick={onClose}
-      onKeyDown={handleKeyDown}
-    >
-      <div
-        className="w-full max-w-md rounded-lg border bg-background p-6 shadow-lg"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h3 className="text-lg font-semibold mb-1">
-          {t('partnerships.agencies.changeTier', 'Change Tier')}: {agency.name}
-        </h3>
-        <p className="text-sm text-muted-foreground mb-4">
-          {t('partnerships.agencies.currentTier', 'Current Tier')}: {agency.currentTier ?? t('partnerships.agencies.noTier', 'No tier')}
-        </p>
+    <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogContent onKeyDown={handleKeyDown}>
+        <DialogHeader>
+          <DialogTitle>
+            {t('partnerships.agencies.changeTier', 'Change Tier')}: {agency.name}
+          </DialogTitle>
+          <p className="text-sm text-muted-foreground">
+            {t('partnerships.agencies.currentTier', 'Current Tier')}: {agency.currentTier ?? t('partnerships.agencies.noTier', 'No tier')}
+          </p>
+        </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -140,8 +136,8 @@ function ChangeTierDialog({
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 
