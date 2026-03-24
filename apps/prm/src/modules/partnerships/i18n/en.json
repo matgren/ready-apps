@@ -88,7 +88,11 @@
       "title": "Case Studies",
       "add": "Add Case Study",
       "addFirst": "Add your first case study",
-      "empty": "No case studies yet."
+      "empty": "No case studies yet.",
+      "emptyDescription": "Case studies showcase your agency's past projects and help match you with RFP campaigns.",
+      "created": "Case study created successfully",
+      "createError": "Failed to create case study",
+      "submitButton": "Create Case Study"
     },
     "widgets": {
       "wipCount": {

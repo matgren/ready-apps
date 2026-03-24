@@ -4,7 +4,7 @@ import * as React from 'react'
 import { Page, PageBody } from '@open-mercato/ui/backend/Page'
 import { apiCall } from '@open-mercato/ui/backend/utils/apiCall'
 import { Button } from '@/components/ui/button'
-import { flash } from '@open-mercato/ui/backend/utils/flash'
+import { flash } from '@open-mercato/ui/backend/FlashMessages'
 import { Spinner } from '@open-mercato/ui/primitives/spinner'
 
 type Proposal = {
@@ -181,7 +181,7 @@ export default function TierReviewPage() {
     const call = await apiCall<{ jobsEnqueued: number }>('/api/partnerships/enqueue-tier-evaluation', { method: 'POST' })
     if (call.ok && call.result) {
       const count = call.result.jobsEnqueued
-      flash('success', `Evaluation jobs queued: ${count} agencies`)
+      flash(`Evaluation jobs queued: ${count} agencies`, 'success')
     }
     setEvaluationRunning(false)
   }

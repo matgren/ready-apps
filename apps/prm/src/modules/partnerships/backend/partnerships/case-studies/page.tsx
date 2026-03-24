@@ -2,11 +2,47 @@
 
 import * as React from 'react'
 import { Page, PageBody } from '@open-mercato/ui/backend/Page'
+import { CrudForm, type CrudField, type CrudFormGroup } from '@open-mercato/ui/backend/CrudForm'
+import { EmptyState } from '@open-mercato/ui/backend/EmptyState'
+import { flash } from '@open-mercato/ui/backend/FlashMessages'
 import { apiCall } from '@open-mercato/ui/backend/utils/apiCall'
+import { Button } from '@open-mercato/ui/primitives/button'
+import { Badge } from '@open-mercato/ui/primitives/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@open-mercato/ui/primitives/dialog'
 import { Spinner } from '@open-mercato/ui/primitives/spinner'
 import { useT } from '@open-mercato/shared/lib/i18n/context'
 
 const ENTITY_ID = 'partnerships:case_study'
+
+const INDUSTRY_SUGGESTIONS = [
+  'Finance', 'Healthcare', 'Retail', 'Manufacturing',
+  'Technology', 'Education', 'Government', 'Energy', 'Logistics',
+]
+
+const TECH_SUGGESTIONS = [
+  'React', 'Node.js', 'Python', 'TypeScript', 'PostgreSQL',
+  'Docker', 'Kubernetes', 'AWS', 'Azure', 'GCP',
+]
+
+const BUDGET_OPTIONS = [
+  { label: '<10k', value: '<10k' },
+  { label: '10k-50k', value: '10k-50k' },
+  { label: '50k-200k', value: '50k-200k' },
+  { label: '200k-500k', value: '200k-500k' },
+  { label: '500k+', value: '500k+' },
+]
+
+const DURATION_OPTIONS = [
+  { label: '<1 month', value: '<1 month' },
+  { label: '1-3 months', value: '1-3 months' },
+  { label: '3-6 months', value: '3-6 months' },
+  { label: '6-12 months', value: '6-12 months' },
+  { label: '12+ months', value: '12+ months' },
+]
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 type CaseStudyRecord = {
   id: string
@@ -19,17 +55,62 @@ type ListResponse = {
   total: number
 }
 
-type CreateResponse = {
-  id: string
+// ---------------------------------------------------------------------------
+// Form fields
+// ---------------------------------------------------------------------------
+
+const formFields: CrudField[] = [
+  { id: 'title', label: 'Title', type: 'text', required: true, placeholder: 'e.g. E-commerce Platform Migration' },
+  { id: 'industry', label: 'Industries', type: 'tags', suggestions: INDUSTRY_SUGGESTIONS, placeholder: 'Type to add industries...' },
+  { id: 'technologies', label: 'Technologies', type: 'tags', suggestions: TECH_SUGGESTIONS, placeholder: 'Type to add technologies...' },
+  { id: 'budget_bucket', label: 'Budget', type: 'select', required: true, options: BUDGET_OPTIONS },
+  { id: 'duration_bucket', label: 'Duration', type: 'select', required: true, options: DURATION_OPTIONS },
+  { id: 'client_name', label: 'Client Name', type: 'text', placeholder: 'Optional' },
+  { id: 'description', label: 'Description', type: 'textarea', placeholder: 'Brief project overview...' },
+  { id: 'challenges', label: 'Challenges', type: 'textarea', placeholder: 'What problems were solved?' },
+  { id: 'solution', label: 'Solution', type: 'textarea', placeholder: 'How was it solved?' },
+  { id: 'results', label: 'Results', type: 'textarea', placeholder: 'Measurable outcomes...' },
+  { id: 'is_public', label: 'Public', type: 'checkbox' },
+]
+
+const formGroups: CrudFormGroup[] = [
+  { id: 'basics', title: 'Basics', fields: ['title', 'industry', 'technologies', 'budget_bucket', 'duration_bucket'] },
+  { id: 'client', title: 'Client', fields: ['client_name'] },
+  { id: 'narrative', title: 'Project Details', fields: ['description', 'challenges', 'solution', 'results'] },
+  { id: 'visibility', title: 'Visibility', fields: ['is_public'] },
+]
+
+// ---------------------------------------------------------------------------
+// Tag display helper
+// ---------------------------------------------------------------------------
+
+function TagCell({ values }: { values: unknown }) {
+  if (!values) return <span className="text-muted-foreground">—</span>
+  const tags = Array.isArray(values)
+    ? values
+    : typeof values === 'string'
+      ? values.split(',').map((s: string) => s.trim()).filter(Boolean)
+      : []
+  if (tags.length === 0) return <span className="text-muted-foreground">—</span>
+  return (
+    <div className="flex flex-wrap gap-1">
+      {tags.slice(0, 3).map((tag: string) => (
+        <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
+      ))}
+      {tags.length > 3 && <Badge variant="outline" className="text-xs">+{tags.length - 3}</Badge>}
+    </div>
+  )
 }
+
+// ---------------------------------------------------------------------------
+// Page
+// ---------------------------------------------------------------------------
 
 export default function CaseStudiesPage() {
   const t = useT()
   const [records, setRecords] = React.useState<CaseStudyRecord[]>([])
   const [loading, setLoading] = React.useState(true)
-  const [showForm, setShowForm] = React.useState(false)
-  const [saving, setSaving] = React.useState(false)
-  const [title, setTitle] = React.useState('')
+  const [dialogOpen, setDialogOpen] = React.useState(false)
 
   const loadRecords = React.useCallback(async () => {
     setLoading(true)
@@ -46,23 +127,21 @@ export default function CaseStudiesPage() {
     loadRecords()
   }, [loadRecords])
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!title.trim()) return
-    setSaving(true)
-    const call = await apiCall<CreateResponse>('/api/entities/records', {
+  const handleCreate = async (values: Record<string, unknown>) => {
+    const call = await apiCall<{ id: string }>('/api/entities/records', {
       method: 'POST',
       body: JSON.stringify({
         entityId: ENTITY_ID,
-        values: { title: title.trim() },
+        values,
       }),
     })
     if (call.ok) {
-      setTitle('')
-      setShowForm(false)
+      flash(t('partnerships.caseStudies.created'), 'success')
+      setDialogOpen(false)
       await loadRecords()
+    } else {
+      flash(t('partnerships.caseStudies.createError'), 'error')
     }
-    setSaving(false)
   }
 
   if (loading) {
@@ -80,94 +159,64 @@ export default function CaseStudiesPage() {
   return (
     <Page>
       <PageBody>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">
-            {t('partnerships.caseStudies.title')}
-          </h2>
-          {!showForm && (
-            <button
-              type="button"
-              onClick={() => setShowForm(true)}
-              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
-              {t('partnerships.caseStudies.add')}
-            </button>
-          )}
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-semibold">{t('partnerships.caseStudies.title')}</h2>
+          <Button type="button" onClick={() => setDialogOpen(true)}>
+            {t('partnerships.caseStudies.add')}
+          </Button>
         </div>
 
-        {showForm && (
-          <form onSubmit={handleCreate} className="mb-6 rounded-lg border p-4">
-            <div className="flex items-end gap-3">
-              <div className="flex-1">
-                <label htmlFor="cs-title" className="mb-1 block text-sm font-medium">
-                  Title
-                </label>
-                <input
-                  id="cs-title"
-                  type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="w-full rounded-md border px-3 py-2 text-sm"
-                  placeholder="e.g. E-commerce Platform Migration"
-                  autoFocus
-                  required
-                />
+        {records.length === 0 ? (
+          <EmptyState
+            title={t('partnerships.caseStudies.empty')}
+            description={t('partnerships.caseStudies.emptyDescription')}
+            action={{ label: t('partnerships.caseStudies.addFirst'), onClick: () => setDialogOpen(true) }}
+          />
+        ) : (
+          <div className="space-y-3">
+            {records.map((record) => (
+              <div key={record.id} className="rounded-lg border p-4 hover:bg-muted/30 transition-colors">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-medium text-foreground">
+                      {(record.values?.title as string) ?? record.id}
+                    </h3>
+                    {typeof record.values?.description === 'string' && record.values.description && (
+                      <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
+                        {record.values.description}
+                      </p>
+                    )}
+                    <div className="mt-2 flex flex-wrap items-center gap-3">
+                      <TagCell values={record.values?.industry} />
+                      <TagCell values={record.values?.technologies} />
+                      {typeof record.values?.budget_bucket === 'string' && (
+                        <span className="text-xs text-muted-foreground">{record.values.budget_bucket}</span>
+                      )}
+                    </div>
+                  </div>
+                  <span className="shrink-0 text-xs text-muted-foreground">
+                    {new Date(record.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
               </div>
-              <button
-                type="submit"
-                disabled={saving || !title.trim()}
-                className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50 transition-colors"
-              >
-                {saving ? 'Saving...' : 'Create'}
-              </button>
-              <button
-                type="button"
-                onClick={() => { setShowForm(false); setTitle('') }}
-                className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted/50 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
+            ))}
+          </div>
         )}
 
-        {records.length === 0 ? (
-          <div className="flex h-64 flex-col items-center justify-center gap-4 text-center">
-            <p className="text-muted-foreground">{t('partnerships.caseStudies.empty')}</p>
-            {!showForm && (
-              <button
-                type="button"
-                onClick={() => setShowForm(true)}
-                className="text-sm font-medium text-primary hover:underline"
-              >
-                {t('partnerships.caseStudies.addFirst')}
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="rounded-lg border">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="px-4 py-3 text-left font-medium">Title</th>
-                  <th className="px-4 py-3 text-left font-medium">Created</th>
-                </tr>
-              </thead>
-              <tbody>
-                {records.map((record) => (
-                  <tr key={record.id} className="border-b last:border-0 hover:bg-muted/30">
-                    <td className="px-4 py-3 font-medium">
-                      {(record.values?.title as string) ?? record.id}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {new Date(record.createdAt).toLocaleDateString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <DialogContent className="sm:max-w-2xl [&_.grid]:!grid-cols-1">
+            <DialogHeader>
+              <DialogTitle>{t('partnerships.caseStudies.add')}</DialogTitle>
+            </DialogHeader>
+            <CrudForm
+              fields={formFields}
+              groups={formGroups}
+              onSubmit={handleCreate}
+              embedded={true}
+              submitLabel={t('partnerships.caseStudies.submitButton')}
+            />
+          </DialogContent>
+        </Dialog>
       </PageBody>
     </Page>
   )
