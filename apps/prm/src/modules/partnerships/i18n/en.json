@@ -5,7 +5,15 @@
     },
     "addAgency": {
       "title": "Add Agency",
-      "initialTier": "Initial Tier"
+      "initialTier": "Initial Tier",
+      "created": "Agency Created",
+      "copyInvite": "Copy Invite Message",
+      "goToList": "Go to Agency List",
+      "creating": "Creating...",
+      "submit": "Create Agency",
+      "agencyName": "Agency Name",
+      "adminEmail": "Admin Email",
+      "seedDemoData": "Seed Demo Data"
     },
     "agencies": {
       "title": "Agencies",
@@ -73,11 +81,37 @@
       "min": "MIN Count"
     },
     "tierReview": {
+      "title": "Tier Review",
       "lastEvaluation": "Last auto-evaluation",
       "evaluationNever": "Auto-evaluation has not run yet",
       "runEvaluation": "Run Evaluation Now",
       "evaluationRunning": "Evaluation running...",
-      "evaluationQueued": "Evaluation jobs queued"
+      "evaluationQueued": "Evaluation jobs queued",
+      "overdue": "Overdue",
+      "noProposals": "No tier proposals",
+      "filterAll": "All",
+      "filterPending": "Pending",
+      "filterApproved": "Approved",
+      "filterRejected": "Rejected",
+      "agency": "Agency",
+      "type": "Type",
+      "current": "Current",
+      "proposed": "Proposed",
+      "period": "Period",
+      "status": "Status",
+      "actions": "Actions",
+      "approve": "Approve",
+      "reject": "Reject",
+      "approveProposal": "Approve Proposal",
+      "rejectProposal": "Reject Proposal",
+      "reasonOptional": "Reason (optional)",
+      "reasonRequired": "Reason (required)",
+      "reasonRequiredError": "Reason is required when rejecting",
+      "rejectPlaceholder": "Why is this proposal being rejected?",
+      "approvePlaceholder": "Optional note for the approval",
+      "submitting": "Submitting...",
+      "confirm": "Confirm",
+      "actionFailed": "Action failed"
     },
     "errors": {
       "tenant_required": "Tenant context is required.",
