@@ -5,7 +5,7 @@ import { getAuthFromRequest } from '@open-mercato/shared/lib/auth/server'
 import { Organization } from '@open-mercato/core/modules/directory/data/entities'
 import type { EntityManager } from '@mikro-orm/postgresql'
 import type { OpenApiMethodDoc, OpenApiRouteDoc } from '@open-mercato/shared/lib/openapi'
-import { TierChangeProposal } from '../../data/entities'
+import { TierChangeProposal, TierEvaluationState } from '../../data/entities'
 
 export const metadata = {
   path: '/partnerships/tier-proposals',
@@ -41,6 +41,8 @@ async function GET(req: Request) {
     : []
   const orgNameById = new Map(orgs.map((o) => [o.id, o.name]))
 
+  const lastEvaluation = await em.findOne(TierEvaluationState, { tenantId }, { orderBy: { createdAt: 'DESC' } })
+
   const items = proposals.map((p) => ({
     id: p.id,
     organizationId: p.organizationId,
@@ -58,7 +60,10 @@ async function GET(req: Request) {
     createdAt: p.createdAt.toISOString(),
   }))
 
-  return NextResponse.json({ proposals: items })
+  return NextResponse.json({
+    proposals: items,
+    lastEvaluatedAt: lastEvaluation?.createdAt?.toISOString() ?? null,
+  })
 }
 
 // ---------------------------------------------------------------------------
@@ -86,7 +91,7 @@ const getDoc: OpenApiMethodDoc = {
   summary: 'List tier change proposals (PM only)',
   tags: ['Partnerships'],
   responses: [
-    { status: 200, description: 'Proposal list', schema: z.object({ proposals: z.array(proposalSchema) }) },
+    { status: 200, description: 'Proposal list', schema: z.object({ proposals: z.array(proposalSchema), lastEvaluatedAt: z.string().nullable() }) },
     { status: 401, description: 'Unauthorized' },
   ],
 }

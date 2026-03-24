@@ -4,6 +4,7 @@ import * as React from 'react'
 import { Page, PageBody } from '@open-mercato/ui/backend/Page'
 import { apiCall } from '@open-mercato/ui/backend/utils/apiCall'
 import { Button } from '@/components/ui/button'
+import { flash } from '@open-mercato/ui/backend/utils/flash'
 import { Spinner } from '@open-mercato/ui/primitives/spinner'
 
 type Proposal = {
@@ -144,16 +145,19 @@ function ActionDialog({
 
 export default function TierReviewPage() {
   const [proposals, setProposals] = React.useState<Proposal[]>([])
+  const [lastEvaluatedAt, setLastEvaluatedAt] = React.useState<string | null>(null)
   const [loading, setLoading] = React.useState(true)
+  const [evaluationRunning, setEvaluationRunning] = React.useState(false)
   const [statusFilter, setStatusFilter] = React.useState('PendingApproval')
   const [dialog, setDialog] = React.useState<{ proposal: Proposal; action: 'approve' | 'reject' } | null>(null)
 
   const load = React.useCallback(async () => {
     setLoading(true)
     const query = statusFilter ? `?status=${statusFilter}` : ''
-    const call = await apiCall<{ proposals: Proposal[] }>(`/api/partnerships/tier-proposals${query}`)
+    const call = await apiCall<{ proposals: Proposal[]; lastEvaluatedAt: string | null }>(`/api/partnerships/tier-proposals${query}`)
     if (call.ok && call.result) {
       setProposals(call.result.proposals)
+      setLastEvaluatedAt(call.result.lastEvaluatedAt ?? null)
     }
     setLoading(false)
   }, [statusFilter])
@@ -167,9 +171,41 @@ export default function TierReviewPage() {
     load()
   }
 
+  const lastEval = lastEvaluatedAt ? new Date(lastEvaluatedAt) : null
+  const daysSinceEval = lastEval ? Math.floor((Date.now() - lastEval.getTime()) / (1000 * 60 * 60 * 24)) : null
+  const isOverdue = daysSinceEval !== null && daysSinceEval > 35
+  const isNever = lastEval === null
+
+  async function handleRunEvaluation() {
+    setEvaluationRunning(true)
+    const call = await apiCall<{ jobsEnqueued: number }>('/api/partnerships/enqueue-tier-evaluation', { method: 'POST' })
+    if (call.ok && call.result) {
+      const count = call.result.jobsEnqueued
+      flash('success', `Evaluation jobs queued: ${count} agencies`)
+    }
+    setEvaluationRunning(false)
+  }
+
   return (
     <Page>
       <PageBody>
+        <div className={`flex items-center justify-between rounded-md border px-4 py-2 mb-4 text-sm ${isOverdue ? 'border-yellow-400 bg-yellow-50 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-200' : isNever ? 'border-orange-400 bg-orange-50 text-orange-800 dark:bg-orange-950 dark:text-orange-200' : 'border-border bg-muted/40 text-muted-foreground'}`}>
+          <span>
+            {isNever
+              ? 'Auto-evaluation has not run yet'
+              : `Last auto-evaluation: ${lastEval!.toLocaleDateString()}${isOverdue ? ' — Overdue' : ''}`}
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={handleRunEvaluation}
+            disabled={evaluationRunning}
+          >
+            {evaluationRunning ? 'Evaluation running...' : 'Run Evaluation Now'}
+          </Button>
+        </div>
+
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold">Tier Review</h2>
           <div className="flex gap-1">
