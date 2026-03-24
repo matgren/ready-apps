@@ -8,7 +8,7 @@ import { CustomFieldValue } from '@open-mercato/core/modules/entities/data/entit
 import type { EntityManager } from '@mikro-orm/postgresql'
 import type { OpenApiMethodDoc, OpenApiRouteDoc } from '@open-mercato/shared/lib/openapi'
 import { WIP_REGISTERED_AT_FIELD } from '../../data/custom-fields'
-import { PartnerLicenseDeal } from '../../data/entities'
+import { PartnerLicenseDeal, TierAssignment } from '../../data/entities'
 
 export const metadata = {
   path: '/partnerships/agencies',
@@ -27,6 +27,7 @@ type AgencyListItem = {
   wicScore: number
   minCount: number
   createdAt: string
+  currentTier: string | null
 }
 
 // ---------------------------------------------------------------------------
@@ -188,7 +189,27 @@ async function GET(req: Request) {
       wicScore,
       minCount,
       createdAt: org.createdAt.toISOString(),
+      currentTier: null,
     })
+  }
+
+  // Enrich with current tier (latest TierAssignment per org)
+  if (agencies.length > 0) {
+    const tierAssignments = await em.find(TierAssignment, {
+      tenantId,
+      organizationId: { $in: agencies.map((a) => a.organizationId) },
+    }, { orderBy: { effectiveDate: 'DESC' } })
+
+    const currentTiers = new Map<string, string>()
+    for (const ta of tierAssignments) {
+      if (!currentTiers.has(ta.organizationId)) {
+        currentTiers.set(ta.organizationId, ta.tier)
+      }
+    }
+
+    for (const agency of agencies) {
+      agency.currentTier = currentTiers.get(agency.organizationId) ?? null
+    }
   }
 
   return NextResponse.json({ agencies, month, year })
@@ -206,6 +227,7 @@ const agencySchema = z.object({
   wicScore: z.number(),
   minCount: z.number(),
   createdAt: z.string(),
+  currentTier: z.string().nullable(),
 })
 
 const getDoc: OpenApiMethodDoc = {
