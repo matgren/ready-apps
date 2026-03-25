@@ -29,19 +29,10 @@ async function loginInBrowser(page: Page, token: string): Promise<void> {
   await page.context().addCookies([{ name: 'auth_token', value: token, url: BASE }])
 }
 
-/** Navigate to create page — skips test if Access Denied (RBAC). */
+/** Navigate to create page and wait for search input. */
 async function gotoCreatePage(page: Page, token: string): Promise<void> {
   await loginInBrowser(page, token)
   await page.goto(CREATE_URL)
-  await page.waitForLoadState('domcontentloaded')
-  await page.waitForTimeout(2_000)
-
-  // Check for Access Denied page
-  const bodyText = await page.locator('body').textContent().catch(() => '')
-  if (bodyText?.includes('Access Denied') || bodyText?.includes('do not have permission')) {
-    test.skip(true, 'PM lacks partnerships.license-deals.manage on this server')
-    return
-  }
 
   const searchInput = page.locator('input[type="text"]').first()
   await expect(searchInput).toBeVisible({ timeout: 15_000 })
