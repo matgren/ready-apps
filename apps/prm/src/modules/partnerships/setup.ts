@@ -16,7 +16,7 @@ import { hashForLookup } from '@open-mercato/shared/lib/encryption/aes'
 import { seedDashboardDefaultsForTenant } from '@open-mercato/core/modules/dashboards/cli'
 import { hash } from 'bcryptjs'
 import { DefaultDataEngine } from '@open-mercato/shared/lib/data/engine'
-import { PartnerLicenseDeal, TierAssignment, TierEvaluationState, TierChangeProposal } from './data/entities'
+import { PartnerLicenseDeal, PartnerRfpCampaign, TierAssignment, TierEvaluationState, TierChangeProposal } from './data/entities'
 import { E } from '#generated/entities.ids.generated'
 import {
   PRM_PIPELINE_NAME,
@@ -431,6 +431,7 @@ const PRM_ROLE_FEATURES: Record<string, string[]> = {
     'customers.*',
     'entities.*',
     'partnerships.manage',
+    'partnerships.rfp.respond',
     'partnerships.widgets.onboarding-checklist',
     'partnerships.widgets.wip-count',
     'partnerships.widgets.wic-summary',
@@ -443,6 +444,7 @@ const PRM_ROLE_FEATURES: Record<string, string[]> = {
   partner_member: [
     ...BACKEND_BASELINE_FEATURES,
     'customers.*',
+    'partnerships.rfp.respond',
     'partnerships.widgets.onboarding-checklist',
     'partnerships.widgets.wip-count',
     'partnerships.widgets.wic-summary',
@@ -458,6 +460,7 @@ const PRM_ROLE_FEATURES: Record<string, string[]> = {
     ...BACKEND_BASELINE_FEATURES,
     'customers.*',
     'partnerships.manage',
+    'partnerships.rfp.manage',
     'partnerships.widgets.wip-count',
     'partnerships.widgets.cross-org-wip',
     'partnerships.wic.import',

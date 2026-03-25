@@ -8,6 +8,8 @@ const features = [
   { id: 'partnerships.license-deals.manage', title: 'Manage license deals (PM only)', module: 'partnerships' },
   { id: 'partnerships.tier.approve', title: 'Approve tier change proposals', module: 'partnerships' },
   { id: 'partnerships.widgets.tier-status', title: 'View tier status widget', module: 'partnerships' },
+  { id: 'partnerships.rfp.manage', title: 'Manage RFP campaigns (PM only)', module: 'partnerships' },
+  { id: 'partnerships.rfp.respond', title: 'Respond to RFP campaigns', module: 'partnerships' },
 ]
 
 export { features }

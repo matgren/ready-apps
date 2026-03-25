@@ -128,6 +128,57 @@
       "createError": "Failed to create case study",
       "submitButton": "Create Case Study"
     },
+    "rfpCampaigns": {
+      "title": "RFP Campaigns",
+      "createTitle": "Create RFP Campaign",
+      "detailTitle": "RFP Campaign",
+      "createButton": "Create Campaign",
+      "noData": "No RFP campaigns yet.",
+      "created": "RFP campaign created successfully",
+      "createError": "Failed to create campaign.",
+      "submitting": "Creating...",
+      "submitButton": "Create Campaign",
+      "published": "Campaign published successfully",
+      "publishButton": "Publish",
+      "publishing": "Publishing...",
+      "publishError": "Failed to publish campaign",
+      "notFound": "Campaign not found",
+      "loadError": "Failed to load campaign",
+      "backToList": "Back to Campaigns",
+      "awardedBanner": "This campaign has been awarded.",
+      "responses": "Responses",
+      "noResponses": "No responses yet.",
+      "loadingAgencies": "Loading agencies...",
+      "noAgencies": "No agencies found.",
+      "agenciesSelected": "agencies",
+      "columns": {
+        "title": "Title",
+        "status": "Status",
+        "deadline": "Deadline",
+        "audience": "Audience",
+        "created": "Created"
+      },
+      "fields": {
+        "title": "Title",
+        "titlePlaceholder": "Campaign title...",
+        "description": "Description",
+        "descriptionPlaceholder": "Describe the project requirements...",
+        "deadline": "Deadline",
+        "audience": "Audience",
+        "selectAgencies": "Select Agencies",
+        "created": "Created"
+      },
+      "status": {
+        "draft": "Draft",
+        "open": "Open",
+        "awarded": "Awarded",
+        "closed": "Closed"
+      },
+      "audience": {
+        "all": "All Agencies",
+        "selected": "Selected Agencies"
+      }
+    },
     "widgets": {
       "wipCount": {
         "title": "WIP This Month",

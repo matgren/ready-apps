@@ -168,3 +168,49 @@ export class PartnerLicenseDeal {
   @Property({ name: 'created_at', type: Date, onCreate: () => new Date() })
   createdAt: Date = new Date()
 }
+
+// ---------------------------------------------------------------------------
+// PartnerRfpCampaign — RFP campaign created by PM
+// ---------------------------------------------------------------------------
+
+@Entity({ tableName: 'partner_rfp_campaigns' })
+@Index({ name: 'rfp_camp_org_tenant_idx', properties: ['organizationId', 'tenantId'] })
+export class PartnerRfpCampaign {
+  [OptionalProps]?: 'createdAt' | 'status' | 'audience'
+
+  @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid()' })
+  id!: string
+
+  @Property({ type: 'text' })
+  title!: string
+
+  @Property({ type: 'text' })
+  description!: string
+
+  @Property({ type: Date })
+  deadline!: Date
+
+  @Property({ type: 'text', default: 'all' })
+  audience: string = 'all'
+
+  @Property({ name: 'selected_agency_ids', type: 'jsonb', nullable: true })
+  selectedAgencyIds?: string[] | null
+
+  @Property({ type: 'text', default: 'draft' })
+  status: string = 'draft'
+
+  @Property({ name: 'winner_organization_id', type: 'uuid', nullable: true })
+  winnerOrganizationId?: string | null
+
+  @Property({ name: 'organization_id', type: 'uuid' })
+  organizationId!: string
+
+  @Property({ name: 'tenant_id', type: 'uuid' })
+  tenantId!: string
+
+  @Property({ name: 'created_by', type: 'uuid' })
+  createdBy!: string
+
+  @Property({ name: 'created_at', type: Date, onCreate: () => new Date() })
+  createdAt: Date = new Date()
+}
