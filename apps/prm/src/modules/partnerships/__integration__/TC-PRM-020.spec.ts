@@ -86,57 +86,43 @@ test.describe('TC-PRM-020: License Deals UI', () => {
   // T2: PM can create a license deal via form
   // -------------------------------------------------------------------------
 
-  test('T2: PM can create a license deal via form', async ({ page, request }) => {
+  test('T2: PM can create a license deal via search → select → form', async ({ page, request }) => {
     await loginInBrowser(page, pmToken)
     await page.goto(`${BASE}/backend/partnerships/license-deals/create`)
 
-    // Wait for form to load (agency select should have options)
-    await expect(page.locator('select').first()).toBeVisible({ timeout: 15_000 })
-
-    // Fill the form
     const ts = Date.now()
     const licenseId = `QA-UI-${ts}`
 
-    // Select first agency (id="organizationId")
-    const agencySelect = page.locator('#organizationId')
-    await agencySelect.waitFor({ state: 'visible' })
-    // Wait for agency options to load beyond the placeholder
-    await expect(agencySelect.locator('option')).not.toHaveCount(1, { timeout: 10_000 })
-    const options = await agencySelect.locator('option').allTextContents()
-    const firstAgencyOption = options.find((o) => o !== 'Select an agency...' && o.trim() !== '')
-    expect(firstAgencyOption, 'Agency select must have at least one agency option').toBeTruthy()
-    await agencySelect.selectOption({ label: firstAgencyOption! })
+    // Step 1: Search for a company
+    const searchInput = page.locator('input[type="text"]').first()
+    await expect(searchInput).toBeVisible({ timeout: 15_000 })
+    await searchInput.fill('Demo')
 
-    // Company ID — get a valid UUID from Acme's org via company search API
-    const searchRes = await apiRequest(
-      request, 'GET',
-      '/api/partnerships/company-search?q=Demo',
-      { token: pmToken },
-    )
-    const searchBody = await readJsonSafe<{ results: Array<{ companyId: string }> }>(searchRes)
-    const companyId = searchBody?.results?.[0]?.companyId
-    expect(companyId, 'Company search must return at least one result').toBeTruthy()
-    await page.locator('#companyId').fill(companyId!)
+    // Wait for search results to appear
+    const resultButton = page.locator('button.w-full.text-left').first()
+    await expect(resultButton).toBeVisible({ timeout: 10_000 })
 
-    // License Identifier
+    // Click first result to select company
+    const companyName = await resultButton.locator('p.font-medium').textContent()
+    expect(companyName?.trim().length, 'Company name should not be empty').toBeGreaterThan(0)
+    await resultButton.click()
+
+    // Step 2: Fill attribution form (should now be visible)
+    await expect(page.locator('#licenseIdentifier')).toBeVisible({ timeout: 5_000 })
+
+    // Verify selected company is shown
+    await expect(page.locator(`text="${companyName!.trim()}"`)).toBeVisible()
+
     await page.locator('#licenseIdentifier').fill(licenseId)
-
-    // Industry Tag
     await page.locator('#industryTag').fill('fintech')
-
-    // Closed Date
     await page.locator('#closedAt').fill('2098-06-15')
-
     // Type and Status have defaults (enterprise, won) — no action needed
 
     // Submit
     await page.locator('button[type="submit"]').click()
 
-    // Check for form error first — if visible, fail with its message
-    const errorEl = page.locator('.text-destructive, [class*="error"]')
-    const submitBtn = page.locator('button[type="submit"]')
-
-    // Wait for either: navigation away from /create, or error message, or button re-enables
+    // Should redirect to list page
+    const errorEl = page.locator('[class*="destructive"]')
     await expect(async () => {
       const url = page.url()
       const leftCreate = url.includes('/license-deals') && !url.includes('/create')
