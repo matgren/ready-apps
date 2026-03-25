@@ -40,12 +40,21 @@ async function loginInBrowser(page: Page, token: string): Promise<void> {
 // ---------------------------------------------------------------------------
 
 test.describe('TC-PRM-016: Tier Status Widget UI', () => {
+  let adminToken: string
+  let contributorToken: string
+  let bdToken: string
+
+  test.beforeAll(async ({ request }) => {
+    adminToken = await getAuthToken(request, ADMIN_EMAIL, DEMO_PASSWORD)
+    contributorToken = await getAuthToken(request, CONTRIBUTOR_EMAIL, DEMO_PASSWORD)
+    bdToken = await getAuthToken(request, BD_EMAIL, DEMO_PASSWORD)
+  })
+
   // -------------------------------------------------------------------------
   // T1: Agency admin sees tier status widget with KPI progress bars
   // -------------------------------------------------------------------------
-  test('T1: Agency admin sees tier status widget with KPI progress bars', async ({ page, request }) => {
-    const token = await getAuthToken(request, ADMIN_EMAIL, DEMO_PASSWORD)
-    await loginInBrowser(page, token)
+  test('T1: Agency admin sees tier status widget with KPI progress bars', async ({ page }) => {
+    await loginInBrowser(page, adminToken)
     await page.goto(`${BASE}/backend`)
 
     // Wait for dashboard to load — look for tier status widget content
@@ -62,9 +71,8 @@ test.describe('TC-PRM-016: Tier Status Widget UI', () => {
   // -------------------------------------------------------------------------
   // T2: Contributor sees tier status widget
   // -------------------------------------------------------------------------
-  test('T2: Contributor also sees tier status widget', async ({ page, request }) => {
-    const token = await getAuthToken(request, CONTRIBUTOR_EMAIL, DEMO_PASSWORD)
-    await loginInBrowser(page, token)
+  test('T2: Contributor also sees tier status widget', async ({ page }) => {
+    await loginInBrowser(page, contributorToken)
     await page.goto(`${BASE}/backend`)
 
     // Contributor should see tier status widget (not blocked by RBAC)
@@ -74,9 +82,8 @@ test.describe('TC-PRM-016: Tier Status Widget UI', () => {
   // -------------------------------------------------------------------------
   // T3: BD user sees tier status widget
   // -------------------------------------------------------------------------
-  test('T3: BD user sees tier status widget', async ({ page, request }) => {
-    const token = await getAuthToken(request, BD_EMAIL, DEMO_PASSWORD)
-    await loginInBrowser(page, token)
+  test('T3: BD user sees tier status widget', async ({ page }) => {
+    await loginInBrowser(page, bdToken)
     await page.goto(`${BASE}/backend`)
 
     // BD user should see tier status widget
@@ -86,9 +93,8 @@ test.describe('TC-PRM-016: Tier Status Widget UI', () => {
   // -------------------------------------------------------------------------
   // T4: Tier widget shows "Current Tier" label or tier badge
   // -------------------------------------------------------------------------
-  test('T4: Tier widget shows tier label', async ({ page, request }) => {
-    const token = await getAuthToken(request, ADMIN_EMAIL, DEMO_PASSWORD)
-    await loginInBrowser(page, token)
+  test('T4: Tier widget shows tier label', async ({ page }) => {
+    await loginInBrowser(page, adminToken)
     await page.goto(`${BASE}/backend`)
 
     // Widget should show either a tier badge or "No tier" text
@@ -99,9 +105,8 @@ test.describe('TC-PRM-016: Tier Status Widget UI', () => {
   // -------------------------------------------------------------------------
   // T5: Year switcher buttons are present
   // -------------------------------------------------------------------------
-  test('T5: Year switcher buttons are present on tier widget', async ({ page, request }) => {
-    const token = await getAuthToken(request, ADMIN_EMAIL, DEMO_PASSWORD)
-    await loginInBrowser(page, token)
+  test('T5: Year switcher buttons are present on tier widget', async ({ page }) => {
+    await loginInBrowser(page, adminToken)
     await page.goto(`${BASE}/backend`)
 
     // Wait for widget to load

@@ -53,11 +53,22 @@ async function getTableRowTexts(page: Page): Promise<string[]> {
 // ---------------------------------------------------------------------------
 
 test.describe('TC-PRM-005: Org Isolation UI (US-6.1 through US-6.4)', () => {
+  let acmeToken: string
+  let nordicToken: string
+  let bdToken: string
+  let pmToken: string
+
+  test.beforeAll(async ({ request }) => {
+    acmeToken = await getAuthToken(request, ACME_ADMIN_EMAIL, DEMO_PASSWORD)
+    nordicToken = await getAuthToken(request, NORDIC_ADMIN_EMAIL, DEMO_PASSWORD)
+    bdToken = await getAuthToken(request, ACME_BD_EMAIL, DEMO_PASSWORD)
+    pmToken = await getAuthToken(request, PM_EMAIL, DEMO_PASSWORD)
+  })
+
   // -------------------------------------------------------------------------
   // T1: Acme Admin sees only Acme data on deals page
   // -------------------------------------------------------------------------
-  test('T1: Acme Admin sees Acme deals, not Nordic/CloudBridge', async ({ page, request }) => {
-    const acmeToken = await getAuthToken(request, ACME_ADMIN_EMAIL, DEMO_PASSWORD)
+  test('T1: Acme Admin sees Acme deals, not Nordic/CloudBridge', async ({ page }) => {
     await loginInBrowser(page, acmeToken)
     await page.goto(`${BASE}/backend/customers/deals`)
 
@@ -78,8 +89,7 @@ test.describe('TC-PRM-005: Org Isolation UI (US-6.1 through US-6.4)', () => {
   // -------------------------------------------------------------------------
   // T2: Nordic Admin sees only Nordic data on deals page
   // -------------------------------------------------------------------------
-  test('T2: Nordic Admin sees Nordic deals, not Acme/CloudBridge', async ({ page, request }) => {
-    const nordicToken = await getAuthToken(request, NORDIC_ADMIN_EMAIL, DEMO_PASSWORD)
+  test('T2: Nordic Admin sees Nordic deals, not Acme/CloudBridge', async ({ page }) => {
     await loginInBrowser(page, nordicToken)
     await page.goto(`${BASE}/backend/customers/deals`)
 
@@ -98,9 +108,8 @@ test.describe('TC-PRM-005: Org Isolation UI (US-6.1 through US-6.4)', () => {
   // -------------------------------------------------------------------------
   // T3: Acme and Nordic see disjoint companies on companies page
   // -------------------------------------------------------------------------
-  test('T3: Acme and Nordic see disjoint company data', async ({ page, request, browser }) => {
+  test('T3: Acme and Nordic see disjoint company data', async ({ page, browser }) => {
     // Login as Acme Admin — collect company names
-    const acmeToken = await getAuthToken(request, ACME_ADMIN_EMAIL, DEMO_PASSWORD)
     await loginInBrowser(page, acmeToken)
     await page.goto(`${BASE}/backend/customers/companies`)
 
@@ -111,7 +120,6 @@ test.describe('TC-PRM-005: Org Isolation UI (US-6.1 through US-6.4)', () => {
     // Login as Nordic Admin in a new context to avoid cookie collision
     const nordicContext = await browser.newContext()
     const nordicPage = await nordicContext.newPage()
-    const nordicToken = await getAuthToken(request, NORDIC_ADMIN_EMAIL, DEMO_PASSWORD)
     await nordicPage.context().addCookies([{ name: 'auth_token', value: nordicToken, url: BASE }])
     await nordicPage.goto(`${BASE}/backend/customers/companies`)
 
@@ -132,8 +140,7 @@ test.describe('TC-PRM-005: Org Isolation UI (US-6.1 through US-6.4)', () => {
   // -------------------------------------------------------------------------
   // T4: BD sees deals scoped to own org
   // -------------------------------------------------------------------------
-  test('T4: BD user sees only own org deals', async ({ page, request }) => {
-    const bdToken = await getAuthToken(request, ACME_BD_EMAIL, DEMO_PASSWORD)
+  test('T4: BD user sees only own org deals', async ({ page }) => {
     await loginInBrowser(page, bdToken)
     await page.goto(`${BASE}/backend/customers/deals`)
 
@@ -153,8 +160,7 @@ test.describe('TC-PRM-005: Org Isolation UI (US-6.1 through US-6.4)', () => {
   // -------------------------------------------------------------------------
   // T5: PM sees agencies list with multiple orgs
   // -------------------------------------------------------------------------
-  test('T5: PM sees multiple agencies on agencies page', async ({ page, request }) => {
-    const pmToken = await getAuthToken(request, PM_EMAIL, DEMO_PASSWORD)
+  test('T5: PM sees multiple agencies on agencies page', async ({ page }) => {
     await loginInBrowser(page, pmToken)
     await page.goto(`${BASE}/backend/partnerships/agencies`)
 

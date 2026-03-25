@@ -48,11 +48,20 @@ async function isTextVisible(page: Page, pattern: RegExp, timeout = 5_000): Prom
 // ---------------------------------------------------------------------------
 
 test.describe('TC-PRM-017: Dashboard Widget Visibility per Role (UI)', () => {
+  let pmToken: string
+  let adminToken: string
+  let contributorToken: string
+
+  test.beforeAll(async ({ request }) => {
+    pmToken = await getAuthToken(request, PM_EMAIL, DEMO_PASSWORD)
+    adminToken = await getAuthToken(request, ADMIN_EMAIL, DEMO_PASSWORD)
+    contributorToken = await getAuthToken(request, CONTRIBUTOR_EMAIL, DEMO_PASSWORD)
+  })
+
   // -------------------------------------------------------------------------
   // T1: PM dashboard shows cross-org WIP widget (not agency widgets)
   // -------------------------------------------------------------------------
-  test('T1: PM sees cross-org WIP widget, not agency widgets', async ({ page, request }) => {
-    const pmToken = await getAuthToken(request, PM_EMAIL, DEMO_PASSWORD)
+  test('T1: PM sees cross-org WIP widget, not agency widgets', async ({ page }) => {
     await loginInBrowser(page, pmToken)
     await page.goto(`${BASE}/backend`)
 
@@ -68,8 +77,7 @@ test.describe('TC-PRM-017: Dashboard Widget Visibility per Role (UI)', () => {
   // -------------------------------------------------------------------------
   // T2: Agency Admin sees onboarding + tier status widgets
   // -------------------------------------------------------------------------
-  test('T2: Agency Admin sees onboarding and tier status widgets', async ({ page, request }) => {
-    const adminToken = await getAuthToken(request, ADMIN_EMAIL, DEMO_PASSWORD)
+  test('T2: Agency Admin sees onboarding and tier status widgets', async ({ page }) => {
     await loginInBrowser(page, adminToken)
     await page.goto(`${BASE}/backend`)
 
@@ -87,8 +95,7 @@ test.describe('TC-PRM-017: Dashboard Widget Visibility per Role (UI)', () => {
   // -------------------------------------------------------------------------
   // T3: Contributor sees onboarding + WIC + tier status
   // -------------------------------------------------------------------------
-  test('T3: Contributor sees onboarding, WIC, and tier status widgets', async ({ page, request }) => {
-    const contributorToken = await getAuthToken(request, CONTRIBUTOR_EMAIL, DEMO_PASSWORD)
+  test('T3: Contributor sees onboarding, WIC, and tier status widgets', async ({ page }) => {
     await loginInBrowser(page, contributorToken)
     await page.goto(`${BASE}/backend`)
 

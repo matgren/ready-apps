@@ -44,10 +44,12 @@ async function loginInBrowser(page: Page, token: string): Promise<void> {
 test.describe('TC-PRM-014: Tier Evaluation UI', () => {
   let pmToken: string
   let adminToken: string
+  let contributorToken: string
 
   test.beforeAll(async ({ request }) => {
     pmToken = await getAuthToken(request, PM_EMAIL, DEMO_PASSWORD)
     adminToken = await getAuthToken(request, ADMIN_EMAIL, DEMO_PASSWORD)
+    contributorToken = await getAuthToken(request, CONTRIBUTOR_EMAIL, DEMO_PASSWORD)
   })
 
   // -------------------------------------------------------------------------
@@ -107,8 +109,7 @@ test.describe('TC-PRM-014: Tier Evaluation UI', () => {
   // -------------------------------------------------------------------------
   // T4: Contributor cannot trigger evaluation (no tier-review page access)
   // -------------------------------------------------------------------------
-  test('T4: Contributor cannot access tier-review page', async ({ page, request }) => {
-    const contributorToken = await getAuthToken(request, CONTRIBUTOR_EMAIL, DEMO_PASSWORD)
+  test('T4: Contributor cannot access tier-review page', async ({ page }) => {
     await loginInBrowser(page, contributorToken)
     await page.goto(`${BASE}/backend/partnerships/tier-review`)
 

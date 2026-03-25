@@ -38,11 +38,18 @@ async function loginInBrowser(page: Page, token: string): Promise<void> {
 // ---------------------------------------------------------------------------
 
 test.describe('TC-PRM-002: WIP Count KPI Dashboard Widget UI', () => {
+  let bdToken: string
+  let adminToken: string
+
+  test.beforeAll(async ({ request }) => {
+    bdToken = await getAuthToken(request, BD_EMAIL, DEMO_PASSWORD)
+    adminToken = await getAuthToken(request, ADMIN_EMAIL, DEMO_PASSWORD)
+  })
+
   // -------------------------------------------------------------------------
   // T1: BD user sees WIP count widget with month navigation
   // -------------------------------------------------------------------------
-  test('T1: BD user sees WIP count widget with month navigation', async ({ page, request }) => {
-    const bdToken = await getAuthToken(request, BD_EMAIL, DEMO_PASSWORD)
+  test('T1: BD user sees WIP count widget with month navigation', async ({ page }) => {
     await loginInBrowser(page, bdToken)
     await page.goto(`${BASE}/backend`)
 
@@ -65,8 +72,7 @@ test.describe('TC-PRM-002: WIP Count KPI Dashboard Widget UI', () => {
   // -------------------------------------------------------------------------
   // T2: Admin sees WIP count widget
   // -------------------------------------------------------------------------
-  test('T2: Admin sees WIP count widget with numeric count', async ({ page, request }) => {
-    const adminToken = await getAuthToken(request, ADMIN_EMAIL, DEMO_PASSWORD)
+  test('T2: Admin sees WIP count widget with numeric count', async ({ page }) => {
     await loginInBrowser(page, adminToken)
     await page.goto(`${BASE}/backend`)
 
@@ -83,8 +89,7 @@ test.describe('TC-PRM-002: WIP Count KPI Dashboard Widget UI', () => {
   // -------------------------------------------------------------------------
   // T3: Month navigation changes displayed month
   // -------------------------------------------------------------------------
-  test('T3: Month navigation changes displayed month', async ({ page, request }) => {
-    const bdToken = await getAuthToken(request, BD_EMAIL, DEMO_PASSWORD)
+  test('T3: Month navigation changes displayed month', async ({ page }) => {
     await loginInBrowser(page, bdToken)
     await page.goto(`${BASE}/backend`)
 

@@ -39,11 +39,22 @@ async function loginInBrowser(page: Page, token: string): Promise<void> {
 // ---------------------------------------------------------------------------
 
 test.describe('TC-PRM-008: Seed Data Verification UI', () => {
+  let pmToken: string
+  let adminToken: string
+  let bdToken: string
+  let contributorToken: string
+
+  test.beforeAll(async ({ request }) => {
+    pmToken = await getAuthToken(request, PM_EMAIL, DEMO_PASSWORD)
+    adminToken = await getAuthToken(request, ADMIN_EMAIL, DEMO_PASSWORD)
+    bdToken = await getAuthToken(request, BD_EMAIL, DEMO_PASSWORD)
+    contributorToken = await getAuthToken(request, CONTRIBUTOR_EMAIL, DEMO_PASSWORD)
+  })
+
   // -------------------------------------------------------------------------
   // T1: Deals page shows seeded deals
   // -------------------------------------------------------------------------
-  test('T1: BD user sees seeded deals on deals page', async ({ page, request }) => {
-    const bdToken = await getAuthToken(request, BD_EMAIL, DEMO_PASSWORD)
+  test('T1: BD user sees seeded deals on deals page', async ({ page }) => {
     await loginInBrowser(page, bdToken)
     await page.goto(`${BASE}/backend/customers/deals`)
 
@@ -61,8 +72,7 @@ test.describe('TC-PRM-008: Seed Data Verification UI', () => {
   // -------------------------------------------------------------------------
   // T2: Case studies page shows seeded records
   // -------------------------------------------------------------------------
-  test('T2: Admin sees seeded case studies on case studies page', async ({ page, request }) => {
-    const adminToken = await getAuthToken(request, ADMIN_EMAIL, DEMO_PASSWORD)
+  test('T2: Admin sees seeded case studies on case studies page', async ({ page }) => {
     await loginInBrowser(page, adminToken)
     await page.goto(`${BASE}/backend/partnerships/case-studies`)
 
@@ -83,8 +93,7 @@ test.describe('TC-PRM-008: Seed Data Verification UI', () => {
   // -------------------------------------------------------------------------
   // T3: Agencies page shows demo organizations
   // -------------------------------------------------------------------------
-  test('T3: PM sees demo agencies on agencies page', async ({ page, request }) => {
-    const pmToken = await getAuthToken(request, PM_EMAIL, DEMO_PASSWORD)
+  test('T3: PM sees demo agencies on agencies page', async ({ page }) => {
     await loginInBrowser(page, pmToken)
     await page.goto(`${BASE}/backend/partnerships/agencies`)
 
@@ -106,24 +115,21 @@ test.describe('TC-PRM-008: Seed Data Verification UI', () => {
   // -------------------------------------------------------------------------
   // T4: Demo users can log in and reach dashboard
   // -------------------------------------------------------------------------
-  test('T4: All 4 demo users can log in and reach the dashboard', async ({ page, request }) => {
-    const users = [
-      { email: PM_EMAIL, label: 'PM' },
-      { email: ADMIN_EMAIL, label: 'Acme Admin' },
-      { email: BD_EMAIL, label: 'Acme BD' },
-      { email: CONTRIBUTOR_EMAIL, label: 'Acme Contributor' },
+  test('T4: All 4 demo users can log in and reach the dashboard', async ({ page }) => {
+    const tokens = [
+      { token: pmToken, label: 'PM' },
+      { token: adminToken, label: 'Acme Admin' },
+      { token: bdToken, label: 'Acme BD' },
+      { token: contributorToken, label: 'Acme Contributor' },
     ]
 
-    for (const user of users) {
-      const token = await getAuthToken(request, user.email, DEMO_PASSWORD)
-      expect(token, `${user.label} should get a valid token`).toBeTruthy()
-      expect(token.length, `${user.label} token should be non-empty`).toBeGreaterThan(10)
+    for (const user of tokens) {
+      expect(user.token, `${user.label} should have a valid token`).toBeTruthy()
 
-      await loginInBrowser(page, token)
+      await loginInBrowser(page, user.token)
       await page.goto(`${BASE}/backend`)
       await page.waitForLoadState('domcontentloaded')
 
-      // Dashboard should load (not 404 or error)
       const title = await page.title()
       expect(
         title !== '404: This page could not be found.',
