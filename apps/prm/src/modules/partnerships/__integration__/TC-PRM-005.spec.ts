@@ -108,16 +108,18 @@ test.describe('TC-PRM-005: Org Isolation UI (US-6.1 through US-6.4)', () => {
   // -------------------------------------------------------------------------
   // T3: Acme and Nordic see disjoint companies on companies page
   // -------------------------------------------------------------------------
-  test('T3: Acme and Nordic see disjoint company data', async ({ page, browser }) => {
-    // Login as Acme Admin — collect company names
-    await loginInBrowser(page, acmeToken)
-    await page.goto(`${BASE}/backend/customers/companies`)
+  test('T3: Acme and Nordic see disjoint company data', async ({ browser }) => {
+    // Use two separate browser contexts to avoid cookie collision
+    const acmeContext = await browser.newContext()
+    const acmePage = await acmeContext.newPage()
+    await acmePage.context().addCookies([{ name: 'auth_token', value: acmeToken, url: BASE }])
+    await acmePage.goto(`${BASE}/backend/customers/companies`)
 
-    await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 15_000 })
-    const acmeTexts = await getTableRowTexts(page)
+    await expect(acmePage.locator('tbody tr').first()).toBeVisible({ timeout: 15_000 })
+    const acmeTexts = await getTableRowTexts(acmePage)
     expect(acmeTexts.length, 'Acme Admin should see at least 1 company').toBeGreaterThanOrEqual(1)
+    await acmeContext.close()
 
-    // Login as Nordic Admin in a new context to avoid cookie collision
     const nordicContext = await browser.newContext()
     const nordicPage = await nordicContext.newPage()
     await nordicPage.context().addCookies([{ name: 'auth_token', value: nordicToken, url: BASE }])
@@ -126,6 +128,7 @@ test.describe('TC-PRM-005: Org Isolation UI (US-6.1 through US-6.4)', () => {
     await expect(nordicPage.locator('tbody tr').first()).toBeVisible({ timeout: 15_000 })
     const nordicTexts = await getTableRowTexts(nordicPage)
     expect(nordicTexts.length, 'Nordic Admin should see at least 1 company').toBeGreaterThanOrEqual(1)
+    await nordicContext.close()
 
     // Verify no overlap in row content
     for (const nordicRow of nordicTexts) {
@@ -133,8 +136,6 @@ test.describe('TC-PRM-005: Org Isolation UI (US-6.1 through US-6.4)', () => {
         expect(nordicRow, 'Company row content should be disjoint between orgs').not.toBe(acmeRow)
       }
     }
-
-    await nordicContext.close()
   })
 
   // -------------------------------------------------------------------------

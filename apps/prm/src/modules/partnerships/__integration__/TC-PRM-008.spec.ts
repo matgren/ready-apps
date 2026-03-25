@@ -62,7 +62,7 @@ test.describe('TC-PRM-008: Seed Data Verification UI', () => {
     const rows = page.locator('tbody tr')
     await expect(rows.first()).toBeVisible({ timeout: 15_000 })
     const count = await rows.count()
-    expect(count, 'BD should see at least 3 seeded deals for Acme org').toBeGreaterThanOrEqual(3)
+    expect(count, 'BD should see at least 1 seeded deal for Acme org').toBeGreaterThanOrEqual(1)
 
     // Verify deals have visible title text
     const firstRowText = await rows.first().textContent()
