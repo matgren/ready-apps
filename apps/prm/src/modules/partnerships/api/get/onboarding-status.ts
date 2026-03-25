@@ -190,13 +190,13 @@ export async function buildAdminItems(ctx: CompletionContext): Promise<Onboardin
       id: 'invite_bd',
       label: 'partnerships.widgets.onboardingChecklist.inviteBd',
       completed: bdInvited,
-      link: '/backend/auth/users',
+      link: '/backend/users/create',
     },
     {
       id: 'invite_contributor',
       label: 'partnerships.widgets.onboardingChecklist.inviteContributor',
       completed: contributorInvited,
-      link: '/backend/auth/users',
+      link: '/backend/users/create',
     },
   ]
 }
@@ -231,7 +231,7 @@ export async function buildContributorItems(ctx: CompletionContext, userId: stri
       id: 'set_gh_username',
       label: 'partnerships.widgets.onboardingChecklist.setGhUsername',
       completed: ghFilled,
-      link: '/backend/auth/users/profile',
+      link: '/backend/auth/profile',
     },
   ]
 }

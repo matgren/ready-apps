@@ -134,6 +134,41 @@ test.describe.serial('TC-PRM-019: Onboarding Checklist UI — Fresh Agency', () 
   })
 
   // -------------------------------------------------------------------------
+  // T1b: Every checklist link navigates to a real page (no 404/crash)
+  // -------------------------------------------------------------------------
+
+  test('T1b: Every checklist link leads to a working page', async ({ page }) => {
+    await loginInBrowser(page, adminToken)
+    await waitForAnyItem(page)
+
+    for (const [, label] of Object.entries(ITEMS)) {
+      const link = page.locator(`a:has(span:text-is("${label}"))`).first()
+      await expect(link).toBeVisible({ timeout: 5_000 })
+      const href = await link.getAttribute('href')
+      expect(href, `${label} should have an href`).toBeTruthy()
+
+      // Navigate to the link target
+      await page.goto(`${BASE}${href}`)
+
+      // Wait for page to settle
+      await page.waitForLoadState('domcontentloaded')
+
+      // Page should not be a Next.js error page or access denied
+      const title = await page.title()
+      const isErrorPage = title === '404: This page could not be found.' || title === '404'
+      const mainText = await page.getByRole('main').textContent().catch(() => '')
+      const noAccess = mainText?.includes("don't have access") || mainText?.includes('Forbidden')
+      expect(isErrorPage, `"${label}" link (${href}) leads to 404 page`).toBe(false)
+      expect(noAccess, `"${label}" link (${href}) leads to access denied`).toBeFalsy()
+
+      // Navigate back to dashboard for next check
+      await loginInBrowser(page, adminToken)
+      await page.goto(`${BASE}/backend`, { waitUntil: 'domcontentloaded' })
+      await waitForAnyItem(page)
+    }
+  })
+
+  // -------------------------------------------------------------------------
   // T2: Add case study → add_case_study checks off
   // -------------------------------------------------------------------------
 

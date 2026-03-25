@@ -311,7 +311,7 @@ test.describe('TC-PRM-003: Contributor role — onboarding checklist API contrac
     const item = body!.items[0]
     assertItemShape(item, 0)
     expect(item.id).toBe('set_gh_username')
-    expect(item.link).toContain('/backend/auth/users/profile')
+    expect(item.link).toContain('/backend/auth/profile')
 
     // allCompleted consistency
     const expectedAllCompleted = body!.items.every((i) => i.completed)
