@@ -471,24 +471,45 @@ const PRM_ROLE_FEATURES: Record<string, string[]> = {
   ],
 }
 
-// Seed PRM roles. Features assigned via defaultRoleFeatures — OM core
-// handles custom role keys since PR #1040 (canary 0.4.9-develop.1013.aa3a9dea92).
+// Seed PRM roles AND their RoleAcl entries.
+// ensureDefaultRoleAcls runs during setupInitialTenant (before seedDefaults),
+// so custom roles don't exist yet when it runs. We must create RoleAcl here.
 async function seedPrmRoles(
   em: import('@mikro-orm/postgresql').EntityManager,
   scope: SeedScope
 ): Promise<void> {
-  for (const roleName of Object.keys(PRM_ROLE_FEATURES)) {
-    const existing = await em.findOne(Role, {
+  for (const [roleName, features] of Object.entries(PRM_ROLE_FEATURES)) {
+    let role = await em.findOne(Role, {
       name: roleName,
       tenantId: scope.tenantId,
       deletedAt: null,
     })
-    if (!existing) {
-      em.persist(em.create(Role, {
+    if (!role) {
+      role = em.create(Role, {
         name: roleName,
         tenantId: scope.tenantId,
         createdAt: new Date(),
+      })
+      em.persist(role)
+    }
+    await em.flush()
+
+    // Ensure RoleAcl exists with current features (merge if already present)
+    const existingAcl = await em.findOne(RoleAcl, { role, tenantId: scope.tenantId })
+    if (!existingAcl) {
+      em.persist(em.create(RoleAcl, {
+        role,
+        tenantId: scope.tenantId,
+        featuresJson: features,
+        isSuperAdmin: false,
+        createdAt: new Date(),
       }))
+    } else {
+      const current = Array.isArray(existingAcl.featuresJson) ? existingAcl.featuresJson as string[] : []
+      const merged = Array.from(new Set([...current, ...features]))
+      if (merged.length !== current.length) {
+        existingAcl.featuresJson = merged
+      }
     }
   }
   await em.flush()
