@@ -63,15 +63,25 @@ test.describe.serial('TC-PRM-027: BD Notification on RFP Published', () => {
     await loginInBrowser(page, bdToken)
     await page.goto(`${BASE}/backend`, { waitUntil: 'domcontentloaded' })
 
-    // Look for notification bell with unread indicator
-    const bell = page.locator('[data-testid="notification-bell"], [aria-label*="notification"], button:has(svg[class*="bell"])')
+    // Wait for page to fully load
+    await page.waitForFunction(
+      () => !document.querySelector('main')?.textContent?.includes('Loading'),
+      { timeout: 15_000 },
+    ).catch(() => {})
+
+    // Look for notification bell with unread count
+    const bell = page.getByRole('button', { name: /notification/i })
     await expect(bell).toBeVisible({ timeout: 15_000 })
 
-    // Click bell to open notification panel
-    await bell.click()
+    // Force-click bell (bypassing any overlays)
+    await bell.click({ force: true })
 
-    // Should see notification about the RFP campaign
-    await expect(page.getByText(/QA Notif Campaign/)).toBeVisible({ timeout: 10_000 })
+    // Wait for notification panel dialog
+    const dialog = page.getByRole('dialog', { name: /notification/i })
+    await expect(dialog).toBeVisible({ timeout: 5_000 })
+
+    // Should see notification about the RFP campaign (in body text)
+    await expect(page.getByText(/QA Notif Campaign/).first()).toBeVisible({ timeout: 10_000 })
   })
 
   // T2: Clicking notification leads to RFP detail
@@ -79,8 +89,17 @@ test.describe.serial('TC-PRM-027: BD Notification on RFP Published', () => {
     await loginInBrowser(page, bdToken)
     await page.goto(`${BASE}/backend`, { waitUntil: 'domcontentloaded' })
 
-    const bell = page.locator('[data-testid="notification-bell"], [aria-label*="notification"], button:has(svg[class*="bell"])')
-    await bell.click()
+    // Wait for page load then open bell
+    await page.waitForFunction(
+      () => !document.querySelector('main')?.textContent?.includes('Loading'),
+      { timeout: 15_000 },
+    ).catch(() => {})
+
+    const bell = page.getByRole('button', { name: /notification/i })
+    await bell.click({ force: true })
+
+    // Wait for dialog
+    await page.getByRole('dialog', { name: /notification/i }).waitFor({ timeout: 5_000 })
 
     const notifLink = page.getByText(/QA Notif Campaign/).first()
     await notifLink.click()

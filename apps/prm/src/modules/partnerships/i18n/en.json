@@ -194,6 +194,22 @@
       "saveError": "Failed to save templates",
       "loadError": "Failed to load templates"
     },
+    "notifications": {
+      "rfp": {
+        "campaignPublished": {
+          "title": "New RFP Campaign",
+          "body": "A new RFP campaign \"{{campaignTitle}}\" has been published. Review and submit your response before the deadline."
+        },
+        "awarded": {
+          "title": "RFP Awarded",
+          "body": "Your agency has been selected for \"{{campaignTitle}}\". Congratulations!"
+        },
+        "rejected": {
+          "title": "RFP Not Selected",
+          "body": "Another agency was selected for \"{{campaignTitle}}\". Thank you for your response."
+        }
+      }
+    },
     "widgets": {
       "wipCount": {
         "title": "WIP This Month",

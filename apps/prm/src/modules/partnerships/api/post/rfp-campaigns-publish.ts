@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { z } from 'zod'
 import { createRequestContainer } from '@open-mercato/shared/lib/di/container'
 import { getAuthFromRequest } from '@open-mercato/shared/lib/auth/server'
 import type { EntityManager } from '@mikro-orm/postgresql'
@@ -8,13 +7,18 @@ import type { OpenApiMethodDoc, OpenApiRouteDoc } from '@open-mercato/shared/lib
 import { PartnerRfpCampaign } from '../../data/entities'
 
 export const metadata = {
-  path: '/partnerships/rfp-campaigns-publish',
+  path: '/partnerships/rfp-campaigns/[id]/publish',
   POST: { requireAuth: true, requireFeatures: ['partnerships.rfp.manage'] },
 }
 
-const publishSchema = z.object({
-  campaignId: z.string().uuid(),
-})
+function extractCampaignId(req: Request): string | null {
+  const url = new URL(req.url)
+  const segments = url.pathname.split('/')
+  // /api/partnerships/rfp-campaigns/{id}/publish
+  const publishIdx = segments.lastIndexOf('publish')
+  if (publishIdx > 0) return segments[publishIdx - 1] || null
+  return null
+}
 
 async function POST(req: Request) {
   const auth = await getAuthFromRequest(req)
@@ -22,16 +26,21 @@ async function POST(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const body = await req.json()
-  const parsed = publishSchema.safeParse(body)
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: 'Validation failed', details: parsed.error.flatten().fieldErrors },
-      { status: 422 },
-    )
+  // Support both URL param and body
+  let campaignId = extractCampaignId(req)
+  if (!campaignId) {
+    try {
+      const body = await req.json()
+      campaignId = body?.campaignId
+    } catch {
+      // no body
+    }
   }
 
-  const { campaignId } = parsed.data
+  if (!campaignId || !/^[0-9a-f-]{36}$/i.test(campaignId)) {
+    return NextResponse.json({ error: 'Campaign ID is required' }, { status: 422 })
+  }
+
   const container = await createRequestContainer()
   const em = container.resolve('em') as EntityManager
   const tenantId = auth.tenantId
@@ -86,7 +95,6 @@ async function POST(req: Request) {
 const postDoc: OpenApiMethodDoc = {
   summary: 'Publish a draft RFP campaign (changes status from draft to open)',
   tags: ['Partnerships'],
-  requestBody: { schema: publishSchema },
   responses: [
     { status: 200, description: 'Campaign published successfully' },
     { status: 404, description: 'Campaign not found' },

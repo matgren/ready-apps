@@ -186,7 +186,39 @@ export async function GET(req: Request) {
   }
 }
 
-export const POST = crud.POST
+export async function POST(req: Request) {
+  try {
+    const auth = await getAuthFromRequest(req)
+    if (!auth?.tenantId || !auth.sub) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const body = await req.json()
+    const parsed = rfpCampaignCreateSchema.parse(body)
+
+    const container = await createRequestContainer()
+    const em = container.resolve('em') as import('@mikro-orm/postgresql').EntityManager
+
+    const campaign = em.create(PartnerRfpCampaign, {
+      ...parsed,
+      status: 'draft',
+      organizationId: auth.orgId ?? auth.tenantId,
+      tenantId: auth.tenantId,
+      createdBy: auth.sub,
+    })
+    em.persist(campaign)
+    await em.flush()
+
+    return NextResponse.json({ id: campaign.id }, { status: 201 })
+  } catch (err: any) {
+    if (err?.name === 'ZodError') {
+      return NextResponse.json({ error: 'Validation failed', details: err.flatten?.()?.fieldErrors }, { status: 422 })
+    }
+    console.error('[partnerships/rfp-campaigns.POST]', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+
 export const PUT = crud.PUT
 export const DELETE = crud.DELETE
 
