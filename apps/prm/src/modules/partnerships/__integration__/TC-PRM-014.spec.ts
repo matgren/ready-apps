@@ -101,7 +101,8 @@ test.describe('TC-PRM-014: Tier Evaluation UI', () => {
     await page.goto(`${BASE}/backend`)
 
     // PM dashboard may show different widgets, but should load without error
-    await page.waitForLoadState('networkidle')
+    await page.waitForLoadState('domcontentloaded')
+    await page.waitForTimeout(3_000)
     const title = await page.title()
     expect(title).not.toBe('404: This page could not be found.')
   })

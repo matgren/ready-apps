@@ -36,14 +36,15 @@ async function loginInBrowser(page: Page, token: string): Promise<void> {
   await page.context().addCookies([{ name: 'auth_token', value: token, url: BASE }])
 }
 
-/** Extract all visible text from table body rows. */
+/** Wait for table data to load (not a loading placeholder) then extract row texts. */
 async function getTableRowTexts(page: Page): Promise<string[]> {
-  const rows = page.locator('tbody tr')
-  await expect(rows.first()).toBeVisible({ timeout: 15_000 })
-  const count = await rows.count()
+  // Wait for a data row that does NOT contain "Loading" — proves real data rendered
+  const dataRow = page.locator('tbody tr').filter({ hasNotText: /Loading|loading/ })
+  await expect(dataRow.first()).toBeVisible({ timeout: 20_000 })
+  const count = await dataRow.count()
   const texts: string[] = []
   for (let i = 0; i < count; i++) {
-    texts.push(await rows.nth(i).textContent() ?? '')
+    texts.push(await dataRow.nth(i).textContent() ?? '')
   }
   return texts
 }

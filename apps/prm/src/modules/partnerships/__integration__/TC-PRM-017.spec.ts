@@ -66,8 +66,8 @@ test.describe('TC-PRM-017: Dashboard Widget Visibility per Role (UI)', () => {
     await page.goto(`${BASE}/backend`)
 
     // Wait for dashboard to settle
-    await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(3_000)
+    await page.waitForLoadState('domcontentloaded')
+    await page.waitForTimeout(5_000)
 
     // PM should NOT see the onboarding checklist items
     const hasOnboarding = await isTextVisible(page, /Fill your agency profile|Add a case study/i)
