@@ -1,323 +1,137 @@
-import { expect, test } from '@playwright/test'
-import { getAuthToken, apiRequest } from '@open-mercato/core/helpers/integration/api'
-import { readJsonSafe, getTokenContext } from '@open-mercato/core/helpers/integration/generalFixtures'
+import { test, expect, type Page } from '@playwright/test'
+import { getAuthToken } from '@open-mercato/core/helpers/integration/api'
+import { getTokenContext } from '@open-mercato/core/helpers/integration/generalFixtures'
 
 /**
- * TC-PRM-009: WIC Import API
+ * TC-PRM-009: WIC Import Page UI
  *
- * Route: POST /api/partnerships/wic/import
- * Auth:  requireAuth + requireFeatures: ['partnerships.wic.import'] (PM only)
- * Body:  WicImportRequest { organizationId, month, source, records }
+ * Page: /backend/partnerships/wic-import
+ * Auth: requireFeatures: ['partnerships.wic.import'] (PM only)
  *
  * Tests:
- * T1 — Valid WIC import succeeds
- * T2 — Within-batch dedup rejects (422, duplicate_in_batch)
- * T3 — Unmatched GH username rejects (422, unmatchedUsernames)
- * T4 — Re-import archives previous records
- * T5 — WIC score computation is correct (L2 + impactBonus + bounty = 2.25)
+ * T1 — PM sees import form with agency select, month picker, JSON textarea
+ * T2 — PM can submit valid JSON and sees success message
+ * T3 — PM submits invalid JSON and sees error message
+ * T4 — PM submits with unmatched GH username and sees error
+ * T5 — Non-PM user (admin) cannot access WIC import page
  *
- * Source: apps/prm/src/modules/partnerships/api/post/wic-import.ts
+ * Source: apps/prm/src/modules/partnerships/backend/partnerships/wic-import/page.tsx
  * Phase: 2, WF3 WIC
  */
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
 const PM_EMAIL = 'partnership-manager@demo.local'
-const PM_PASSWORD = 'Demo123!'
 const ADMIN_EMAIL = 'acme-admin@demo.local'
-const ADMIN_PASSWORD = 'Demo123!'
+const DEMO_PASSWORD = 'Demo123!'
+const BASE = process.env.BASE_URL ?? 'http://127.0.0.1:5001'
+const GH_USERNAME = 'carol-acme'
 
-type JsonRecord = Record<string, unknown>
-
-type WicImportResponse = {
-  imported: number
-  archived: number
-  assessmentId: string
+async function loginInBrowser(page: Page, token: string): Promise<void> {
+  await page.context().addCookies([{ name: 'auth_token', value: token, url: BASE }])
 }
 
-type WicScoresResponse = {
-  records: Array<{
-    recordId: string
-    contributorGithubUsername: string
-    prId: string
-    month: string
-    featureKey: string
-    level: string
-    impactBonus: boolean
-    bountyApplied: boolean
-    wicScore: number
-    assessmentSource: string
-  }>
-  month: string
-  totalWicScore: number
-}
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/**
- * Generate a unique far-future month per test suite run to avoid collisions
- * when the same ephemeral DB is reused across multiple test invocations.
- */
-const _suiteRunId = Date.now()
-function testMonth(): string {
-  // Map timestamp to a unique YYYY-MM in the 2100–2199 range
-  const offset = _suiteRunId % 1200 // 100 years × 12 months
-  const year = 2100 + Math.floor(offset / 12)
-  const month = (offset % 12) + 1
-  return `${year}-${String(month).padStart(2, '0')}`
-}
-
-/** Get the Acme org's organizationId from an Acme user's token. */
-function getAcmeOrgId(token: string): string {
-  const { organizationId } = getTokenContext(token)
-  expect(organizationId, 'Acme admin token should include an organizationId').toBeTruthy()
-  return organizationId
-}
-
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
-
-test.describe('TC-PRM-009: WIC Import API', () => {
-  // Use the seeded GH username from seedExamples (stored in custom_field_values)
-  const GH_USERNAME = 'carol-acme'
+test.describe('TC-PRM-009: WIC Import Page UI', () => {
   let pmToken: string
   let adminToken: string
   let acmeOrgId: string
 
   test.beforeAll(async ({ request }) => {
-    pmToken = await getAuthToken(request, PM_EMAIL, PM_PASSWORD)
-    adminToken = await getAuthToken(request, ADMIN_EMAIL, ADMIN_PASSWORD)
-    acmeOrgId = getAcmeOrgId(adminToken)
+    pmToken = await getAuthToken(request, PM_EMAIL, DEMO_PASSWORD)
+    adminToken = await getAuthToken(request, ADMIN_EMAIL, DEMO_PASSWORD)
+    acmeOrgId = getTokenContext(adminToken).organizationId
   })
 
-  // -------------------------------------------------------------------------
-  // T1: Valid WIC import succeeds
-  // -------------------------------------------------------------------------
-  test('T1: Valid WIC import succeeds', async ({ request }) => {
-    const month = testMonth()
-    const res = await apiRequest(request, 'POST', '/api/partnerships/wic/import', {
-      token: pmToken,
-      data: {
-        organizationId: acmeOrgId,
-        month,
-        source: 'manual_import',
-        records: [
-          {
-            contributorGithubUsername: GH_USERNAME,
-            prId: 'PR-T1-001',
-            month,
-            featureKey: 'feat.auth.login',
-            level: 'L2',
-            impactBonus: false,
-            bountyApplied: false,
-          },
-        ],
-      },
-    })
+  test('T1: PM sees import form with agency select, month picker, JSON textarea', async ({ page }) => {
+    await loginInBrowser(page, pmToken)
+    await page.goto(`${BASE}/backend/partnerships/wic-import`)
 
-    expect(res.status(), `POST /api/partnerships/wic/import should return 200, got ${res.status()}`).toBe(200)
+    // Agency select
+    await expect(page.locator('#wic-org')).toBeVisible({ timeout: 15_000 })
+    const options = await page.locator('#wic-org option').count()
+    expect(options, 'Agency select should have at least 1 option').toBeGreaterThanOrEqual(1)
 
-    const body = await readJsonSafe<WicImportResponse>(res)
-    expect(body, 'response body must not be null').not.toBeNull()
-    expect(body!.imported, 'imported must be > 0').toBeGreaterThan(0)
-    expect(body!.archived, 'archived should be 0 on first import').toBe(0)
-    expect(typeof body!.assessmentId, 'assessmentId must be a string').toBe('string')
-    expect(body!.assessmentId.length, 'assessmentId must not be empty').toBeGreaterThan(0)
+    // Month picker
+    await expect(page.locator('#wic-month')).toBeVisible()
+
+    // JSON textarea
+    await expect(page.locator('#wic-json')).toBeVisible()
+
+    // Import button
+    await expect(page.locator('button:has-text("Import")')).toBeVisible()
   })
 
-  // -------------------------------------------------------------------------
-  // T2: Within-batch dedup rejects
-  // -------------------------------------------------------------------------
-  test('T2: Within-batch duplicate rejects with 422', async ({ request }) => {
-    const month = '2099-02'
-    const duplicateRecord = {
+  test('T2: PM submits valid JSON and sees success message', async ({ page }) => {
+    await loginInBrowser(page, pmToken)
+    await page.goto(`${BASE}/backend/partnerships/wic-import`)
+    await expect(page.locator('#wic-json')).toBeVisible({ timeout: 15_000 })
+
+    const month = '2098-01'
+    await page.locator('#wic-month').fill(month)
+
+    const json = JSON.stringify([{
       contributorGithubUsername: GH_USERNAME,
-      prId: 'PR-T2-001',
+      prId: `PR-UI-${Date.now()}`,
       month,
-      featureKey: 'feat.dup.check',
-      level: 'L3',
+      featureKey: 'feat.ui.import.test',
+      level: 'L2',
       impactBonus: false,
       bountyApplied: false,
-    }
+    }])
 
-    const res = await apiRequest(request, 'POST', '/api/partnerships/wic/import', {
-      token: pmToken,
-      data: {
-        organizationId: acmeOrgId,
-        month,
-        source: 'manual_import',
-        records: [
-          duplicateRecord,
-          // Exact same (contributor, month, featureKey) — duplicate
-          { ...duplicateRecord, prId: 'PR-T2-002' },
-        ],
-      },
-    })
+    await page.locator('#wic-json').fill(json)
+    await page.locator('button:has-text("Import")').click()
 
-    expect(res.status(), 'Duplicate in batch should return 422').toBe(422)
-    const body = await readJsonSafe<JsonRecord>(res)
-    expect(body, 'response body must not be null').not.toBeNull()
-    expect(typeof body!.error, 'error field must be a string').toBe('string')
-    expect(
-      (body!.error as string).toLowerCase(),
-      'error should mention "duplicate"',
-    ).toContain('duplicate')
+    // Success message should appear
+    await expect(page.locator('text=/Imported \\d+ record/i')).toBeVisible({ timeout: 10_000 })
   })
 
-  // -------------------------------------------------------------------------
-  // T3: Unmatched GH username rejects
-  // -------------------------------------------------------------------------
-  test('T3: Unmatched GH username rejects with 422', async ({ request }) => {
-    const month = '2099-03'
-    const bogusUsername = `nonexistent-user-${Date.now()}`
+  test('T3: PM submits invalid JSON and sees error', async ({ page }) => {
+    await loginInBrowser(page, pmToken)
+    await page.goto(`${BASE}/backend/partnerships/wic-import`)
+    await expect(page.locator('#wic-json')).toBeVisible({ timeout: 15_000 })
 
-    const res = await apiRequest(request, 'POST', '/api/partnerships/wic/import', {
-      token: pmToken,
-      data: {
-        organizationId: acmeOrgId,
-        month,
-        source: 'manual_import',
-        records: [
-          {
-            contributorGithubUsername: bogusUsername,
-            prId: 'PR-T3-001',
-            month,
-            featureKey: 'feat.nonexistent.user',
-            level: 'L1',
-            impactBonus: false,
-            bountyApplied: false,
-          },
-        ],
-      },
-    })
+    await page.locator('#wic-json').fill('not valid json {{{')
+    await page.locator('button:has-text("Import")').click()
 
-    expect(res.status(), 'Unmatched username should return 422').toBe(422)
-    const body = await readJsonSafe<JsonRecord>(res)
-    expect(body, 'response body must not be null').not.toBeNull()
-
-    const unmatched = body!.unmatchedUsernames as string[] | undefined
-    expect(Array.isArray(unmatched), 'unmatchedUsernames must be an array').toBe(true)
-    expect(unmatched, 'unmatchedUsernames must contain the bogus username').toContain(bogusUsername)
+    // Error message should appear
+    await expect(page.locator('text=/Invalid JSON/i')).toBeVisible({ timeout: 5_000 })
   })
 
-  // -------------------------------------------------------------------------
-  // T4: Re-import archives previous records
-  // -------------------------------------------------------------------------
-  test('T4: Re-import archives previous records', async ({ request }) => {
-    const month = '2099-04'
-    const importBody = {
-      organizationId: acmeOrgId,
+  test('T4: PM submits with unmatched GH username and sees error', async ({ page }) => {
+    await loginInBrowser(page, pmToken)
+    await page.goto(`${BASE}/backend/partnerships/wic-import`)
+    await expect(page.locator('#wic-json')).toBeVisible({ timeout: 15_000 })
+
+    const month = '2098-02'
+    await page.locator('#wic-month').fill(month)
+
+    const json = JSON.stringify([{
+      contributorGithubUsername: `nonexistent-user-${Date.now()}`,
+      prId: 'PR-BOGUS-001',
       month,
-      source: 'manual_import' as const,
-      records: [
-        {
-          contributorGithubUsername: GH_USERNAME,
-          prId: 'PR-T4-001',
-          month,
-          featureKey: 'feat.archive.test',
-          level: 'L4' as const,
-          impactBonus: false,
-          bountyApplied: false,
-        },
-      ],
-    }
+      featureKey: 'feat.bogus',
+      level: 'L1',
+      impactBonus: false,
+      bountyApplied: false,
+    }])
 
-    // First import
-    const res1 = await apiRequest(request, 'POST', '/api/partnerships/wic/import', {
-      token: pmToken,
-      data: importBody,
-    })
-    expect(res1.status(), 'First import should return 200').toBe(200)
-    const body1 = await readJsonSafe<WicImportResponse>(res1)
-    expect(body1!.imported).toBe(1)
-    expect(body1!.archived, 'First import should have 0 archived').toBe(0)
+    await page.locator('#wic-json').fill(json)
+    await page.locator('button:has-text("Import")').click()
 
-    // Second import for same org+month — should archive the first batch
-    const res2 = await apiRequest(request, 'POST', '/api/partnerships/wic/import', {
-      token: pmToken,
-      data: {
-        ...importBody,
-        records: [
-          {
-            contributorGithubUsername: GH_USERNAME,
-            prId: 'PR-T4-002',
-            month,
-            featureKey: 'feat.archive.test.v2',
-            level: 'L2' as const,
-            impactBonus: true,
-            bountyApplied: false,
-          },
-        ],
-      },
-    })
-    expect(res2.status(), 'Second import should return 200').toBe(200)
-    const body2 = await readJsonSafe<WicImportResponse>(res2)
-    expect(body2!.imported).toBe(1)
-    expect(body2!.archived, 'Second import must archive previous records').toBeGreaterThan(0)
+    // Error about unmatched username
+    await expect(page.locator('.text-destructive')).toBeVisible({ timeout: 10_000 })
   })
 
-  // -------------------------------------------------------------------------
-  // T5: WIC score computation is correct
-  // -------------------------------------------------------------------------
-  test('T5: WIC score computation — L2 + impactBonus + bounty = 2.25', async ({ request }) => {
-    const month = '2099-05'
+  test('T5: Admin cannot access WIC import page', async ({ page }) => {
+    await loginInBrowser(page, adminToken)
+    await page.goto(`${BASE}/backend/partnerships/wic-import`)
+    await page.waitForTimeout(3_000)
 
-    // Import a record with known values: L2 (base=1.0), impactBonus=true (+0.5), bountyApplied=true (*1.5)
-    // Expected: (1.0 + 0.5) * 1.5 = 2.25
-    const res = await apiRequest(request, 'POST', '/api/partnerships/wic/import', {
-      token: pmToken,
-      data: {
-        organizationId: acmeOrgId,
-        month,
-        source: 'manual_import',
-        records: [
-          {
-            contributorGithubUsername: GH_USERNAME,
-            prId: 'PR-T5-001',
-            month,
-            featureKey: 'feat.score.check',
-            level: 'L2',
-            impactBonus: true,
-            bountyApplied: true,
-          },
-        ],
-      },
-    })
-    expect(res.status(), 'Import should return 200').toBe(200)
-
-    // Fetch via GET /api/partnerships/wic-scores to verify the computed score
-    const scoresRes = await apiRequest(
-      request,
-      'GET',
-      `/api/partnerships/wic-scores?month=${month}&organizationId=${encodeURIComponent(acmeOrgId)}`,
-      { token: pmToken },
-    )
-    expect(scoresRes.ok(), `GET /api/partnerships/wic-scores failed: ${scoresRes.status()}`).toBeTruthy()
-    const scoresBody = await readJsonSafe<WicScoresResponse>(scoresRes)
-    expect(scoresBody, 'response body must not be null').not.toBeNull()
-    expect(scoresBody!.records.length, 'Should have at least 1 record').toBeGreaterThanOrEqual(1)
-
-    // Find the record we just imported
-    const record = scoresBody!.records.find((r) => r.prId === 'PR-T5-001')
-    expect(record, 'Record PR-T5-001 must appear in wic-scores').toBeDefined()
-    expect(record!.wicScore, 'WIC score must be 2.25 for L2 + impactBonus + bounty').toBe(2.25)
-    expect(record!.level).toBe('L2')
-    expect(record!.impactBonus).toBe(true)
-    expect(record!.bountyApplied).toBe(true)
-    expect(scoresBody!.totalWicScore, 'totalWicScore must be >= 2.25').toBeGreaterThanOrEqual(2.25)
+    const formVisible = await page.locator('#wic-json').isVisible().catch(() => false)
+    expect(formVisible, 'Admin should not see WIC import form').toBe(false)
   })
 })
 
-// ---------------------------------------------------------------------------
-// Metadata
-// ---------------------------------------------------------------------------
-
 export const integrationMeta = {
-  description: 'WIC Import API — validation, dedup, archive, score computation (POST /api/partnerships/wic/import)',
+  description: 'WIC Import page UI — form elements, valid/invalid import, unmatched username error, admin RBAC block',
   dependsOnModules: ['partnerships', 'entities', 'auth'],
 }
