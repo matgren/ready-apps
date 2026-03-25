@@ -64,10 +64,4 @@
 - Depends on: Commit 1 + upstream PR merge
 - Phase: 4
 
-## Commit 8: Admin + BD onboarding sub-workflows (tracked steps via workflows module)
-- Scope: app
-- Pattern: workflow JSON definition (SUB_WORKFLOW + USER_TASK)
-- Files: `src/modules/partnerships/workflows/admin-onboarding.workflow.json`, `bd-onboarding.workflow.json`
-- Delivers: Tracked onboarding steps via workflows module. PM sees agency onboarding status. Complements the Phase 1 checklist widget with formal workflow tracking.
-- Depends on: Commits 1, 2, 7
-- Phase: 4
+## ~~Commit 8: REMOVED~~ — Onboarding sub-workflows dropped. Checklist widget is sufficient.

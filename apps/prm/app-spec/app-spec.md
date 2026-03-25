@@ -213,7 +213,7 @@ MIN(org, year) = COUNT(DISTINCT license_deals)
 **Onboarding requirements:**
 - Agency Admin must: fill organization profile, add min 1 case study, invite min 1 BD, invite min 1 Contributor
 - BD must: add first prospect company, create first deal, move deal to "Contacted"
-- Both are sub-workflows tracked by the system
+- Both tracked by the onboarding checklist widget (no formal workflow needed)
 
 **Company Profile and Case Study field definitions:**
 
@@ -580,8 +580,7 @@ Each gap is measured in **atomic commits** — one self-contained, testable incr
 | Admin fills organization profile | entities module (custom fields on `directory:organization`) | Covered | 1 | `app` | Seed custom field definitions in setup.ts |
 | Admin adds case study | entities module (custom entity) | Covered | 0 | — | Bundled with profile seed above (same commit) |
 | Admin invites BD/Contributor | auth module | Same as invite gap | 0 | — | Shared with PM invite mechanism |
-| BD onboarding sub-workflow | workflows module | Covered (SUB_WORKFLOW) | 1 | `app` | Workflow JSON definition |
-| Onboarding checklist tracking | workflows module | Covered (USER_TASK) | 0 | — | Bundled with workflow definition above |
+| Onboarding checklist tracking | dashboard widget | Covered | 0 | — | Checklist widget tracks progress, no formal workflow needed |
 
 #### WF2: Pipeline Building (WIP) — Total: 2 atomic commits
 
@@ -1122,9 +1121,8 @@ Success: Every file follows OM conventions (auto-discovery paths, UMES patterns,
 | US-3.4 | Automated WIC pipeline via n8n (GitHub API + LLM scoring → POST to import API) | 2-3 |
 | US-4.5 | AI-assisted RFP scoring via n8n (webhook trigger → read data → LLM scoring → POST scores) | 1-2 |
 | US-1.1b | Email invitation flow (replaces self-onboard) | 2 |
-| Onboarding sub-workflows | Tracked onboarding steps via workflows module | 1 |
 
-**Total: 6-8 atomic commits**
+**Total: 5-7 atomic commits**
 
 **n8n as unified automation + AI layer (decided):**
 
@@ -1179,7 +1177,6 @@ All LLM work lives in n8n. PRM app has zero LLM dependencies. One integration po
 - Anti-corruption boundary — external automation (n8n) talks to OM only through validated API, never direct DB
 - Service account scoping — n8n has narrowly scoped write permissions (WIC import + RFP scores only)
 - SPEC-038 invitation flow — demonstrates auth module extension pattern (if merged upstream)
-- Onboarding sub-workflows — guided multi-step processes via workflows module
 - **Copy test:** Phase 4 shows "this is how you integrate n8n + LLM with OM without coupling your app to external services"
 
 **Mat's challenges:** All 12 accepted. These are anti-corruption boundary rules that prevent n8n from bypassing the domain. Essential for trust in automated scoring.
@@ -1328,11 +1325,11 @@ Each phase delivers a complete, usable increment. No phase leaves a workflow hal
 
 | Workflow | Deployable | Blocker | What client would say |
 |----------|-----------|---------|----------------------|
-| WF1: Agency Onboarding | **Almost** | "Add Agency" page not yet implemented (1 commit). Default OM widgets clutter dashboard. | "I can add agencies but dashboard is noisy with unrelated widgets" |
-| WF2: Pipeline Building (WIP) | **Almost** | CRM ready, missing WIP stamp interceptor + dashboard widget | "I see CRM but not my WIP count" |
-| WF3: Code Contribution (WIC) | **No** | No GitHub integration, no LLM scoring | "How does my PR become WIC score?" (Phase 2 workaround: manual import) |
-| WF4: Lead Distribution (RFP) | **No** | No RFP workflow definition, open questions | "How do I send a lead to agencies?" |
-| WF5: Tier Governance | **No** | No KPI aggregation, no tier logic, no grace period state machine | "What tier am I? How far to next?" |
+| WF1: Agency Onboarding | **Done** | Add Agency with tier assignment, onboarding checklist widget, dashboard cleaned up | "I can add agencies and track their onboarding" |
+| WF2: Pipeline Building (WIP) | **Done** | CRM ready, WIP interceptor stamps deals, WIP count widget on dashboard | "I see my WIP count updating as deals progress" |
+| WF3: Code Contribution (WIC) | **Done (manual)** | Manual WIC import, My WIC page, WIC summary widget. Auto via n8n = Phase 4. | "I can see my WIC score after PM imports it" |
+| WF4: Lead Distribution (RFP) | **No** | No RFP workflow definition | "How do I send a lead to agencies?" |
+| WF5: Tier Governance | **Done** | Tier entities, evaluation worker, tier review page, tier status widget, manual tier assign, Run Evaluation Now | "I can see my tier and KPI progress" |
 
 #### Checklist
 - [x] Each workflow assessed: deployable or not — binary with specific blocker
@@ -1347,7 +1344,7 @@ Vernon raised these findings. Mat disagrees with good business reason:
 
 1. **GH username on User crosses Identity context** (Stories C4) — In OM, custom fields via the `entities` module IS the standard extension pattern. GH username is stored as a custom field on User, not a modification to the User aggregate. Creating a separate ContributorProfile entity is overengineering for 15 agencies. The dependency from WIC scoring to the custom field is read-only and uses the platform's standard field access API.
 
-2. **WF1 should split into two workflows** (Workflows W1) — Onboarding IS one business workflow from the PM's perspective. The platform's workflows module handles sub-workflows (SUB_WORKFLOW step type). Admin onboarding and BD onboarding are tracked as sub-workflows within WF1, not independent workflows. The completion gate ("agency is operational = both halves done") is intentional business logic.
+2. **WF1 should split into two workflows** (Workflows W1) — Onboarding IS one business workflow from the PM's perspective. Admin and BD onboarding are tracked by the onboarding checklist dashboard widget. The completion gate ("agency is operational = both halves done") is intentional business logic. Formal workflow tracking via workflows module removed — checklist widget is sufficient for 15 agencies.
 
 3. **Self-onboard erases enrollment event** (Phasing C3) — ~~Originally accepted as limitation.~~ RESOLVED: "Add Agency" flow (US-1.1 update 8) now emits `AgencyCreated` domain event with enrollment timestamp. Tier evaluation can use `createdAt` for grace period logic. No longer a gap.
 
