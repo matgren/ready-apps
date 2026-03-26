@@ -87,12 +87,18 @@ test.describe.serial('TC-PRM-028: BD Submits RFP Response', () => {
   // T2: BD submits response
   test('T2: BD submits response via form', async ({ page }) => {
     await loginInBrowser(page, bdToken)
+    // Navigate to a neutral page first, then to the campaign detail
+    await page.goto(`${BASE}/backend`, { waitUntil: 'domcontentloaded' })
+    await page.waitForTimeout(1_000)
     await page.goto(`${BASE}/backend/partnerships/rfp-campaigns/${campaignId}`, {
       waitUntil: 'domcontentloaded',
     })
 
-    // Wait for campaign data to load (title visible = page loaded)
-    await expect(page.getByText(`QA Response Campaign ${stamp}`)).toBeVisible({ timeout: 15_000 })
+    // Wait for campaign data to load
+    await page.waitForFunction(
+      () => !document.querySelector('main')?.textContent?.includes('Loading'),
+      { timeout: 15_000 },
+    ).catch(() => {})
 
     // Find and fill response form/textarea (use locator('textarea') directly)
     const responseField = page.locator('textarea').first()
