@@ -37,9 +37,14 @@ test.describe('TC-PRM-026: RFP Campaign Creation — Negative', () => {
     await loginInBrowser(page, pmToken)
     await page.goto(`${BASE}/backend/partnerships/rfp-campaigns`, { waitUntil: 'domcontentloaded' })
 
-    const createButton = page.getByRole('button', { name: /create|new/i })
-    await expect(createButton).toBeVisible({ timeout: 10_000 })
-    await createButton.click()
+    await page.waitForFunction(
+      () => !document.querySelector('main')?.textContent?.includes('Loading'),
+      { timeout: 15_000 },
+    ).catch(() => {})
+
+    const createLink = page.getByRole('link', { name: /create/i }).or(page.getByRole('button', { name: /create|new/i }))
+    await expect(createLink.first()).toBeVisible({ timeout: 10_000 })
+    await createLink.first().click()
 
     // Fill description but NOT title
     await page.getByLabel(/description|requirements/i).fill('Some requirements')

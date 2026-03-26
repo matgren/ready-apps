@@ -93,10 +93,14 @@ test.describe.serial('TC-PRM-025: RFP Campaign Creation (US-4.1)', () => {
     await loginAsPM(page, pmToken)
     await navigateToRfpCampaigns(page)
 
-    // Click create button
-    const createButton = page.getByRole('button', { name: /create|new/i })
-    await expect(createButton).toBeVisible({ timeout: 10_000 })
-    await createButton.click()
+    // Click create button/link
+    await page.waitForFunction(
+      () => !document.querySelector('main')?.textContent?.includes('Loading'),
+      { timeout: 15_000 },
+    ).catch(() => {})
+    const createLink = page.getByRole('link', { name: /create/i }).or(page.getByRole('button', { name: /create|new/i }))
+    await expect(createLink.first()).toBeVisible({ timeout: 10_000 })
+    await createLink.first().click()
 
     // Fill form fields
     await page.getByLabel(/title/i).fill(CAMPAIGN.title)
@@ -125,7 +129,15 @@ test.describe.serial('TC-PRM-025: RFP Campaign Creation (US-4.1)', () => {
 
   test('T3: Created campaign is visible in the list', async ({ page }) => {
     await loginAsPM(page, pmToken)
+    // Warm-up navigation to establish session
+    await page.goto(`${BASE}/backend`, { waitUntil: 'domcontentloaded' })
+    await page.waitForTimeout(500)
     await navigateToRfpCampaigns(page)
+
+    await page.waitForFunction(
+      () => !document.querySelector('main')?.textContent?.includes('Loading'),
+      { timeout: 15_000 },
+    ).catch(() => {})
 
     // Campaign title should appear in the list
     await expect(page.getByText(CAMPAIGN.title)).toBeVisible({ timeout: 10_000 })
@@ -187,9 +199,15 @@ test.describe.serial('TC-PRM-025: RFP Campaign Creation (US-4.1)', () => {
       waitUntil: 'domcontentloaded',
     })
 
-    // Should not be 404
-    const bodyText = await page.locator('body').textContent().catch(() => '')
-    const is404 = bodyText?.includes('404') && bodyText?.includes('Not Found')
+    // Wait for content to load
+    await page.waitForFunction(
+      () => !document.querySelector('main')?.textContent?.includes('Loading'),
+      { timeout: 15_000 },
+    ).catch(() => {})
+
+    // Should not be 404 (check main, not body — body has RSC 404 payload)
+    const mainText = await page.locator('main').textContent().catch(() => '')
+    const is404 = mainText?.includes('404') && mainText?.includes('Not Found')
     expect(is404, 'Campaign detail page should not be 404').toBeFalsy()
 
     // Title visible

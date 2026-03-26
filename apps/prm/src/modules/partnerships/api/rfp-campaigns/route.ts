@@ -204,6 +204,11 @@ export async function POST(req: Request) {
     const body = await req.json()
     const parsed = rfpCampaignCreateSchema.parse(body)
 
+    // Reject past deadlines
+    if (parsed.deadline && new Date(parsed.deadline) < new Date()) {
+      return NextResponse.json({ error: 'Deadline must be in the future' }, { status: 422 })
+    }
+
     const container = await createRequestContainer()
     const em = container.resolve('em') as import('@mikro-orm/postgresql').EntityManager
 
