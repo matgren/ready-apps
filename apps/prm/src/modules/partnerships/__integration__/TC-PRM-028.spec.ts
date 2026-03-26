@@ -67,8 +67,8 @@ test.describe.serial('TC-PRM-028: BD Submits RFP Response', () => {
     }
   })
 
-  // T1: BD sees RFP detail with requirements and deadline
-  test('T1: BD sees RFP detail page', async ({ page }) => {
+  // T1+T2: BD sees campaign detail and submits response (single page session)
+  test('T1+T2: BD sees RFP detail and submits response', async ({ page }) => {
     await loginInBrowser(page, bdToken)
     await page.goto(`${BASE}/backend/partnerships/rfp-campaigns/${campaignId}`, {
       waitUntil: 'domcontentloaded',
@@ -80,27 +80,11 @@ test.describe.serial('TC-PRM-028: BD Submits RFP Response', () => {
       { timeout: 15_000 },
     ).catch(() => {})
 
+    // T1: BD sees campaign title and description
     await expect(page.getByText(`QA Response Campaign ${stamp}`)).toBeVisible({ timeout: 10_000 })
     await expect(page.getByText(/FinTech|PCI/)).toBeVisible({ timeout: 5_000 })
-  })
 
-  // T2: BD submits response
-  test('T2: BD submits response via form', async ({ page }) => {
-    await loginInBrowser(page, bdToken)
-    // Navigate to a neutral page first, then to the campaign detail
-    await page.goto(`${BASE}/backend`, { waitUntil: 'domcontentloaded' })
-    await page.waitForTimeout(1_000)
-    await page.goto(`${BASE}/backend/partnerships/rfp-campaigns/${campaignId}`, {
-      waitUntil: 'domcontentloaded',
-    })
-
-    // Wait for campaign data to load
-    await page.waitForFunction(
-      () => !document.querySelector('main')?.textContent?.includes('Loading'),
-      { timeout: 15_000 },
-    ).catch(() => {})
-
-    // Find and fill response form/textarea (use locator('textarea') directly)
+    // T2: BD fills and submits response
     const responseField = page.locator('textarea').first()
     await expect(responseField).toBeVisible({ timeout: 10_000 })
     await responseField.fill('We have 5 years of PCI compliance experience and delivered 3 FinTech projects. Timeline: 10 weeks. Budget: $180k.')
