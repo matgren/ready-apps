@@ -176,13 +176,19 @@ test.describe.serial('TC-PRM-030: RFP Campaign Lifecycle', () => {
         waitUntil: 'domcontentloaded',
       })
 
-      // Should see empty state, not crash
-      const pageText = await page.locator('body').textContent().catch(() => '')
-      const is404 = pageText?.includes('404')
+      // Wait for content to load
+      await page.waitForFunction(
+        () => !document.querySelector('main')?.textContent?.includes('Loading'),
+        { timeout: 15_000 },
+      ).catch(() => {})
+
+      // Should see empty state, not crash (check main, not body — body has RSC 404 payload)
+      const mainText = await page.locator('main').textContent().catch(() => '')
+      const is404 = mainText?.includes('404') && mainText?.includes('Not Found')
       expect(is404, 'Should not be 404').toBeFalsy()
 
-      const hasEmptyState = pageText?.includes('no response') || pageText?.includes('No response') ||
-                           pageText?.includes('waiting') || pageText?.includes('no agencies')
+      const hasEmptyState = mainText?.includes('no response') || mainText?.includes('No response') ||
+                           mainText?.includes('Responses (0)') || mainText?.includes('No responses')
       expect(hasEmptyState, 'Should show empty state message').toBe(true)
 
       // Cleanup

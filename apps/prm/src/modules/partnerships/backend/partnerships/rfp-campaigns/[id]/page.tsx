@@ -47,10 +47,12 @@ export default function RfpCampaignDetailPage() {
   const [publishing, setPublishing] = React.useState(false)
 
   // Responses state
-  const [responses, setResponses] = React.useState<Array<{ id: string; organizationId: string; responseText: string; submittedBy: string; createdAt: string }>>([])
+  const [responses, setResponses] = React.useState<Array<{ id: string; organizationId: string; responseText: string; submittedBy: string; createdAt: string; agencyName?: string }>>([])
   const [responseText, setResponseText] = React.useState('')
   const [submittingResponse, setSubmittingResponse] = React.useState(false)
   const [responseSubmitted, setResponseSubmitted] = React.useState(false)
+  const [awarding, setAwarding] = React.useState(false)
+  const [agencies, setAgencies] = React.useState<Record<string, string>>({})
 
   React.useEffect(() => {
     if (!campaignId) return
@@ -76,16 +78,26 @@ export default function RfpCampaignDetailPage() {
     load()
   }, [campaignId, t])
 
-  // Load responses
+  // Load responses + agency names
   React.useEffect(() => {
     if (!campaignId || loading) return
-    apiCall<{ items: Array<{ id: string; organizationId: string; responseText: string; submittedBy: string; createdAt: string }> }>(
-      `/api/partnerships/rfp-responses?campaignId=${campaignId}`
-    ).then((call) => {
-      if (call.ok && call.result?.items) {
-        setResponses(call.result.items)
-      }
-    })
+    // Use plain fetch to avoid org-scoped headers (responses are cross-org)
+    fetch(`/api/partnerships/rfp-responses?campaignId=${campaignId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.items) setResponses(data.items)
+      })
+      .catch(() => {})
+    fetch('/api/partnerships/agencies')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.agencies) {
+          const map: Record<string, string> = {}
+          for (const a of data.agencies) map[a.organizationId] = a.name
+          setAgencies(map)
+        }
+      })
+      .catch(() => {})
   }, [campaignId, loading, responseSubmitted])
 
   async function handleSubmitResponse(e: React.FormEvent) {
@@ -111,6 +123,27 @@ export default function RfpCampaignDetailPage() {
     } else {
       const result = call.result as Record<string, unknown> | null
       flash(typeof result?.error === 'string' ? result.error : t('partnerships.rfpResponses.submitError', 'Failed to submit response'), 'error')
+    }
+  }
+
+  async function handleAward(winnerOrgId: string) {
+    if (!campaign) return
+    setAwarding(true)
+
+    const call = await apiCall<{ ok: boolean }>(`/api/partnerships/rfp-campaigns/${campaign.id}/award`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ winnerOrganizationId: winnerOrgId }),
+    })
+
+    setAwarding(false)
+
+    if (call.ok) {
+      flash(t('partnerships.rfpCampaigns.awarded', 'Campaign awarded successfully'))
+      setCampaign({ ...campaign, status: 'awarded', winnerOrganizationId: winnerOrgId })
+    } else {
+      const result = call.result as Record<string, unknown> | null
+      flash(typeof result?.error === 'string' ? result.error : t('partnerships.rfpCampaigns.awardError', 'Failed to award campaign'), 'error')
     }
   }
 
@@ -305,7 +338,21 @@ export default function RfpCampaignDetailPage() {
             ) : (
               <div className="space-y-4">
                 {responses.map((r) => (
-                  <div key={r.id} className="rounded-md border p-4 space-y-1">
+                  <div key={r.id} className="rounded-md border p-4 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">
+                        {r.agencyName || agencies[r.organizationId] || 'Agency'}
+                      </span>
+                      {campaign.status !== 'awarded' && campaign.status !== 'closed' && (
+                        <button
+                          onClick={() => handleAward(r.organizationId)}
+                          disabled={awarding}
+                          className="inline-flex items-center rounded-md bg-green-600 px-3 py-1 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                        >
+                          {awarding ? t('partnerships.rfpCampaigns.awarding', 'Awarding...') : t('partnerships.rfpCampaigns.awardButton', 'Award')}
+                        </button>
+                      )}
+                    </div>
                     <p className="text-sm whitespace-pre-wrap">{r.responseText}</p>
                     <p className="text-xs text-muted-foreground">
                       {new Date(r.createdAt).toLocaleDateString()}

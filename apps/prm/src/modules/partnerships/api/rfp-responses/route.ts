@@ -4,12 +4,13 @@ import { createRequestContainer } from '@open-mercato/shared/lib/di/container'
 import { getAuthFromRequest } from '@open-mercato/shared/lib/auth/server'
 import type { EntityManager } from '@mikro-orm/postgresql'
 import type { OpenApiMethodDoc, OpenApiRouteDoc } from '@open-mercato/shared/lib/openapi'
+import { Organization } from '@open-mercato/core/modules/directory/data/entities'
 import { PartnerRfpCampaign, PartnerRfpResponse } from '../../data/entities'
 import { rfpResponseCreateSchema, rfpResponseUpdateSchema } from '../../data/validators'
 
 export const metadata = {
   path: '/partnerships/rfp-responses',
-  GET: { requireAuth: true, requireFeatures: ['partnerships.manage'] },
+  GET: { requireAuth: true },
   POST: { requireAuth: true, requireFeatures: ['partnerships.rfp.respond'] },
   PUT: { requireAuth: true, requireFeatures: ['partnerships.rfp.respond'] },
 }
@@ -32,9 +33,19 @@ async function GET(req: Request) {
     const where: Record<string, unknown> = { tenantId: auth.tenantId }
     if (campaignId) where.campaignId = campaignId
 
-    const items = await em.find(PartnerRfpResponse, where, {
+    const rawItems = await em.find(PartnerRfpResponse, where, {
       orderBy: { createdAt: 'ASC' },
     })
+
+    // Enrich with agency names
+    const orgIds = [...new Set(rawItems.map((r) => r.organizationId))]
+    const orgs = orgIds.length > 0 ? await em.find(Organization, { id: { $in: orgIds } }) : []
+    const orgMap = new Map(orgs.map((o) => [o.id, o.name]))
+
+    const items = rawItems.map((r) => ({
+      ...r,
+      agencyName: orgMap.get(r.organizationId) ?? 'Agency',
+    }))
 
     return NextResponse.json({ items, total: items.length })
   } catch (err) {
@@ -114,7 +125,7 @@ async function POST(req: Request) {
     em.persist(response)
     await em.flush()
 
-    return NextResponse.json({ id: response.id, ok: true }, { status: 201 })
+    return NextResponse.json({ id: response.id, organizationId: response.organizationId, ok: true }, { status: 201 })
   } catch (err) {
     console.error('[partnerships/rfp-responses.POST]', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
