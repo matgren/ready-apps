@@ -104,6 +104,24 @@ const crud = makeCrudRoute({
           year,
           createdBy: ctx.auth?.userId ?? ctx.auth?.sub ?? scoped.createdBy,
         })
+
+        // Cross-org company uniqueness guard: same company cannot be attributed to two agencies
+        if (parsed.companyId && parsed.organizationId) {
+          const em = ctx.container.resolve('em') as import('@mikro-orm/postgresql').EntityManager
+          const existing = await em.findOne(PartnerLicenseDeal, {
+            companyId: parsed.companyId,
+            organizationId: { $ne: parsed.organizationId },
+            tenantId: parsed.tenantId,
+          })
+          if (existing) {
+            throw new CrudHttpError(422, {
+              error: 'Company already attributed to another agency',
+              companyId: parsed.companyId,
+              existingOrganizationId: existing.organizationId,
+            })
+          }
+        }
+
         return parsed
       },
       response: ({ result }) => ({
