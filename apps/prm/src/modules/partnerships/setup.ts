@@ -16,7 +16,7 @@ import { hashForLookup } from '@open-mercato/shared/lib/encryption/aes'
 import { seedDashboardDefaultsForTenant } from '@open-mercato/core/modules/dashboards/cli'
 import { hash } from 'bcryptjs'
 import { DefaultDataEngine } from '@open-mercato/shared/lib/data/engine'
-import { PartnerLicenseDeal, PartnerRfpCampaign, RfpSettings, TierAssignment, TierEvaluationState, TierChangeProposal } from './data/entities'
+import { PartnerLicenseDeal, PartnerRfpCampaign, PartnerRfpResponse, RfpSettings, TierAssignment, TierEvaluationState, TierChangeProposal } from './data/entities'
 import { E } from '#generated/entities.ids.generated'
 import {
   PRM_PIPELINE_NAME,
@@ -959,6 +959,79 @@ async function seedPrmExamples(
   await em.flush()
 
   console.log(`[partnerships.seedExamples] Phase 2 demo data seeded: ${tierAssignments.length} tier assignments, ${licenseDeals.length} license deals, 2 evaluation states, 1 proposal`)
+
+  // =========================================================================
+  // Phase 3 demo data: RFP campaigns + responses
+  // =========================================================================
+
+  // Resolve BD users for responses
+  const acmeBdHash = hashForLookup('acme-bd@demo.local')
+  const nordicBdHash = hashForLookup('nordic-bd@demo.local')
+  const acmeBdUser = await em.findOne(User, { emailHash: acmeBdHash, deletedAt: null })
+  const nordicBdUser = await em.findOne(User, { emailHash: nordicBdHash, deletedAt: null })
+
+  // Campaign 1: Published, has responses, awarded to Acme
+  const campaign1 = em.create(PartnerRfpCampaign, {
+    title: 'FinTech Migration Platform — Q2 2026',
+    description: 'Looking for an agency to lead the migration of a legacy banking platform to cloud-native microservices. Must have experience with PCI-DSS compliance and real-time transaction processing.',
+    deadline: new Date('2026-04-15'),
+    audience: 'all',
+    status: 'awarded',
+    winnerOrganizationId: acmeOrgId,
+    organizationId: scope.organizationId,
+    createdBy: pmUserId,
+    tenantId,
+  })
+  em.persist(campaign1)
+  await em.flush()
+
+  if (acmeBdUser) {
+    em.persist(em.create(PartnerRfpResponse, {
+      campaignId: campaign1.id,
+      organizationId: acmeOrgId,
+      responseText: 'Acme Digital has 5+ years of FinTech migration experience. Our team led the CloudBank transformation (2024-2025), migrating 12M accounts to AWS with zero downtime. We hold PCI-DSS Level 1 certification and have dedicated compliance engineers on staff.',
+      submittedBy: acmeBdUser.id,
+      tenantId,
+    }))
+  }
+  if (nordicBdUser) {
+    em.persist(em.create(PartnerRfpResponse, {
+      campaignId: campaign1.id,
+      organizationId: nordicOrgId,
+      responseText: 'Nordic AI Labs specializes in AI-driven financial services. We propose an ML-enhanced migration strategy that uses automated code analysis to identify legacy patterns and generate cloud-native equivalents. Our recent work with Nordea Bank reduced migration time by 40%.',
+      submittedBy: nordicBdUser.id,
+      tenantId,
+    }))
+  }
+  await em.flush()
+
+  // Campaign 2: Published, deadline in the future, no responses yet
+  em.persist(em.create(PartnerRfpCampaign, {
+    title: 'Healthcare Data Platform — HIPAA Compliance',
+    description: 'Seeking a partner to build a patient data analytics platform with full HIPAA compliance. The platform must support real-time data ingestion from 50+ hospital systems and provide AI-powered diagnostic insights.',
+    deadline: new Date('2026-06-01'),
+    audience: 'all',
+    status: 'published',
+    organizationId: scope.organizationId,
+    createdBy: pmUserId,
+    tenantId,
+  }))
+
+  // Campaign 3: Draft, not yet published
+  em.persist(em.create(PartnerRfpCampaign, {
+    title: 'E-commerce Replatform (Draft)',
+    description: 'Replatforming a legacy Magento 1 store to Open Mercato. Need agency with OM certification and experience in catalog migration (50K+ SKUs).',
+    deadline: new Date('2026-07-01'),
+    audience: 'selected',
+    selectedAgencyIds: [acmeOrgId, nordicOrgId],
+    status: 'draft',
+    organizationId: scope.organizationId,
+    createdBy: pmUserId,
+    tenantId,
+  }))
+  await em.flush()
+
+  console.log('[partnerships.seedExamples] Phase 3 demo data seeded: 3 RFP campaigns, 2 responses, 1 awarded')
 
   console.log(`[partnerships.seedExamples] All demo data seeded (password: ${DEMO_PASSWORD})`)
   console.log(`[partnerships.seedExamples] PM: partnership-manager@demo.local (all orgs)`)
