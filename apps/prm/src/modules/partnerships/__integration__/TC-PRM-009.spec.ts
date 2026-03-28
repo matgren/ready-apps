@@ -67,6 +67,9 @@ test.describe('TC-PRM-009: WIC Import Page UI', () => {
     await page.goto(`${BASE}/backend/partnerships/wic-import`)
     await expect(page.locator('#wic-json')).toBeVisible({ timeout: 15_000 })
 
+    // Select Acme Digital — carol-acme belongs to this org
+    await page.locator('#wic-org').selectOption({ label: 'Acme Digital' })
+
     const month = '2098-01'
     await page.locator('#wic-month').fill(month)
 
