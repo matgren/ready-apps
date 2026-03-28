@@ -30,10 +30,6 @@ export const enabledModules: ModuleEntry[] = [
   { id: 'scheduler', from: '@open-mercato/scheduler' },
 
   // --- OM core modules used by PRM (App Spec §4.5) ---
-  // catalog/sales/currencies kept: OM migration chain dependency (translations → catalog → sales → currencies)
-  { id: 'catalog', from: '@open-mercato/core' },
-  { id: 'sales', from: '@open-mercato/core' },
-  { id: 'currencies', from: '@open-mercato/core' },
   { id: 'customers', from: '@open-mercato/core' },
   { id: 'entities', from: '@open-mercato/core' },
   { id: 'dictionaries', from: '@open-mercato/core' },

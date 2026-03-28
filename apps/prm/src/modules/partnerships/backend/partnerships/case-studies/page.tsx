@@ -45,7 +45,7 @@ const DURATION_OPTIONS = [
 // ---------------------------------------------------------------------------
 
 type CaseStudyRecord = Record<string, unknown> & {
-  record_id: string
+  id: string
   title?: string
   industry?: string | string[]
   technologies?: string | string[]
@@ -181,7 +181,7 @@ export default function CaseStudiesPage() {
         ) : (
           <div className="space-y-3">
             {records.map((record) => (
-              <div key={record.record_id} className="rounded-lg border p-4 hover:bg-muted/30 transition-colors">
+              <div key={record.id} className="rounded-lg border p-4 hover:bg-muted/30 transition-colors">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
                     <h3 className="font-medium text-foreground">
