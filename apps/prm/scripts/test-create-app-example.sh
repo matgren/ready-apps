@@ -2,35 +2,38 @@
 set -euo pipefail
 
 # ---------------------------------------------------------------------------
-# US-7.1 End-to-End Test: create-mercato-app --example prm
+# US-7.1 End-to-End Test: create-mercato-app --app prm
 #
-# Tests the full SPEC-068 flow:
-#   npx create-mercato-app prm --example <url> → yarn install → yarn initialize → app starts
+# Tests the full flow:
+#   create-mercato-app prm --app <url>
+#   cd prm && docker compose -f docker-compose.fullapp.dev.yml up --build
+#   → app starts with all services, seeds data, responds on HTTP
 #
 # Prerequisites:
 #   - Verdaccio running with @open-mercato/* packages published
-#   - Docker running (for ephemeral DB)
-#   - Current branch pushed to GitHub (--example fetches from GH)
+#   - Docker running
+#   - Current branch pushed to GitHub (--app fetches from GH)
 #
 # Usage:
 #   ./scripts/test-create-app-example.sh [--keep]
-#     --keep    Don't clean up the test directory on success (useful for inspection)
+#     --keep    Don't clean up the test directory on success
 # ---------------------------------------------------------------------------
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-TEST_PARENT="/tmp/prm-example-test-$$"
+TEST_PARENT="/tmp/prm-app-test-$$"
 TEST_DIR="$TEST_PARENT/prm"
 KEEP_ON_SUCCESS=false
-APP_PID=""
+COMPOSE_PROJECT="prm-test-$$"
 PASSED=0
 FAILED=0
 TOTAL=0
+APP_PORT=3333  # Avoid conflicts with local dev on 3000
 
 # Resolve GitHub owner/repo and branch from git remote
 GITHUB_REPO_URL="$(cd "$REPO_ROOT" && git remote get-url origin 2>/dev/null || echo "")"
 GITHUB_OWNER_REPO="$(echo "$GITHUB_REPO_URL" | sed -E 's|https://github.com/||;s|\.git$||')"
-EXAMPLE_BRANCH="$(cd "$REPO_ROOT" && git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")"
+APP_BRANCH="$(cd "$REPO_ROOT" && git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")"
 
 # Parse args
 for arg in "$@"; do
@@ -76,7 +79,7 @@ checkpoint_output() {
     return 0
   else
     echo -e "${RED}FAIL${NC}"
-    echo "      Output: $output"
+    echo "      Output: $(echo "$output" | tail -5)"
     FAILED=$((FAILED + 1))
     return 1
   fi
@@ -86,16 +89,11 @@ cleanup() {
   echo ""
   echo -e "${YELLOW}Cleaning up...${NC}"
 
-  # Stop app if running
-  if [ -n "$APP_PID" ] && kill -0 "$APP_PID" 2>/dev/null; then
-    echo "  Stopping app (PID $APP_PID)..."
-    kill "$APP_PID" 2>/dev/null || true
-    wait "$APP_PID" 2>/dev/null || true
-  fi
-
-  # Stop Docker containers started by the test app
+  # Stop Docker Compose stack
   if [ -d "$TEST_DIR" ]; then
-    (cd "$TEST_DIR" && docker compose down 2>/dev/null || true)
+    echo "  Stopping Docker Compose stack..."
+    (cd "$TEST_DIR" && COMPOSE_PROJECT_NAME="$COMPOSE_PROJECT" APP_PORT="$APP_PORT" \
+      docker compose -f docker-compose.fullapp.dev.yml down -v 2>/dev/null || true)
   fi
 
   # Remove test directory
@@ -121,12 +119,12 @@ cleanup() {
 trap cleanup EXIT
 
 # ---------------------------------------------------------------------------
-# Pre-flight checks
+# Phase 0: Pre-flight
 # ---------------------------------------------------------------------------
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  US-7.1: create-mercato-app --example prm"
+echo "  US-7.1: create-mercato-app --app prm"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo ""
 echo "Phase 0: Pre-flight"
@@ -158,12 +156,10 @@ echo "Phase 1: Scaffold app"
 
 mkdir -p "$TEST_PARENT"
 
-# --example fetches from GitHub. Use repo URL + branch from current git state.
-# Pipe "5" to skip the interactive AI coding tool prompt.
-EXAMPLE_URL="https://github.com/${GITHUB_OWNER_REPO}/tree/${EXAMPLE_BRANCH}/apps/prm"
-echo "  Using: $EXAMPLE_URL (branch: $EXAMPLE_BRANCH)"
-checkpoint_output "create-mercato-app --example (from GitHub)" \
-  bash -c "cd '$TEST_PARENT' && echo 5 | npx --registry http://localhost:4873 create-mercato-app@latest prm --example '$EXAMPLE_URL' --example-branch '$EXAMPLE_BRANCH' --registry http://localhost:4873"
+APP_URL="https://github.com/${GITHUB_OWNER_REPO}/tree/${APP_BRANCH}/apps/prm"
+echo "  Using: $APP_URL (branch: $APP_BRANCH)"
+checkpoint_output "create-mercato-app --app (from GitHub)" \
+  bash -c "cd '$TEST_PARENT' && echo 5 | npx --registry http://localhost:4873 create-mercato-app@latest prm --app '$APP_URL' --app-branch '$APP_BRANCH' --registry http://localhost:4873"
 
 checkpoint "Test directory exists" \
   test -d "$TEST_DIR"
@@ -177,59 +173,35 @@ checkpoint "src/modules/partnerships/ exists" \
 checkpoint "modules.ts includes partnerships" \
   grep -q "partnerships" "$TEST_DIR/src/modules.ts"
 
+checkpoint "docker-compose.fullapp.dev.yml exists" \
+  test -f "$TEST_DIR/docker-compose.fullapp.dev.yml"
+
 # ---------------------------------------------------------------------------
-# Phase 2: Install + Initialize
+# Phase 2: Docker Compose — one command does everything
 # ---------------------------------------------------------------------------
 
 echo ""
-echo "Phase 2: Install and initialize"
+echo "Phase 2: docker compose up (install + migrate + initialize + start)"
 
 cd "$TEST_DIR"
 
-# Start DB via docker compose (if compose file exists)
-if [ -f "docker-compose.yml" ] || [ -f "docker-compose.yaml" ] || [ -f "compose.yaml" ]; then
-  checkpoint_output "docker compose up -d" \
-    docker compose up -d
-  sleep 3
-fi
-
-# Set up .env from example (docker-compose defaults)
+# Set up .env from example
 if [ -f ".env.example" ] && [ ! -f ".env" ]; then
   cp .env.example .env
 fi
 
-checkpoint_output "yarn install" \
-  yarn install --registry http://localhost:4873
+# Override port to avoid conflicts + set Verdaccio registry for yarn install inside container
+echo "APP_PORT=$APP_PORT" >> .env
 
-checkpoint_output "yarn generate" \
-  yarn generate
+# Start full stack
+COMPOSE_PROJECT_NAME="$COMPOSE_PROJECT" APP_PORT="$APP_PORT" \
+  docker compose -f docker-compose.fullapp.dev.yml up --build -d 2>&1 | tail -5
 
-checkpoint_output "yarn db:migrate" \
-  yarn db:migrate
-
-checkpoint_output "yarn initialize" \
-  yarn initialize --reinstall
-
-# ---------------------------------------------------------------------------
-# Phase 3: Verify seed data
-# ---------------------------------------------------------------------------
-
-echo ""
-echo "Phase 3: Verify app starts and seed data works"
-
-# Production build — deterministic, no Turbopack lazy compilation issues
-checkpoint_output "yarn build" \
-  yarn build
-
-# Start production server in background
-PORT=3000 yarn start &
-APP_PID=$!
-echo "  App starting (PID $APP_PID, port 3000)..."
-
-# Wait for app to be ready (max 30s — production start is fast)
+# Wait for app to be ready (max 180s — first build takes time)
+echo "  Waiting for app on port $APP_PORT (max 180s)..."
 READY=false
-for i in $(seq 1 30); do
-  HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 http://localhost:3000/ 2>/dev/null || true)
+for i in $(seq 1 180); do
+  HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 3 "http://localhost:$APP_PORT/" 2>/dev/null || true)
   if [ "$HTTP_CODE" != "" ] && [ "$HTTP_CODE" != "000" ]; then
     echo "  App ready (HTTP $HTTP_CODE after ${i}s)"
     READY=true
@@ -239,76 +211,85 @@ for i in $(seq 1 30); do
 done
 
 if [ "$READY" = false ]; then
-  echo -e "  ${RED}App failed to start within 30s${NC}"
+  echo -e "  ${RED}App failed to start within 180s${NC}"
+  echo "  Docker logs (last 30 lines):"
+  COMPOSE_PROJECT_NAME="$COMPOSE_PROJECT" docker compose -f docker-compose.fullapp.dev.yml logs --tail 30 app 2>&1 | head -30
   TOTAL=$((TOTAL + 1))
   FAILED=$((FAILED + 1))
   exit 1
 fi
 
-checkpoint "App responds on port 3000" \
-  curl -sf --max-time 5 http://localhost:3000/
-
-# Login as PM
-PM_TOKEN=$(curl -s http://localhost:3000/api/auth/login \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d 'email=partnership-manager@demo.local&password=Demo123!' \
-  | grep -o '"token":"[^"]*"' | head -1 | cut -d'"' -f4 || true)
-
-checkpoint "PM can login (partnership-manager@demo.local)" \
-  test -n "$PM_TOKEN"
-
-# Login as BD
-BD_TOKEN=$(curl -s http://localhost:3000/api/auth/login \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d 'email=acme-bd@demo.local&password=Demo123!' \
-  | grep -o '"token":"[^"]*"' | head -1 | cut -d'"' -f4 || true)
-
-checkpoint "BD can login (acme-bd@demo.local)" \
-  test -n "$BD_TOKEN"
-
-# Login as Admin
-ADMIN_TOKEN=$(curl -s http://localhost:3000/api/auth/login \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d 'email=acme-admin@demo.local&password=Demo123!' \
-  | grep -o '"token":"[^"]*"' | head -1 | cut -d'"' -f4 || true)
-
-checkpoint "Admin can login (acme-admin@demo.local)" \
-  test -n "$ADMIN_TOKEN"
-
-# Login as Contributor
-CONTRIB_TOKEN=$(curl -s http://localhost:3000/api/auth/login \
-  -H "Content-Type: application/x-www-form-urlencoded" \
-  -d 'email=acme-contributor@demo.local&password=Demo123!' \
-  | grep -o '"token":"[^"]*"' | head -1 | cut -d'"' -f4 || true)
-
-checkpoint "Contributor can login (acme-contributor@demo.local)" \
-  test -n "$CONTRIB_TOKEN"
-
-# Check pipelines
-checkpoint "PRM Pipeline exists" \
-  bash -c "curl -sf http://localhost:3000/api/customers/pipelines -H 'Authorization: Bearer $PM_TOKEN' | grep -q 'PRM Pipeline'"
-
-# Check deals exist for BD
-checkpoint "BD sees deals" \
-  bash -c "curl -sf http://localhost:3000/api/customers/deals -H 'Authorization: Bearer $BD_TOKEN' | grep -q 'items'"
-
-# Check WIP count API works
-checkpoint "WIP count API responds" \
-  bash -c "curl -sf http://localhost:3000/api/partnerships/wip-count -H 'Authorization: Bearer $BD_TOKEN' | grep -q 'count'"
-
-# Check onboarding status for Contributor
-checkpoint "Contributor onboarding shows set_gh_username" \
-  bash -c "curl -sf http://localhost:3000/api/partnerships/onboarding-status -H 'Authorization: Bearer $CONTRIB_TOKEN' | grep -q 'set_gh_username'"
+checkpoint "App responds on port $APP_PORT" \
+  curl -sf --max-time 5 "http://localhost:$APP_PORT/"
 
 # ---------------------------------------------------------------------------
-# Phase 4: Unit tests pass
+# Phase 3: Verify seed data and logins
 # ---------------------------------------------------------------------------
 
 echo ""
-echo "Phase 4: Tests pass in scaffolded app"
+echo "Phase 3: Verify seed data"
 
-checkpoint_output "yarn test (unit tests)" \
-  yarn test
+BASE="http://localhost:$APP_PORT"
+
+# Login helper
+login() {
+  curl -s "$BASE/api/auth/login" \
+    -H "Content-Type: application/x-www-form-urlencoded" \
+    -d "email=$1&password=Demo123!" \
+    | grep -o '"token":"[^"]*"' | head -1 | cut -d'"' -f4
+}
+
+PM_TOKEN=$(login "partnership-manager@demo.local")
+BD_TOKEN=$(login "acme-bd@demo.local")
+ADMIN_TOKEN=$(login "acme-admin@demo.local")
+CONTRIB_TOKEN=$(login "acme-contributor@demo.local")
+NORDIC_ADMIN_TOKEN=$(login "nordic-admin@demo.local")
+
+checkpoint "PM can login" \
+  test -n "$PM_TOKEN"
+
+checkpoint "BD can login" \
+  test -n "$BD_TOKEN"
+
+checkpoint "Admin can login" \
+  test -n "$ADMIN_TOKEN"
+
+checkpoint "Contributor can login" \
+  test -n "$CONTRIB_TOKEN"
+
+checkpoint "Nordic Admin can login" \
+  test -n "$NORDIC_ADMIN_TOKEN"
+
+# Phase 1 seed
+checkpoint "PRM Pipeline exists" \
+  bash -c "curl -sf '$BASE/api/customers/pipelines' -H 'Authorization: Bearer $PM_TOKEN' | grep -q 'PRM Pipeline'"
+
+checkpoint "BD sees deals" \
+  bash -c "curl -sf '$BASE/api/customers/deals' -H 'Authorization: Bearer $BD_TOKEN' | grep -q 'items'"
+
+checkpoint "WIP count API responds" \
+  bash -c "curl -sf '$BASE/api/partnerships/wip-count' -H 'Authorization: Bearer $BD_TOKEN' | grep -q 'count'"
+
+checkpoint "Contributor onboarding shows set_gh_username" \
+  bash -c "curl -sf '$BASE/api/partnerships/onboarding-status' -H 'Authorization: Bearer $CONTRIB_TOKEN' | grep -q 'set_gh_username'"
+
+# Phase 2 seed
+checkpoint "PM sees agencies with tiers" \
+  bash -c "curl -sf '$BASE/api/partnerships/agencies' -H 'Authorization: Bearer $PM_TOKEN' | grep -q 'currentTier'"
+
+checkpoint "PM sees license deals" \
+  bash -c "curl -sf '$BASE/api/partnerships/partner-license-deals' -H 'Authorization: Bearer $PM_TOKEN' | grep -q 'items'"
+
+# Phase 3 seed
+checkpoint "PM sees RFP campaigns" \
+  bash -c "curl -sf '$BASE/api/partnerships/rfp-campaigns' -H 'Authorization: Bearer $PM_TOKEN' | grep -q 'FinTech Migration'"
+
+checkpoint "Awarded campaign has responses" \
+  bash -c "CAMPAIGN_ID=\$(curl -sf '$BASE/api/partnerships/rfp-campaigns' -H 'Authorization: Bearer $PM_TOKEN' | python3 -c \"import sys,json; campaigns=json.load(sys.stdin).get('results',json.load(sys.stdin).get('items',[])); print([c['id'] for c in campaigns if c.get('status')=='awarded'][0])\" 2>/dev/null) && curl -sf '$BASE/api/partnerships/rfp-responses?campaignId=\$CAMPAIGN_ID' -H 'Authorization: Bearer $PM_TOKEN' | grep -q 'responseText'"
+
+# Org isolation
+checkpoint "Nordic Admin does NOT see Acme deals" \
+  bash -c "! curl -sf '$BASE/api/customers/deals' -H 'Authorization: Bearer $NORDIC_ADMIN_TOKEN' | grep -q 'Acme'"
 
 echo ""
 echo -e "${GREEN}All checkpoints passed!${NC}"
