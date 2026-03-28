@@ -8,13 +8,15 @@ const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/
 
 export const wicScoringResultSchema = z.object({
   contributorGithubUsername: z.string().min(1, 'GitHub username is required'),
-  prId: z.string().min(1, 'PR ID is required'),
   month: z.string().regex(MONTH_REGEX, 'month must be in YYYY-MM format'),
-  featureKey: z.string().min(1, 'Feature key is required'),
-  level: z.enum(WIC_LEVEL_OPTIONS),
-  impactBonus: z.boolean(),
-  bountyApplied: z.boolean(),
   wicScore: z.number().nonnegative('WIC score must be non-negative'),
+  level: z.enum(WIC_LEVEL_OPTIONS),
+  impactBonus: z.number().min(0).max(0.5, 'Impact bonus max is 0.5'),
+  bountyBonus: z.number().nonnegative('Bounty bonus must be non-negative'),
+  whyBonus: z.string(),
+  included: z.string(),
+  excluded: z.string(),
+  scriptVersion: z.string().min(1, 'Script version is required'),
 })
 
 export type WicScoringResult = z.infer<typeof wicScoringResultSchema>
