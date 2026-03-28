@@ -36,6 +36,8 @@ export const querySchema = z.object({
     .string()
     .uuid('organizationId must be a valid UUID')
     .optional(),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(50),
 })
 
 export type WicScoresQuery = z.infer<typeof querySchema>
@@ -100,8 +102,10 @@ async function GET(req: Request) {
     const url = new URL(req.url)
     const rawMonth = url.searchParams.get('month') ?? undefined
     const rawOrgId = url.searchParams.get('organizationId') ?? undefined
+    const rawPage = url.searchParams.get('page') ?? undefined
+    const rawPageSize = url.searchParams.get('pageSize') ?? undefined
 
-    const parseResult = querySchema.safeParse({ month: rawMonth, organizationId: rawOrgId })
+    const parseResult = querySchema.safeParse({ month: rawMonth, organizationId: rawOrgId, page: rawPage, pageSize: rawPageSize })
     if (!parseResult.success) {
       return NextResponse.json(
         { error: parseResult.error.issues[0]?.message ?? 'Invalid query parameters' },
@@ -155,7 +159,7 @@ async function GET(req: Request) {
     const recordIds = [...new Set(monthCfvs.map((cfv) => cfv.recordId))]
 
     if (recordIds.length === 0) {
-      return NextResponse.json({ records: [], month, totalWicScore: 0 })
+      return NextResponse.json({ records: [], month, totalWicScore: 0, total: 0, page: parseResult.data.page, pageSize: parseResult.data.pageSize, totalPages: 0 })
     }
 
     // 2. For contributors, resolve their GH username to filter own records only
@@ -227,8 +231,22 @@ async function GET(req: Request) {
     records.sort((a, b) => b.wicScore - a.wicScore)
 
     const totalWicScore = records.reduce((sum, r) => sum + r.wicScore, 0)
+    const total = records.length
 
-    return NextResponse.json({ records, month, totalWicScore })
+    // 6. Paginate
+    const { page, pageSize } = parseResult.data
+    const offset = (page - 1) * pageSize
+    const paginatedRecords = records.slice(offset, offset + pageSize)
+
+    return NextResponse.json({
+      records: paginatedRecords,
+      month,
+      totalWicScore,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    })
   } catch (err) {
     if (err instanceof CrudHttpError) {
       return NextResponse.json(err.body, { status: err.status })

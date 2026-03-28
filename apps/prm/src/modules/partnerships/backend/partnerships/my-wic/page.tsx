@@ -23,6 +23,10 @@ type WicScoresResponse = {
   records: WicScoreRecord[]
   month: string
   totalWicScore: number
+  total: number
+  page: number
+  pageSize: number
+  totalPages: number
 }
 
 function currentYearMonth(): string {
@@ -58,6 +62,7 @@ function sourceBadge(source: string) {
 export default function MyWicPage() {
   const t = useT()
   const [selectedMonth, setSelectedMonth] = React.useState<string>(currentYearMonth)
+  const [currentPage, setCurrentPage] = React.useState(1)
   const [data, setData] = React.useState<WicScoresResponse | null>(null)
   const [loading, setLoading] = React.useState(true)
 
@@ -65,7 +70,7 @@ export default function MyWicPage() {
     async function load() {
       setLoading(true)
       const call = await apiCall<WicScoresResponse>(
-        `/api/partnerships/wic-scores?month=${encodeURIComponent(selectedMonth)}`,
+        `/api/partnerships/wic-scores?month=${encodeURIComponent(selectedMonth)}&page=${currentPage}&pageSize=20`,
       )
       if (call.ok && call.result) {
         setData(call.result)
@@ -75,7 +80,12 @@ export default function MyWicPage() {
       setLoading(false)
     }
     load()
-  }, [selectedMonth])
+  }, [selectedMonth, currentPage])
+
+  function handleMonthChange(value: string) {
+    setSelectedMonth(value)
+    setCurrentPage(1)
+  }
 
   if (loading) {
     return (
@@ -102,7 +112,7 @@ export default function MyWicPage() {
           <input
             type="month"
             value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
+            onChange={(e) => handleMonthChange(e.target.value)}
             className="rounded-md border px-3 py-1.5 text-sm"
           />
         </div>
@@ -144,6 +154,35 @@ export default function MyWicPage() {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination */}
+            {data && data.totalPages > 1 && (
+              <div className="mt-4 flex items-center justify-between text-sm">
+                <p className="text-muted-foreground">
+                  Page {data.page} of {data.totalPages} ({data.total} records)
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={data.page <= 1}
+                    onClick={() => setCurrentPage((p) => p - 1)}
+                    className="rounded-md border px-3 py-1 text-sm hover:bg-muted/50 disabled:opacity-50"
+                    data-testid="pagination-prev"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    type="button"
+                    disabled={data.page >= data.totalPages}
+                    onClick={() => setCurrentPage((p) => p + 1)}
+                    className="rounded-md border px-3 py-1 text-sm hover:bg-muted/50 disabled:opacity-50"
+                    data-testid="pagination-next"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </PageBody>
