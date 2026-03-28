@@ -36,6 +36,8 @@ export default function WicImportPage() {
   const [selectedOrgId, setSelectedOrgId] = React.useState('')
   const [selectedMonth, setSelectedMonth] = React.useState(currentYearMonth)
   const [jsonInput, setJsonInput] = React.useState('')
+  const [fileName, setFileName] = React.useState<string | null>(null)
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
   const [importing, setImporting] = React.useState(false)
   const [result, setResult] = React.useState<ImportResult | null>(null)
   const [error, setError] = React.useState<string | null>(null)
@@ -118,6 +120,7 @@ export default function WicImportPage() {
     if (call.ok && call.result) {
       setResult(call.result)
       setJsonInput('')
+      setFileName(null)
     } else {
       const payload = call.result as Record<string, unknown> | null
       const message =
@@ -181,17 +184,48 @@ export default function WicImportPage() {
             </div>
 
             <div>
-              <label htmlFor="wic-json" className="block text-sm font-medium mb-1">
+              <label className="block text-sm font-medium mb-1">
                 {t('partnerships.wicImport.jsonInput')}
               </label>
-              <textarea
-                id="wic-json"
-                value={jsonInput}
-                onChange={(e) => setJsonInput(e.target.value)}
-                rows={12}
-                className="w-full rounded-md border px-3 py-2 font-mono text-sm"
-                placeholder={`[\n  {\n    "contributorGithubUsername": "octocat",\n    "month": "${selectedMonth}",\n    "wicScore": 1.5,\n    "level": "L3",\n    "impactBonus": 0.25,\n    "bountyBonus": 0.0,\n    "whyBonus": "",\n    "included": "SPEC-042 implementation + tests",\n    "excluded": "Routine dependency updates",\n    "scriptVersion": "1.0-agent"\n  }\n]`}
-              />
+              <div
+                className="w-full rounded-md border-2 border-dashed px-6 py-8 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation() }}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  const file = e.dataTransfer.files[0]
+                  if (file) {
+                    setFileName(file.name)
+                    file.text().then((text) => setJsonInput(text))
+                  }
+                }}
+              >
+                <input
+                  ref={fileInputRef}
+                  id="wic-json-file"
+                  type="file"
+                  accept=".json"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (file) {
+                      setFileName(file.name)
+                      file.text().then((text) => setJsonInput(text))
+                    }
+                  }}
+                />
+                {fileName ? (
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium">{fileName}</p>
+                    <p className="text-xs text-muted-foreground">{t('partnerships.wicImport.changeFile', 'Click or drop to change file')}</p>
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">{t('partnerships.wicImport.dropFile', 'Drop a .json file here or click to browse')}</p>
+                  </div>
+                )}
+              </div>
             </div>
 
             <button

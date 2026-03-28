@@ -53,6 +53,8 @@
       "month": "Month",
       "jsonInput": "WIC Scoring Results (JSON)",
       "importButton": "Import",
+      "dropFile": "Drop a .json file here or click to browse",
+      "changeFile": "Click or drop to change file",
       "agenticHelper": "Agentic IDE Helper",
       "agenticHelperDesc": "Paste this prompt in your AI coding assistant (Claude Code, Cursor) to generate the WIC JSON:",
       "copyPrompt": "Copy to clipboard",
