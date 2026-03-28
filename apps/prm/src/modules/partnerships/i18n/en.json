@@ -136,7 +136,11 @@
       "approvePlaceholder": "Optional note for the approval",
       "submitting": "Submitting...",
       "confirm": "Confirm",
-      "actionFailed": "Action failed"
+      "actionFailed": "Action failed",
+      "evalSuccess": "Evaluated {{count}} agencies ({{month}}) — {{proposals}} new proposal(s)",
+      "evalNoChanges": "Evaluated {{count}} agencies ({{month}}) — no tier changes",
+      "evalWarning": "Evaluated {{count}} agencies ({{month}}) — {{failed}} failed: {{firstError}}",
+      "evalFailed": "Evaluation failed"
     },
     "errors": {
       "tenant_required": "Tenant context is required.",

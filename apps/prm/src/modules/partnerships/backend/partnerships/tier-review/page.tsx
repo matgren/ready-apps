@@ -203,15 +203,15 @@ export default function TierReviewPage() {
     if (call.ok && call.result) {
       const { evaluated, proposals, month, errors } = call.result
       if (errors?.length) {
-        flash(`Evaluated ${evaluated} agencies (${month}) — ${errors.length} failed: ${errors[0]}`, 'warning')
+        flash(t('partnerships.tierReview.evalWarning', { count: evaluated, month, failed: errors.length, firstError: errors[0] }), 'warning')
       } else if (proposals > 0) {
-        flash(`Evaluated ${evaluated} agencies (${month}) — ${proposals} new proposal(s)`, 'success')
+        flash(t('partnerships.tierReview.evalSuccess', { count: evaluated, month, proposals }), 'success')
       } else {
-        flash(`Evaluated ${evaluated} agencies (${month}) — no tier changes`, 'info')
+        flash(t('partnerships.tierReview.evalNoChanges', { count: evaluated, month }), 'info')
       }
       load()
     } else {
-      flash('Evaluation failed', 'error')
+      flash(t('partnerships.tierReview.evalFailed', 'Evaluation failed'), 'error')
     }
     setEvaluationRunning(false)
   }
