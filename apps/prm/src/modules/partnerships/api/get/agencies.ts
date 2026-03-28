@@ -142,13 +142,13 @@ async function GET(req: Request) {
   const { start, end } = parseMonthBoundaries(month)
   const year = parseInt(month.split('-')[0], 10)
 
-  // Find all organizations in tenant (excluding PM's own org)
+  // Find all organizations in tenant (including PM's own org — OM Backoffice has contributors too)
   const allOrgs = await em.find(Organization, {
     tenant: tenantId,
     isActive: true,
     deletedAt: null,
   })
-  const agencyOrgs = allOrgs.filter((o) => o.id !== pmOrgId)
+  const agencyOrgs = allOrgs
 
   const partnerAdminRole = await em.findOne(Role, { name: 'partner_admin', tenantId, deletedAt: null })
   const agencies: AgencyListItem[] = []
