@@ -38,10 +38,10 @@ test.describe('TC-PRM-034: Role-scoped tier status widget', () => {
     const tierWidget = page.locator('text=/Current Tier|Tier Status/i').first()
     await expect(tierWidget).toBeVisible({ timeout: 15_000 })
 
-    // Admin should see KPI progress bars (WIC, WIP, MIN labels)
-    const wicLabel = page.locator('text=/^WIC$/').first()
-    const wipLabel = page.locator('text=/^WIP$/').first()
-    const minLabel = page.locator('text=/^MIN$/').first()
+    // Admin should see KPI progress bars (i18n labels: "WIC Score", "WIP Count", "MIN Count")
+    const wicLabel = page.locator('text=/WIC Score/').first()
+    const wipLabel = page.locator('text=/WIP Count/').first()
+    const minLabel = page.locator('text=/MIN Count/').first()
 
     // At least one KPI label should be visible for full view
     const hasWic = await wicLabel.isVisible({ timeout: 5_000 }).catch(() => false)
@@ -59,16 +59,15 @@ test.describe('TC-PRM-034: Role-scoped tier status widget', () => {
     const tierWidget = page.locator('text=/Current Tier|Tier Status/i').first()
     await expect(tierWidget).toBeVisible({ timeout: 15_000 })
 
-    // Contributor should NOT see KPI progress bars
-    const wicLabel = page.locator('text=/^WIC$/').first()
-    const wipLabel = page.locator('text=/^WIP$/').first()
-    const minLabel = page.locator('text=/^MIN$/').first()
+    // Contributor should NOT see tier KPI progress bars (WIP Count, MIN Count).
+    // Note: "WIC Score" text may appear from the wic-summary widget — that's expected.
+    const wipLabel = page.locator('text=/WIP Count/').first()
+    const minLabel = page.locator('text=/MIN Count/').first()
 
-    const hasWic = await wicLabel.isVisible({ timeout: 3_000 }).catch(() => false)
-    const hasWip = await wipLabel.isVisible({ timeout: 1_000 }).catch(() => false)
+    const hasWip = await wipLabel.isVisible({ timeout: 3_000 }).catch(() => false)
     const hasMin = await minLabel.isVisible({ timeout: 1_000 }).catch(() => false)
 
-    expect(hasWic || hasWip || hasMin, 'Contributor should NOT see KPI progress bars').toBe(false)
+    expect(hasWip || hasMin, 'Contributor should NOT see tier KPI progress bars (WIP/MIN)').toBe(false)
 
     // But tier badge should still be visible
     const tierBadge = page.locator('.rounded-full.bg-primary\\/10').first()

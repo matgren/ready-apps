@@ -51,19 +51,22 @@ test.describe.serial('TC-PRM-028: BD Submits RFP Response', () => {
     const body = await readJsonSafe<{ id: string }>(res)
     campaignId = body!.id
 
-    // Create an expired campaign (deadline in the past — via direct DB or special API)
+    // Create a campaign with a near-future deadline, then wait for it to expire
+    const nearDeadline = new Date(Date.now() + 3_000).toISOString()
     const expRes = await apiRequest(request, 'POST', '/api/partnerships/rfp-campaigns', {
       token: pmToken,
       data: {
         title: `QA Expired Campaign ${stamp}`,
-        description: 'This campaign has expired',
-        deadline: '2025-01-01',
+        description: 'This campaign will expire in seconds',
+        deadline: nearDeadline,
         audience: 'all',
       },
     })
     if ([200, 201].includes(expRes.status())) {
       const expBody = await readJsonSafe<{ id: string }>(expRes)
       expiredCampaignId = expBody!.id
+      // Wait for the deadline to pass
+      await new Promise((resolve) => setTimeout(resolve, 4_000))
     }
   })
 
@@ -160,7 +163,6 @@ test.describe.serial('TC-PRM-028: BD Submits RFP Response', () => {
 
   // T6: Submit after deadline → rejected
   test('T6: Response after deadline is rejected', async ({ request }) => {
-    test.skip(!expiredCampaignId, 'No expired campaign created')
 
     const res = await apiRequest(request, 'POST', '/api/partnerships/rfp-responses', {
       token: bdToken,
@@ -198,7 +200,6 @@ test.describe.serial('TC-PRM-028: BD Submits RFP Response', () => {
 
   // T7b: Edit response after deadline → rejected
   test('T7b: Edit response after deadline is rejected', async ({ request }) => {
-    test.skip(!expiredCampaignId, 'No expired campaign created')
 
     const res = await apiRequest(request, 'PUT', '/api/partnerships/rfp-responses', {
       token: bdToken,

@@ -92,30 +92,31 @@ test.describe.serial('TC-PRM-030: RFP Campaign Lifecycle', () => {
 
   // T3: Deadline auto-closes campaign
   test('T3: Expired campaign rejects new responses', async ({ request }) => {
-    // Create campaign with past deadline
+    // Create campaign with near-future deadline, then wait for it to expire
+    const nearDeadline = new Date(Date.now() + 3_000).toISOString()
     const res = await apiRequest(request, 'POST', '/api/partnerships/rfp-campaigns', {
       token: pmToken,
       data: {
         title: `QA Expired ${stamp}`,
-        description: 'Already expired',
-        deadline: '2025-01-01',
+        description: 'Will expire in seconds',
+        deadline: nearDeadline,
         audience: 'all',
       },
     })
+    expect([200, 201].includes(res.status()), `Campaign creation failed: ${res.status()}`).toBe(true)
 
-    // Campaign creation with past deadline might be rejected (T2 in TC-026)
-    // or accepted but responses blocked
-    if ([200, 201].includes(res.status())) {
-      const body = await readJsonSafe<{ id: string }>(res)
-      const respRes = await apiRequest(request, 'POST', '/api/partnerships/rfp-responses', {
-        token: bdToken,
-        data: { campaignId: body!.id, responseText: 'Late!' },
-      })
-      expect(respRes.status(), 'Response to expired campaign should be rejected').toBe(422)
+    const body = await readJsonSafe<{ id: string }>(res)
+    // Wait for deadline to pass
+    await new Promise((resolve) => setTimeout(resolve, 4_000))
 
-      // Cleanup
-      await apiRequest(request, 'DELETE', `/api/partnerships/rfp-campaigns/${body!.id}`, { token: pmToken }).catch(() => {})
-    }
+    const respRes = await apiRequest(request, 'POST', '/api/partnerships/rfp-responses', {
+      token: bdToken,
+      data: { campaignId: body!.id, responseText: 'Late!' },
+    })
+    expect(respRes.status(), 'Response to expired campaign should be rejected').toBe(422)
+
+    // Cleanup
+    await apiRequest(request, 'DELETE', `/api/partnerships/rfp-campaigns/${body!.id}`, { token: pmToken }).catch(() => {})
   })
 
   // T4: PM edits draft campaign

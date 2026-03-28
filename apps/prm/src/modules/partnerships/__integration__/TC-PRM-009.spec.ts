@@ -21,6 +21,7 @@ import { getTokenContext } from '@open-mercato/core/helpers/integration/generalF
 
 const PM_EMAIL = 'partnership-manager@demo.local'
 const ADMIN_EMAIL = 'acme-admin@demo.local'
+const CONTRIBUTOR_EMAIL = 'acme-contributor@demo.local'
 const DEMO_PASSWORD = 'Demo123!'
 const BASE = process.env.BASE_URL ?? 'http://127.0.0.1:5001'
 const GH_USERNAME = 'carol-acme'
@@ -32,11 +33,13 @@ async function loginInBrowser(page: Page, token: string): Promise<void> {
 test.describe('TC-PRM-009: WIC Import Page UI', () => {
   let pmToken: string
   let adminToken: string
+  let contributorToken: string
   let acmeOrgId: string
 
   test.beforeAll(async ({ request }) => {
     pmToken = await getAuthToken(request, PM_EMAIL, DEMO_PASSWORD)
     adminToken = await getAuthToken(request, ADMIN_EMAIL, DEMO_PASSWORD)
+    contributorToken = await getAuthToken(request, CONTRIBUTOR_EMAIL, DEMO_PASSWORD)
     acmeOrgId = getTokenContext(adminToken).organizationId
   })
 
@@ -123,13 +126,14 @@ test.describe('TC-PRM-009: WIC Import Page UI', () => {
     await expect(page.locator('.text-destructive')).toBeVisible({ timeout: 10_000 })
   })
 
-  test('T5: Admin cannot access WIC import page', async ({ page }) => {
-    await loginInBrowser(page, adminToken)
+  test('T5: Contributor cannot access WIC import page', async ({ page }) => {
+    // Contributor lacks partnerships.manage — page redirects or hides form
+    await loginInBrowser(page, contributorToken)
     await page.goto(`${BASE}/backend/partnerships/wic-import`)
     await page.waitForTimeout(3_000)
 
     const formVisible = await page.locator('#wic-json').isVisible().catch(() => false)
-    expect(formVisible, 'Admin should not see WIC import form').toBe(false)
+    expect(formVisible, 'Contributor should not see WIC import form').toBe(false)
   })
 })
 

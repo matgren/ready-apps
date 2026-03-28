@@ -159,7 +159,7 @@ export default function MyWicPage() {
             {data && data.totalPages > 1 && (
               <div className="mt-4 flex items-center justify-between text-sm">
                 <p className="text-muted-foreground">
-                  {t('partnerships.myWic.paginationInfo', `Page ${data.page} of ${data.totalPages} (${data.total} records)`)}
+                  Page {data.page} of {data.totalPages} ({data.total} records)
                 </p>
                 <div className="flex gap-2">
                   <button
