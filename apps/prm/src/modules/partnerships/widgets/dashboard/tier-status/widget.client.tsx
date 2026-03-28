@@ -9,6 +9,7 @@ import { useT } from '@open-mercato/shared/lib/i18n/context'
 type TierStatusResponse = {
   tier: string | null
   year: number
+  viewMode: 'full' | 'badge'
   kpis: {
     wic: number
     wip: number
@@ -219,27 +220,29 @@ const TierStatusWidget: React.FC<DashboardWidgetComponentProps> = ({
         </div>
       )}
 
-      {/* KPI progress bars */}
-      <div className="space-y-3">
-        <ProgressBar
-          label={t('partnerships.tierStatus.wic')}
-          value={data.kpis.wic}
-          threshold={data.kpis.wicThreshold}
-          percent={data.progressPercent.wic}
-        />
-        <ProgressBar
-          label={t('partnerships.tierStatus.wip')}
-          value={data.kpis.wip}
-          threshold={data.kpis.wipThreshold}
-          percent={data.progressPercent.wip}
-        />
-        <ProgressBar
-          label={t('partnerships.tierStatus.min')}
-          value={data.kpis.min}
-          threshold={data.kpis.minThreshold}
-          percent={data.progressPercent.min}
-        />
-      </div>
+      {/* KPI progress bars — only for full view (admin/BD/PM), hidden for contributors */}
+      {data.viewMode === 'full' && (
+        <div className="space-y-3">
+          <ProgressBar
+            label={t('partnerships.tierStatus.wic')}
+            value={data.kpis.wic}
+            threshold={data.kpis.wicThreshold}
+            percent={data.progressPercent.wic}
+          />
+          <ProgressBar
+            label={t('partnerships.tierStatus.wip')}
+            value={data.kpis.wip}
+            threshold={data.kpis.wipThreshold}
+            percent={data.progressPercent.wip}
+          />
+          <ProgressBar
+            label={t('partnerships.tierStatus.min')}
+            value={data.kpis.min}
+            threshold={data.kpis.minThreshold}
+            percent={data.progressPercent.min}
+          />
+        </div>
+      )}
     </div>
   )
 }

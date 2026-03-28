@@ -187,9 +187,27 @@ async function GET(req: Request) {
       : getCurrentTierThreshold('OM Agency')
     const thresholds = { wic: monthly.wic * 12, wip: monthly.wip * 12, min: monthly.min }
 
+    // Determine view mode based on user features
+    // partnerships.manage = PM/admin → full KPI view
+    // otherwise (contributor) → badge only
+    let viewMode: 'full' | 'badge' = 'badge'
+    try {
+      const rbac = container.resolve('rbacService') as { getGrantedFeatures?: (userId: string, opts: { tenantId: string; organizationId?: string }) => Promise<string[]> } | undefined
+      if (rbac?.getGrantedFeatures) {
+        const features = await rbac.getGrantedFeatures(auth.sub, { tenantId, organizationId })
+        if (features.includes('partnerships.manage')) {
+          viewMode = 'full'
+        }
+      }
+    } catch {
+      // Fallback to full if RBAC unavailable
+      viewMode = 'full'
+    }
+
     return NextResponse.json({
       tier,
       year,
+      viewMode,
       kpis: {
         wic,
         wip,
