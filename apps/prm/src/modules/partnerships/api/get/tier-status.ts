@@ -55,10 +55,22 @@ async function readWicYear(
   const recordIds = [...new Set(monthCfvs.map((c) => c.recordId))]
   if (recordIds.length === 0) return 0
 
+  // Exclude archived records (those with archived_at set)
+  const archivedCfvs = await em.find(CustomFieldValue, {
+    entityId: CU_ENTITY_ID,
+    fieldKey: 'archived_at',
+    recordId: { $in: recordIds },
+    tenantId,
+    deletedAt: null,
+  })
+  const archivedIds = new Set(archivedCfvs.filter((c) => c.valueText).map((c) => c.recordId))
+  const activeRecordIds = recordIds.filter((id) => !archivedIds.has(id))
+  if (activeRecordIds.length === 0) return 0
+
   const scoreCfvs = await em.find(CustomFieldValue, {
     entityId: CU_ENTITY_ID,
     fieldKey: 'wic_score',
-    recordId: { $in: recordIds },
+    recordId: { $in: activeRecordIds },
     tenantId,
     deletedAt: null,
   })
@@ -188,8 +200,8 @@ async function GET(req: Request) {
     const thresholds = { wic: monthly.wic * 12, wip: monthly.wip * 12, min: monthly.min }
 
     // Determine view mode based on user features
-    // partnerships.manage = PM/admin → full KPI view
-    // otherwise (contributor) → badge only
+    // directory.organizations.manage = PM/admin → full KPI view
+    // otherwise (member/contributor) → badge only
     type RbacService = {
       userHasAllFeatures(userId: string, required: string[], scope: { tenantId: string | null; organizationId: string | null }): Promise<boolean>
     }
@@ -197,7 +209,7 @@ async function GET(req: Request) {
     try {
       const rbac = container.resolve('rbacService') as RbacService | undefined
       if (rbac?.userHasAllFeatures) {
-        const hasPmFeature = await rbac.userHasAllFeatures(auth.sub, ['partnerships.manage'], { tenantId, organizationId })
+        const hasPmFeature = await rbac.userHasAllFeatures(auth.sub, ['directory.organizations.manage'], { tenantId, organizationId })
         if (hasPmFeature) {
           viewMode = 'full'
         }

@@ -72,11 +72,23 @@ async function readWic(
   const recordIds = [...new Set(monthCfvs.map((c) => c.recordId))]
   if (recordIds.length === 0) return 0
 
-  // 2. Get wic_score CFVs for those records
+  // 2. Exclude archived records (those with archived_at set)
+  const archivedCfvs = await em.find(CustomFieldValue, {
+    entityId: CU_ENTITY_ID,
+    fieldKey: 'archived_at',
+    recordId: { $in: recordIds },
+    tenantId,
+    deletedAt: null,
+  })
+  const archivedIds = new Set(archivedCfvs.filter((c) => c.valueText).map((c) => c.recordId))
+  const activeRecordIds = recordIds.filter((id) => !archivedIds.has(id))
+  if (activeRecordIds.length === 0) return 0
+
+  // 3. Get wic_score CFVs for active records only
   const scoreCfvs = await em.find(CustomFieldValue, {
     entityId: CU_ENTITY_ID,
     fieldKey: 'wic_score',
-    recordId: { $in: recordIds },
+    recordId: { $in: activeRecordIds },
     tenantId,
     deletedAt: null,
   })
