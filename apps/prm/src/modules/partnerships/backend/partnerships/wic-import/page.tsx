@@ -148,10 +148,6 @@ export default function WicImportPage() {
         <div className="mx-auto max-w-2xl space-y-6">
           <h2 className="text-lg font-semibold">{t('partnerships.wicImport.title')}</h2>
 
-          <p className="text-xs text-muted-foreground">
-            App Spec mentions CSV/markdown — JSON chosen because the external script outputs JSON directly.
-          </p>
-
           <div className="space-y-4">
             <div>
               <label htmlFor="wic-org" className="block text-sm font-medium mb-1">
@@ -194,7 +190,7 @@ export default function WicImportPage() {
                 onChange={(e) => setJsonInput(e.target.value)}
                 rows={12}
                 className="w-full rounded-md border px-3 py-2 font-mono text-sm"
-                placeholder={`[\n  {\n    "contributorGithubUsername": "octocat",\n    "prId": "OM-1234",\n    "month": "${selectedMonth}",\n    "featureKey": "feat/my-feature",\n    "level": "L3",\n    "impactBonus": false,\n    "bountyApplied": false,\n    "wicScore": 0.5\n  }\n]`}
+                placeholder={`[\n  {\n    "contributorGithubUsername": "octocat",\n    "month": "${selectedMonth}",\n    "wicScore": 1.5,\n    "level": "L3",\n    "impactBonus": 0.25,\n    "bountyBonus": 0.0,\n    "whyBonus": "",\n    "included": "SPEC-042 implementation + tests",\n    "excluded": "Routine dependency updates",\n    "scriptVersion": "1.0-agent"\n  }\n]`}
               />
             </div>
 
@@ -238,22 +234,24 @@ export default function WicImportPage() {
                 {t('partnerships.wicImport.agenticHelperDesc', 'Paste this prompt in your AI coding assistant (Claude Code, Cursor) to generate the WIC JSON:')}
               </p>
               <pre className="whitespace-pre-wrap rounded-md bg-blue-100 dark:bg-blue-900/50 p-3 text-xs font-mono text-blue-900 dark:text-blue-100 select-all cursor-pointer">
-{`Score the following contributors' GitHub activity for ${selectedMonth} on the open-mercato/open-mercato repo.
+{`Użyj WIC Assessment Guide i oblicz WIC score dla poniższych kont GitHub za okres ${selectedMonth} na repozytorium open-mercato/open-mercato.
 
-Contributors (${agencies.find(a => a.organizationId === selectedOrgId)?.name ?? 'selected agency'}):
+Konta (${agencies.find(a => a.organizationId === selectedOrgId)?.name ?? 'selected agency'}):
 ${contributors.map(c => `  - ${c.githubUsername} (${c.name})`).join('\n')}
 
-For each contributor, find merged PRs in ${selectedMonth} and produce a JSON array:
+Wygeneruj rezultat w postaci JSON array:
 [
   {
     "contributorGithubUsername": "<gh-username>",
-    "prId": "<PR number or ID>",
     "month": "${selectedMonth}",
-    "featureKey": "<feature or area the PR touches>",
+    "wicScore": <suma base+impact+bounty>,
     "level": "L1|L2|L3|L4|routine",
-    "impactBonus": false,
-    "bountyApplied": false,
-    "wicScore": <0.25 for routine, 0.5 for L1, 1.0 for L2, 1.25 for L3, 1.5 for L4>
+    "impactBonus": <0|0.25|0.5>,
+    "bountyBonus": <wartość liczbowa bonusu>,
+    "whyBonus": "<tytuł bounty lub pusty string>",
+    "included": "<co zaliczono i dlaczego>",
+    "excluded": "<co odrzucono i dlaczego>",
+    "scriptVersion": "1.0-agent"
   }
 ]
 
