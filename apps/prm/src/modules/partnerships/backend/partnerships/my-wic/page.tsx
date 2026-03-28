@@ -9,14 +9,18 @@ import { Spinner } from '@open-mercato/ui/primitives/spinner'
 type WicScoreRecord = {
   recordId: string
   contributorGithubUsername: string
-  prId: string
   month: string
-  featureKey: string
-  level: string
-  impactBonus: boolean
-  bountyApplied: boolean
   wicScore: number
+  level: string
+  impactBonus: number
+  bountyBonus: number
+  whyBonus: string
+  included: string
+  excluded: string
+  scriptVersion: string
   assessmentSource: string
+  assessmentId: string
+  archivedAt: string | null
 }
 
 type WicScoresResponse = {
@@ -65,6 +69,32 @@ export default function MyWicPage() {
   const [currentPage, setCurrentPage] = React.useState(1)
   const [data, setData] = React.useState<WicScoresResponse | null>(null)
   const [loading, setLoading] = React.useState(true)
+  const [expandedRows, setExpandedRows] = React.useState<Set<string>>(new Set())
+  const [showArchive, setShowArchive] = React.useState(false)
+  const [archiveData, setArchiveData] = React.useState<WicScoresResponse | null>(null)
+  const [loadingArchive, setLoadingArchive] = React.useState(false)
+
+  function toggleRow(recordId: string) {
+    setExpandedRows((prev) => {
+      const next = new Set(prev)
+      if (next.has(recordId)) next.delete(recordId)
+      else next.add(recordId)
+      return next
+    })
+  }
+
+  async function loadArchive() {
+    if (archiveData) { setShowArchive(!showArchive); return }
+    setLoadingArchive(true)
+    const call = await apiCall<WicScoresResponse>(
+      `/api/partnerships/wic-scores?month=${encodeURIComponent(selectedMonth)}&includeArchived=true&pageSize=100`,
+    )
+    if (call.ok && call.result) {
+      setArchiveData(call.result)
+    }
+    setLoadingArchive(false)
+    setShowArchive(true)
+  }
 
   React.useEffect(() => {
     async function load() {
@@ -85,6 +115,8 @@ export default function MyWicPage() {
   function handleMonthChange(value: string) {
     setSelectedMonth(value)
     setCurrentPage(1)
+    setArchiveData(null)
+    setShowArchive(false)
   }
 
   if (loading) {
@@ -131,25 +163,49 @@ export default function MyWicPage() {
                 <thead>
                   <tr className="border-b bg-muted/50">
                     <th className="px-4 py-3 text-left font-medium">{t('partnerships.myWic.colContributor')}</th>
-                    <th className="px-4 py-3 text-left font-medium">{t('partnerships.myWic.colPr')}</th>
-                    <th className="px-4 py-3 text-left font-medium">{t('partnerships.myWic.colFeature')}</th>
                     <th className="px-4 py-3 text-left font-medium">{t('partnerships.myWic.colLevel')}</th>
                     <th className="px-4 py-3 text-right font-medium">{t('partnerships.myWic.colScore')}</th>
-                    <th className="px-4 py-3 text-center font-medium">{t('partnerships.myWic.colBounty')}</th>
+                    <th className="px-4 py-3 text-right font-medium">{t('partnerships.myWic.colImpactBonus')}</th>
+                    <th className="px-4 py-3 text-right font-medium">{t('partnerships.myWic.colBountyBonus')}</th>
+                    <th className="px-4 py-3 text-left font-medium">{t('partnerships.myWic.colWhyBonus')}</th>
                     <th className="px-4 py-3 text-left font-medium">{t('partnerships.myWic.colSource')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {records.map((record) => (
-                    <tr key={record.recordId} className="border-b last:border-0 hover:bg-muted/30">
-                      <td className="px-4 py-3 font-medium">{record.contributorGithubUsername}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{record.prId}</td>
-                      <td className="px-4 py-3 text-muted-foreground">{record.featureKey}</td>
-                      <td className="px-4 py-3">{record.level}</td>
-                      <td className="px-4 py-3 text-right tabular-nums">{record.wicScore.toFixed(2)}</td>
-                      <td className="px-4 py-3 text-center">{record.bountyApplied ? t('partnerships.myWic.bountyYes') : t('partnerships.myWic.bountyNo')}</td>
-                      <td className="px-4 py-3"><SourceBadge source={record.assessmentSource} t={t} /></td>
-                    </tr>
+                    <React.Fragment key={record.recordId}>
+                      <tr
+                        className="border-b last:border-0 hover:bg-muted/30 cursor-pointer"
+                        onClick={() => toggleRow(record.recordId)}
+                      >
+                        <td className="px-4 py-3 font-medium">{record.contributorGithubUsername}</td>
+                        <td className="px-4 py-3">{record.level}</td>
+                        <td className="px-4 py-3 text-right tabular-nums">{record.wicScore.toFixed(2)}</td>
+                        <td className="px-4 py-3 text-right tabular-nums">{record.impactBonus > 0 ? `+${record.impactBonus}` : '—'}</td>
+                        <td className="px-4 py-3 text-right tabular-nums">{record.bountyBonus > 0 ? `+${record.bountyBonus}` : '—'}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{record.whyBonus || '—'}</td>
+                        <td className="px-4 py-3"><SourceBadge source={record.assessmentSource} t={t} /></td>
+                      </tr>
+                      {expandedRows.has(record.recordId) && (
+                        <tr className="border-b bg-muted/10">
+                          <td colSpan={7} className="px-4 py-3">
+                            <div className="space-y-2 text-sm">
+                              <div>
+                                <span className="font-medium">{t('partnerships.myWic.colIncluded')}:</span>
+                                <p className="mt-1 text-muted-foreground whitespace-pre-wrap">{record.included || '—'}</p>
+                              </div>
+                              <div>
+                                <span className="font-medium">{t('partnerships.myWic.colExcluded')}:</span>
+                                <p className="mt-1 text-muted-foreground whitespace-pre-wrap">{record.excluded || '—'}</p>
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {t('partnerships.myWic.colScriptVersion')}: {record.scriptVersion}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>
@@ -183,6 +239,81 @@ export default function MyWicPage() {
                 </div>
               </div>
             )}
+
+            {/* Archive section */}
+            <div className="mt-6">
+              <button
+                type="button"
+                onClick={loadArchive}
+                className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
+                data-testid="archive-toggle"
+              >
+                <span>{showArchive ? '▾' : '▸'}</span>
+                {t('partnerships.myWic.previousAssessments')}
+                {loadingArchive && <Spinner className="ml-1 h-3 w-3" />}
+              </button>
+              {showArchive && archiveData && (() => {
+                const archived = archiveData.records.filter((r) => r.archivedAt)
+                const groups = new Map<string, WicScoreRecord[]>()
+                for (const r of archived) {
+                  const list = groups.get(r.assessmentId) ?? []
+                  list.push(r)
+                  groups.set(r.assessmentId, list)
+                }
+                const sortedGroups = [...groups.entries()].sort((a, b) => {
+                  const dateA = a[1][0]?.archivedAt ?? ''
+                  const dateB = b[1][0]?.archivedAt ?? ''
+                  return dateB.localeCompare(dateA)
+                })
+                if (sortedGroups.length === 0) {
+                  return <p className="mt-2 text-xs text-muted-foreground">No previous assessments.</p>
+                }
+                return (
+                  <div className="mt-2 space-y-3">
+                    {sortedGroups.map(([assessmentId, groupRecords]) => {
+                      const archivedAt = groupRecords[0]?.archivedAt
+                      const source = groupRecords[0]?.assessmentSource ?? ''
+                      const version = groupRecords[0]?.scriptVersion ?? ''
+                      return (
+                        <details key={assessmentId} className="rounded-md border p-3">
+                          <summary className="cursor-pointer text-sm font-medium">
+                            {t('partnerships.myWic.archivedOn')} {archivedAt ? new Date(archivedAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '?'}
+                            {' · '}{source === 'automated_pipeline' ? t('partnerships.myWic.sourceAutomated') : t('partnerships.myWic.sourceManual')}
+                            {' · v'}{version}
+                          </summary>
+                          <div className="mt-2 rounded-lg border">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="border-b bg-muted/50">
+                                  <th className="px-3 py-2 text-left font-medium">{t('partnerships.myWic.colContributor')}</th>
+                                  <th className="px-3 py-2 text-left font-medium">{t('partnerships.myWic.colLevel')}</th>
+                                  <th className="px-3 py-2 text-right font-medium">{t('partnerships.myWic.colScore')}</th>
+                                  <th className="px-3 py-2 text-right font-medium">{t('partnerships.myWic.colImpactBonus')}</th>
+                                  <th className="px-3 py-2 text-right font-medium">{t('partnerships.myWic.colBountyBonus')}</th>
+                                  <th className="px-3 py-2 text-left font-medium">{t('partnerships.myWic.colWhyBonus')}</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {groupRecords.map((r) => (
+                                  <tr key={r.recordId} className="border-b last:border-0">
+                                    <td className="px-3 py-2">{r.contributorGithubUsername}</td>
+                                    <td className="px-3 py-2">{r.level}</td>
+                                    <td className="px-3 py-2 text-right tabular-nums">{r.wicScore.toFixed(2)}</td>
+                                    <td className="px-3 py-2 text-right tabular-nums">{r.impactBonus > 0 ? `+${r.impactBonus}` : '—'}</td>
+                                    <td className="px-3 py-2 text-right tabular-nums">{r.bountyBonus > 0 ? `+${r.bountyBonus}` : '—'}</td>
+                                    <td className="px-3 py-2 text-muted-foreground">{r.whyBonus || '—'}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </details>
+                      )
+                    })}
+                  </div>
+                )
+              })()}
+            </div>
           </>
         )}
       </PageBody>
