@@ -200,8 +200,7 @@ async function GET(req: Request) {
         }
       }
     } catch {
-      // Fallback to full if RBAC unavailable
-      viewMode = 'full'
+      // Fallback to badge (least privilege) if RBAC unavailable
     }
 
     return NextResponse.json({
@@ -254,6 +253,8 @@ const progressSchema = z.object({
 
 const responseSchema = z.object({
   tier: z.string().nullable(),
+  year: z.number().int(),
+  viewMode: z.enum(['full', 'badge']),
   kpis: kpiSchema,
   gracePeriod: z.boolean(),
   pendingProposal: z.boolean(),

@@ -277,6 +277,10 @@ const responseSchema = z.object({
   records: z.array(wicScoreRecordSchema),
   month: z.string().describe('The queried month in YYYY-MM format'),
   totalWicScore: z.number(),
+  total: z.number().int().nonnegative(),
+  page: z.number().int().min(1),
+  pageSize: z.number().int().min(1).max(100),
+  totalPages: z.number().int().nonnegative(),
 })
 
 const getDoc: OpenApiMethodDoc = {
