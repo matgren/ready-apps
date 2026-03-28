@@ -17,6 +17,11 @@ type ImportResult = {
   assessmentId: string
 }
 
+type ContributorInfo = {
+  name: string
+  githubUsername: string
+}
+
 function currentYearMonth(): string {
   const now = new Date()
   const year = now.getFullYear()
@@ -34,6 +39,8 @@ export default function WicImportPage() {
   const [importing, setImporting] = React.useState(false)
   const [result, setResult] = React.useState<ImportResult | null>(null)
   const [error, setError] = React.useState<string | null>(null)
+  const [contributors, setContributors] = React.useState<ContributorInfo[]>([])
+  const [loadingContributors, setLoadingContributors] = React.useState(false)
 
   React.useEffect(() => {
     async function loadAgencies() {
@@ -48,6 +55,28 @@ export default function WicImportPage() {
     }
     loadAgencies()
   }, [])
+
+  // Load contributors when agency changes — auth/users API returns cf_github_username inline
+  React.useEffect(() => {
+    if (!selectedOrgId) { setContributors([]); return }
+    let cancelled = false
+    async function loadContributors() {
+      setLoadingContributors(true)
+      const call = await apiCall<{ items: Array<{ name?: string; email: string; cf_github_username?: string }> }>(
+        `/api/auth/users?organizationId=${selectedOrgId}&pageSize=100`,
+      )
+      if (cancelled) return
+      if (!call.ok || !call.result) { setContributors([]); setLoadingContributors(false); return }
+
+      const withGh = (call.result.items ?? [])
+        .filter((u) => u.cf_github_username)
+        .map((u) => ({ name: u.name || u.email, githubUsername: u.cf_github_username! }))
+      setContributors(withGh)
+      setLoadingContributors(false)
+    }
+    loadContributors()
+    return () => { cancelled = true }
+  }, [selectedOrgId])
 
   async function handleImport() {
     setError(null)
@@ -197,6 +226,56 @@ export default function WicImportPage() {
             <div className="rounded-md border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">
               {error}
             </div>
+          )}
+
+          {/* Agentic IDE helper — suggested command */}
+          {contributors.length > 0 && (
+            <div className="rounded-md border border-blue-200 bg-blue-50/50 p-4 text-sm dark:border-blue-800 dark:bg-blue-950/30">
+              <p className="font-medium text-blue-900 dark:text-blue-100 mb-2">
+                {t('partnerships.wicImport.agenticHelper', 'Agentic IDE Helper')}
+              </p>
+              <p className="text-xs text-blue-800 dark:text-blue-200 mb-3">
+                {t('partnerships.wicImport.agenticHelperDesc', 'Paste this prompt in your AI coding assistant (Claude Code, Cursor) to generate the WIC JSON:')}
+              </p>
+              <pre className="whitespace-pre-wrap rounded-md bg-blue-100 dark:bg-blue-900/50 p-3 text-xs font-mono text-blue-900 dark:text-blue-100 select-all cursor-pointer">
+{`Score the following contributors' GitHub activity for ${selectedMonth} on the open-mercato/open-mercato repo.
+
+Contributors (${agencies.find(a => a.organizationId === selectedOrgId)?.name ?? 'selected agency'}):
+${contributors.map(c => `  - ${c.githubUsername} (${c.name})`).join('\n')}
+
+For each contributor, find merged PRs in ${selectedMonth} and produce a JSON array:
+[
+  {
+    "contributorGithubUsername": "<gh-username>",
+    "prId": "<PR number or ID>",
+    "month": "${selectedMonth}",
+    "featureKey": "<feature or area the PR touches>",
+    "level": "L1|L2|L3|L4|routine",
+    "impactBonus": false,
+    "bountyApplied": false,
+    "wicScore": <0.25 for routine, 0.5 for L1, 1.0 for L2, 1.25 for L3, 1.5 for L4>
+  }
+]
+
+Output ONLY the JSON array, no explanation.`}
+              </pre>
+              <button
+                type="button"
+                onClick={() => {
+                  const text = document.querySelector<HTMLPreElement>('.select-all')?.textContent ?? ''
+                  navigator.clipboard.writeText(text)
+                }}
+                className="mt-2 text-xs text-blue-700 dark:text-blue-300 underline hover:no-underline"
+              >
+                {t('partnerships.wicImport.copyPrompt', 'Copy to clipboard')}
+              </button>
+            </div>
+          )}
+          {loadingContributors && (
+            <p className="text-xs text-muted-foreground">{t('partnerships.wicImport.loadingContributors', 'Loading contributors...')}</p>
+          )}
+          {!loadingContributors && selectedOrgId && contributors.length === 0 && (
+            <p className="text-xs text-muted-foreground">{t('partnerships.wicImport.noContributors', 'No contributors with GitHub usernames found for this agency.')}</p>
           )}
         </div>
       </PageBody>

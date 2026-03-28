@@ -47,7 +47,12 @@
       "organization": "Agency",
       "month": "Month",
       "jsonInput": "WIC Scoring Results (JSON)",
-      "importButton": "Import"
+      "importButton": "Import",
+      "agenticHelper": "Agentic IDE Helper",
+      "agenticHelperDesc": "Paste this prompt in your AI coding assistant (Claude Code, Cursor) to generate the WIC JSON:",
+      "copyPrompt": "Copy to clipboard",
+      "loadingContributors": "Loading contributors...",
+      "noContributors": "No contributors with GitHub usernames found for this agency."
     },
     "licenseDeals": {
       "title": "License Deals",
