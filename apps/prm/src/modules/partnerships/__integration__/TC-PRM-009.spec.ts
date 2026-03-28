@@ -72,13 +72,15 @@ test.describe('TC-PRM-009: WIC Import Page UI', () => {
 
     const json = JSON.stringify([{
       contributorGithubUsername: GH_USERNAME,
-      prId: `PR-UI-${Date.now()}`,
       month,
-      featureKey: 'feat.ui.import.test',
-      level: 'L2',
-      impactBonus: false,
-      bountyApplied: false,
       wicScore: 1.0,
+      level: 'L2',
+      impactBonus: 0.25,
+      bountyBonus: 0.0,
+      whyBonus: '',
+      included: 'TC-PRM-009 test import',
+      excluded: 'None',
+      scriptVersion: '1.0-agent',
     }])
 
     await page.locator('#wic-json').fill(json)
@@ -110,13 +112,15 @@ test.describe('TC-PRM-009: WIC Import Page UI', () => {
 
     const json = JSON.stringify([{
       contributorGithubUsername: `nonexistent-user-${Date.now()}`,
-      prId: 'PR-BOGUS-001',
       month,
-      featureKey: 'feat.bogus',
-      level: 'L1',
-      impactBonus: false,
-      bountyApplied: false,
       wicScore: 0.5,
+      level: 'L1',
+      impactBonus: 0.0,
+      bountyBonus: 0.0,
+      whyBonus: '',
+      included: 'Test',
+      excluded: 'None',
+      scriptVersion: '1.0-agent',
     }])
 
     await page.locator('#wic-json').fill(json)

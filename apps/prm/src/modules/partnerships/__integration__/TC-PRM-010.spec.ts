@@ -58,13 +58,15 @@ test.describe('TC-PRM-010: My WIC Page UI', () => {
         source: 'manual_import',
         records: [{
           contributorGithubUsername: GH_USERNAME,
-          prId: `PR-MYWIC-${Date.now()}`,
           month,
-          featureKey: 'feat.my-wic.test',
-          level: 'L3',
-          impactBonus: false,
-          bountyApplied: false,
           wicScore: 0.5,
+          level: 'L3',
+          impactBonus: 0.25,
+          bountyBonus: 0.0,
+          whyBonus: '',
+          included: 'TC-PRM-010 test feature',
+          excluded: 'Routine maintenance',
+          scriptVersion: '1.0-agent',
         }],
       },
     })
@@ -83,9 +85,10 @@ test.describe('TC-PRM-010: My WIC Page UI', () => {
     expect(hasTable || hasNoData, 'My WIC page should show table or no-data message').toBe(true)
 
     if (hasTable) {
-      await expect(page.locator('th:text-is("PR")').first()).toBeVisible()
       await expect(page.locator('th:text-is("Level")').first()).toBeVisible()
       await expect(page.locator('th:text-is("Score")').first()).toBeVisible()
+      await expect(page.locator('th:text-is("Impact Bonus")').first()).toBeVisible()
+      await expect(page.locator('th:text-is("Bounty Bonus")').first()).toBeVisible()
     }
   })
 
