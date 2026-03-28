@@ -6,6 +6,7 @@ import { Organization } from '@open-mercato/core/modules/directory/data/entities
 import type { EntityManager } from '@mikro-orm/postgresql'
 import type { OpenApiMethodDoc, OpenApiRouteDoc } from '@open-mercato/shared/lib/openapi'
 import tierEvaluationHandler from '../../workers/tier-evaluation'
+import { TierChangeProposal } from '../../data/entities'
 
 export const metadata = {
   path: '/partnerships/enqueue-tier-evaluation',
@@ -59,8 +60,18 @@ async function POST(req: Request) {
     }
   }
 
+  // Count proposals created for this evaluation month
+  const proposalCount = await em.count(TierChangeProposal, {
+    evaluationMonth,
+    tenantId,
+    status: 'PendingApproval',
+  })
+
   return NextResponse.json({
-    jobsEnqueued: evaluated,
+    evaluated,
+    proposals: proposalCount,
+    unchanged: evaluated - (errors.length),
+    month: evaluationMonth,
     errors: errors.length > 0 ? errors : undefined,
   })
 }
@@ -70,8 +81,10 @@ async function POST(req: Request) {
 // ---------------------------------------------------------------------------
 
 const responseSchema = z.object({
-  jobsEnqueued: z.number().int().nonnegative(),
-  message: z.string().optional(),
+  evaluated: z.number().int().nonnegative(),
+  proposals: z.number().int().nonnegative(),
+  unchanged: z.number().int().nonnegative(),
+  month: z.string(),
   errors: z.array(z.string()).optional(),
 })
 

@@ -196,10 +196,22 @@ export default function TierReviewPage() {
 
   async function handleRunEvaluation() {
     setEvaluationRunning(true)
-    const call = await apiCall<{ jobsEnqueued: number }>('/api/partnerships/enqueue-tier-evaluation', { method: 'POST' })
+    const call = await apiCall<{ evaluated: number; proposals: number; month: string; errors?: string[] }>(
+      '/api/partnerships/enqueue-tier-evaluation',
+      { method: 'POST' },
+    )
     if (call.ok && call.result) {
-      const count = call.result.jobsEnqueued
-      flash(`${t('partnerships.tierReview.evaluationQueued', 'Evaluation jobs queued')}: ${count} agencies`, 'success')
+      const { evaluated, proposals, month, errors } = call.result
+      if (errors?.length) {
+        flash(`Evaluated ${evaluated} agencies (${month}) — ${errors.length} failed: ${errors[0]}`, 'warning')
+      } else if (proposals > 0) {
+        flash(`Evaluated ${evaluated} agencies (${month}) — ${proposals} new proposal(s)`, 'success')
+      } else {
+        flash(`Evaluated ${evaluated} agencies (${month}) — no tier changes`, 'info')
+      }
+      load()
+    } else {
+      flash('Evaluation failed', 'error')
     }
     setEvaluationRunning(false)
   }
