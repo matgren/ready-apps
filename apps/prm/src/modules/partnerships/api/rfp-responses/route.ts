@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createRequestContainer } from '@open-mercato/shared/lib/di/container'
 import { getAuthFromRequest } from '@open-mercato/shared/lib/auth/server'
+import { resolveOrganizationScopeForRequest } from '@open-mercato/core/modules/directory/utils/organizationScope'
+import type { RbacService } from '@open-mercato/core/modules/auth/services/rbacService'
 import type { EntityManager } from '@mikro-orm/postgresql'
 import type { OpenApiMethodDoc, OpenApiRouteDoc } from '@open-mercato/shared/lib/openapi'
 import { Organization } from '@open-mercato/core/modules/directory/data/entities'
@@ -22,16 +24,35 @@ export const metadata = {
 async function GET(req: Request) {
   try {
     const auth = await getAuthFromRequest(req)
-    if (!auth?.tenantId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!auth?.tenantId || !auth.sub) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const url = new URL(req.url)
     const campaignId = url.searchParams.get('campaignId')
 
     const container = await createRequestContainer()
     const em = container.resolve('em') as EntityManager
+    const rbac = container.resolve('rbacService') as RbacService
 
-    const where: Record<string, unknown> = { tenantId: auth.tenantId }
+    const scope = await resolveOrganizationScopeForRequest({ container, auth, request: req })
+    const tenantId = scope?.tenantId ?? auth.tenantId
+    const selectedOrgId = scope?.selectedId ?? null
+
+    // PM (rfp.manage) sees responses scoped to org switcher; agency sees own org only
+    const isPm = await rbac.userHasAllFeatures(auth.sub, ['partnerships.rfp.manage'], {
+      tenantId,
+      organizationId: selectedOrgId ?? auth.orgId ?? null,
+    })
+
+    const where: Record<string, unknown> = { tenantId }
     if (campaignId) where.campaignId = campaignId
+    if (isPm) {
+      // filterIds=null means "All Orgs" or no cookie set — show everything
+      // filterIds=[...] means specific org selected — scope to those orgs
+      if (scope?.filterIds) where.organizationId = { $in: scope.filterIds }
+    } else {
+      // Agency: locked to own org
+      where.organizationId = auth.orgId
+    }
 
     const rawItems = await em.find(PartnerRfpResponse, where, {
       orderBy: { createdAt: 'ASC' },
