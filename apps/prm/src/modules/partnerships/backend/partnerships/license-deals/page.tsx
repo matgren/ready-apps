@@ -139,15 +139,14 @@ export default function LicenseDealsPage() {
                   <th className="px-4 py-3 text-left font-medium">
                     {t('partnerships.licenseDeals.columns.closedAt', 'Closed')}
                   </th>
+                  {canManage && (
+                    <th className="px-4 py-3 text-right font-medium w-20" />
+                  )}
                 </tr>
               </thead>
               <tbody>
                 {items.map((deal) => (
-                  <tr
-                    key={deal.id}
-                    className={`border-b last:border-0 hover:bg-muted/30 ${canManage ? 'cursor-pointer' : ''}`}
-                    onClick={canManage ? () => { window.location.href = `/backend/partnerships/license-deals/${deal.id}` } : undefined}
-                  >
+                  <tr key={deal.id} className="border-b last:border-0 hover:bg-muted/30">
                     <td className="px-4 py-3 font-medium">{deal.licenseIdentifier}</td>
                     <td className="px-4 py-3 text-muted-foreground">{deal.industryTag}</td>
                     <td className="px-4 py-3 text-right tabular-nums">{deal.year}</td>
@@ -171,6 +170,16 @@ export default function LicenseDealsPage() {
                     <td className="px-4 py-3 text-muted-foreground">
                       {deal.closedAt ? new Date(deal.closedAt).toLocaleDateString() : '\u2014'}
                     </td>
+                    {canManage && (
+                      <td className="px-4 py-3 text-right">
+                        <a
+                          href={`/backend/partnerships/license-deals/${deal.id}`}
+                          className="text-xs text-primary hover:underline"
+                        >
+                          {t('partnerships.licenseDeals.editLink', 'Edit')}
+                        </a>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
