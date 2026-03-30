@@ -43,6 +43,81 @@ export const createAgencySchema = z.object({
 
 export type CreateAgencyInput = z.infer<typeof createAgencySchema>
 
+const optionalTrimmedString = z.preprocess((value) => {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
+}, z.string().nullable())
+
+const optionalStringArray = z.preprocess((value) => {
+  if (Array.isArray(value)) {
+    return value
+      .filter((item): item is string => typeof item === 'string')
+      .map((item) => item.trim())
+      .filter(Boolean)
+  }
+  if (typeof value === 'string') {
+    return value
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean)
+  }
+  return []
+}, z.array(z.string()))
+
+const optionalInt = z.preprocess((value) => {
+  if (value === '' || value === null || value === undefined) return null
+  if (typeof value === 'number' && Number.isFinite(value)) return Math.trunc(value)
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (!trimmed) return null
+    const parsed = Number.parseInt(trimmed, 10)
+    return Number.isFinite(parsed) ? parsed : value
+  }
+  return value
+}, z.number().int().nullable())
+
+const optionalDateString = z.preprocess((value) => {
+  if (value instanceof Date) {
+    return value.toISOString().slice(0, 10)
+  }
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : null
+}, z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable())
+
+export const agencyProfileValuesSchema = z.object({
+  services: optionalStringArray,
+  industries: optionalStringArray,
+  technologies: optionalStringArray,
+  verticals: optionalStringArray,
+  team_size: optionalTrimmedString,
+  founded_year: optionalInt,
+  website: optionalTrimmedString,
+  headquarters_city: optionalTrimmedString,
+  headquarters_country: optionalTrimmedString,
+  partnership_start_date: optionalDateString,
+  primary_contact_name: optionalTrimmedString,
+  primary_contact_email: optionalTrimmedString,
+  description: optionalTrimmedString,
+})
+
+export const agencyProfileEditableValuesSchema = agencyProfileValuesSchema
+  .omit({
+    partnership_start_date: true,
+    primary_contact_name: true,
+    primary_contact_email: true,
+  })
+  .strict()
+
+export const agencyProfileUpdateSchema = z.object({
+  values: agencyProfileEditableValuesSchema,
+})
+
+export type AgencyProfileValuesInput = z.infer<typeof agencyProfileValuesSchema>
+export type AgencyProfileEditableValuesInput = z.infer<typeof agencyProfileEditableValuesSchema>
+export type AgencyProfileUpdateInput = z.infer<typeof agencyProfileUpdateSchema>
+
 export const partnerLicenseDealCreateSchema = z.object({
   organizationId: z.string().uuid(),
   companyId: z.string().uuid(),
