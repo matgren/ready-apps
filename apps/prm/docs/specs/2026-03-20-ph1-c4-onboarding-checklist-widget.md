@@ -61,7 +61,7 @@ type OnboardingStatusResponse = {
 | Item | Check | Link |
 |------|-------|------|
 | Fill company profile | Company profile has non-empty `services` OR `industries` (at least one dictionary field populated) | `/backend/customers/companies/{orgCompanyId}` |
-| Add case study | At least 1 `partnerships:case_study` record linked to org's company via `organization_id` | `/backend/partnerships/case-studies/create` |
+| Add case study | At least 1 `partnerships:case_study` record linked to org's company via `organization_id` | `/backend/partnerships/case-studies` |
 | Invite BD | At least 1 user with `partner_member` role in org | `/backend/auth/users/create` |
 | Invite Contributor | At least 1 user with `partner_contributor` role in org | `/backend/auth/users/create` |
 

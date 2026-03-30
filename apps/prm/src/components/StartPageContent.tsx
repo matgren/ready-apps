@@ -169,6 +169,7 @@ export function StartPageContent({ showStartPage: initialShowStartPage }: StartP
             description="Prospects clients and builds pipeline"
             features={[
               'Create companies and deals in CRM',
+              'Create and update agency case studies',
               'Move deals through pipeline stages',
               'WIP auto-tracked at SQL stage',
               'View agency WIP count and tier',

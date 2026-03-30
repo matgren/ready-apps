@@ -17,8 +17,9 @@ After this commit, the PRM module exists with all foundational data: four partne
 **Business (Mat):**
 - [ ] PM can onboard an agency (Admin creates account → sees scoped backend dashboard)
 - [ ] Admin can fill company profile with services, industries, tech stack fields
-- [ ] Admin can add a case study with required fields enforced
+- [ ] Agency Admin can add the first case study with required fields enforced
 - [ ] BD can create deals in CRM pipeline with PRM-specific stages
+- [ ] BD can manage agency case studies in the same org scope after account creation
 
 ## Files
 | File | Action | Purpose |
@@ -41,8 +42,8 @@ After this commit, the PRM module exists with all foundational data: four partne
 
 ### Roles and Feature Grants
 Four roles with feature mappings:
-- `partner_admin`: `customers.*` (full CRM), `partnerships.manage`, `partnerships.widgets.onboarding-checklist`
-- `partner_member` (BD): `customers.*` (full CRM), `partnerships.widgets.wip-count`, `partnerships.widgets.onboarding-checklist`
+- `partner_admin`: `customers.*` (full CRM), `partnerships.case-studies.manage`, `partnerships.manage`, `partnerships.widgets.onboarding-checklist`
+- `partner_member` (BD): `customers.*` (full CRM), `partnerships.case-studies.manage`, `partnerships.widgets.wip-count`, `partnerships.widgets.onboarding-checklist`
 - `partner_contributor`: minimal — only WIC-related features (Phase 2), `partnerships.widgets.onboarding-checklist` (not used in Phase 1 but declared)
 - `partnership_manager` (PM): `customers.*.view` (read-only CRM), `partnerships.manage`, `partnerships.widgets.wip-count`
 
@@ -77,5 +78,5 @@ yarn generate                    # Regenerate module files after adding partners
 yarn typecheck                   # Must pass — no type errors
 yarn build                       # Must pass
 yarn initialize                  # Run seedDefaults — verify roles, dictionaries, pipeline, custom fields, case study entity created
-# Manual check: log in as Admin, verify company profile fields visible, case study creation enforces required fields
+# Manual check: log in as Admin and BD, verify company profile fields visible for Admin and case study create/edit is available to both roles in the same org scope
 ```

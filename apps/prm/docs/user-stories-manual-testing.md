@@ -32,15 +32,17 @@
 
 ---
 
-### US-1.2 + US-1.3 — Admin wypelnia profil agencji i dodaje case study
+### US-1.2 + US-1.3 — Admin wypelnia profil agencji, a Admin i BD moga zarzadzac case studies
 
-**Co robi:** Custom fields na Organization (13 pol: services, industries, tech_capabilities, itp.) + custom entity Case Study (17 pol).
+**Co robi:** Custom fields na Organization (13 pol: services, industries, tech_capabilities, itp.) + custom entity Case Study (17 pol). Admin dodaje pierwszy case study w onboardingu, a potem i Admin, i BD moga tworzyc/edytowac case studies swojej agencji.
 
 **Jak sprawdzic:**
 1. Zaloguj sie jako Acme Admin
-2. Idz do `/backend/directory/organizations/[orgId]/edit` — widac pola profilu agencji
-3. Idz do case studies w entities — mozna tworzyc/edytowac case study
-4. Proba stworzenia case study bez wymaganych pol (title, industry, technologies, budget_bucket, duration_bucket) zwraca blad walidacji
+2. Idz do `/backend/partnerships/agency-profile` — widac pola profilu agencji
+3. Idz do `/backend/partnerships/case-studies` — mozna tworzyc/edytowac case study
+4. Wyloguj sie i zaloguj jako Acme BD
+5. Idz do `/backend/partnerships/case-studies` — BD tez moze tworzyc/edytowac case study w swojej organizacji
+6. Proba stworzenia case study bez wymaganych pol (title, industry, technologies, budget_bucket, duration_bucket) zwraca blad walidacji
 
 **Testy e2e:** TC-PRM-008 (T5, T6)
 

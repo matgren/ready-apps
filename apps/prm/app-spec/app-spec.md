@@ -264,7 +264,7 @@ API contracts use standard OM entities module: `POST /api/entities/definitions.b
 |---------|----------|----------|-----------|------|------|
 | Partnership Manager | `partnership_manager` | User | Program Scope (all orgs) | Full CRM in own org (OM Backoffice), CRM nav hidden in agency orgs (partnership pages only), all KPIs, all tiers, RFP campaigns, cross-org company search, user management (`auth.*`), organization management (`directory.organizations.*`) | Creates agency organizations, creates agency admin accounts, creates RFP, evaluates responses, approves tiers, attributes MIN via cross-org company search, manages OM Backoffice CRM |
 | Agency Admin | `partner_admin` | User | own org only | CRM full write (own org), KPI (WIC/WIP/MIN), tier, case studies, RFP responses, user management for own org (`auth.users.*`), own org profile edit (`directory.organizations.manage`) | Fills organization profile, manages case studies, creates BD/Contributor accounts, creates deals, responds to RFP |
-| Business Developer | `partner_member` | User | own org only | CRM full write (own org — OM has no per-record ownership scoping), KPI (WIC/WIP/MIN), tier, RFP responses, dashboard, messages | Creates deals, edits profile + case studies, responds to RFP. NO user management. |
+| Business Developer | `partner_member` | User | own org only | CRM full write (own org — OM has no per-record ownership scoping), KPI (WIC/WIP/MIN), tier, case studies, RFP responses, dashboard, messages | Creates deals, responds to RFP, updates agency case studies for sales work, uses existing agency materials in sales work. NO user management. Agency profile stays Admin-owned. |
 | Contributor | `partner_contributor` | User | own org only | Dashboard + backend baseline (dashboards, messages, attachments), onboarding checklist widget | Views onboarding checklist, configures own profile (e.g. GH username). CRM not visible (no `customers.*` feature). WIC/tier visibility added in Phase 2. |
 
 **Non-app persona (distribution):**
@@ -297,7 +297,7 @@ API contracts use standard OM entities module: `POST /api/entities/definitions.b
 
 ### WF1: Agency Onboarding
 
-**Journey:** PM opens "Add Agency" page -> fills agency name + admin email -> optional: demo data checkbox -> click Create -> system creates org + admin + optional demo data (CRM prospects, deals, case studies — not agency company record) -> PM copies invite message from screen -> sends to Admin out-of-band -> Admin logs in (sees demo data or onboarding checklist) -> Admin completes onboarding (org profile, case studies, creates BD/Contributor) -> BD creates deals -> Agency is operational
+**Journey:** PM opens "Add Agency" page -> fills agency name + admin email -> optional: demo data checkbox -> click Create -> system creates org + admin + optional demo data (CRM prospects, deals, case studies — not agency company record) -> PM copies invite message from screen -> sends to Admin out-of-band -> Admin logs in (sees demo data or onboarding checklist) -> Admin completes onboarding (org profile, first case study, creates BD/Contributor) -> BD creates deals and can later maintain agency case studies during sales work -> Agency is operational
 
 **ROI:** Each new agency = 1-15 WIP/month + 1-5 MIN/year. Zero agencies = zero indirect pipeline. Target: 15+ active agencies.
 
@@ -467,7 +467,7 @@ PM has license sale -> opens "Create License Deal" -> searches all companies acr
 |------|---------------|-------|
 | Partnership Manager | **CRM** (Companies, People, Deals, Pipeline), **Partnerships** (Add Agency, Agencies list, WIC Import, Tier Review), **Directory** (Organizations) | PM spends most time in CRM (cross-org) and Partnerships (manage agencies, import WIC, review tiers). Directory needed for org management. |
 | Agency Admin | **CRM** (Companies, People, Deals, Pipeline), **Settings** (Agency Profile, Case Studies, Users) | Admin works primarily in CRM. Settings groups agency management: org profile, case studies (custom entity list + create), user management. No Partnerships group — that's PM-only. |
-| Business Developer | **CRM** (Companies, People, Deals, Pipeline) | BD lives in CRM. Creates prospects, manages deals. No user management, no partnerships. |
+| Business Developer | **CRM** (Companies, People, Deals, Pipeline), **Settings** (Case Studies) | BD lives primarily in CRM. Creates prospects, manages deals, and can maintain agency case studies used in sales work. No user management, no partnerships. |
 | Contributor | **Settings** (Profile) | Contributor sees dashboard with onboarding checklist (1 item: set GH username). Profile page accessible via Settings sidebar (GH username, personal details). No CRM sidebar items (no `customers.*` feature). Phase 2 adds WIC score widget. |
 
 ### Dashboard Widgets (per role)
@@ -493,6 +493,7 @@ PM has license sale -> opens "Create License Deal" -> searches all companies acr
 |------|------------|------|---------|------------|
 | Add Agency | `/backend/partnerships/add-agency` | PM | One-step agency creation: name + email + demo data checkbox. Creates Organization + Admin user. Optional demo data seeds CRM prospects, deals, case studies. Returns invite message with clipboard copy button. After creation: shows "Go to Agency List" CTA. | Custom form with `em.transactional()` |
 | Agency List | `/backend/partnerships/agencies` | PM | DataTable: name, org, admin email, tier, WIP count, WIC count, onboarding status (EnumBadge), created date | DataTable with filters |
+| Case Studies | `/backend/partnerships/case-studies` | Admin, BD | Agency-scoped case study list with create/edit/delete. Used to maintain reusable sales evidence for RFP responses and PM evaluation context. | Custom page + custom entity CRUD API |
 | Tier Review | `/backend/partnerships/tier-review` | PM (Phase 2+) | Pending TierChangeProposals: agency name, current tier, proposed tier, type (upgrade/downgrade), period, KPIs vs thresholds, status. Last-run timestamp in PageHeader. | DataTable + detail dialog (approve/reject with reason) |
 | My Tier | `/backend/partnerships/my-tier` | Admin, BD (Phase 2+) | Read-only tier history + current KPI breakdown for own agency | DetailFieldsSection + DataTable (history) |
 | WIC Import | `/backend/partnerships/wic-import` | PM (Phase 2+) | Org selector (combobox), month picker, file upload (CSV/markdown). On submit: shows import result inline — matched units (DataTable), rejected/unmatched usernames (error DataTable with reasons). | CrudForm + result DataTable |
@@ -578,7 +579,7 @@ Each gap is measured in **atomic commits** — one self-contained, testable incr
 | PM invites agency admin | auth module | No invite-by-email in auth | 0 (Ph1) / 2 (Ph4) | `app` (Ph1 zero commits) / `core-module` (Ph4 — FLAG: invitation flow requires auth module changes) | Phase 1: self-onboard workaround. Phase 4: invitation flow (email template + API route + UI) — upstream PR + core team approval required |
 | Admin sets password | auth module | Covered | 0 | — | Standard password reset flow |
 | Admin fills organization profile | entities module (custom fields on `directory:organization`) | Covered | 1 | `app` | Seed custom field definitions in setup.ts |
-| Admin adds case study | entities module (custom entity) | Covered | 0 | — | Bundled with profile seed above (same commit) |
+| Agency user adds case study | entities module (custom entity) | Covered | 0 | — | First case study is part of Admin onboarding; ongoing create/edit is available to Admin and BD in the same org scope |
 | Admin invites BD/Contributor | auth module | Same as invite gap | 0 | — | Shared with PM invite mechanism |
 | Onboarding checklist tracking | dashboard widget | Covered | 0 | — | Checklist widget tracks progress, no formal workflow needed |
 
@@ -722,7 +723,7 @@ Success: Same "Add Agency" form but with "Send invitation email" option. System 
 Success: Custom fields on Organization saved via org edit page (`/backend/directory/organizations/[orgId]/edit`), visible to PM via org switcher, fields match case study categories.
 
 **US-1.3** As Agency Admin, I add at least one case study (project type, tech, budget, duration) so that PM has evidence for RFP scoring.
-Success: Case study saved as custom entity, visible in agency profile, scoped to agency's organization.
+Success: First case study is saved as custom entity, visible in agency profile, scoped to agency's organization. After BD account creation, both Agency Admin and BD can create and edit agency case studies within the same org scope.
 
 **US-1.4** As Agency Admin, I create a BD account in the backend so that someone can start building pipeline.
 Success: Admin opens `/backend/users/create`, enters email + password, organization is pre-filled (Admin sees only own org via UserAcl), assigns `partner_member` role. Shares credentials out-of-band. BD logs in, sees CRM + KPI dashboard scoped to their org. (Phase 4: replaced by email invitation via SPEC-038.)

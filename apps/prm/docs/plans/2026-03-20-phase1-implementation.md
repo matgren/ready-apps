@@ -218,6 +218,7 @@ export const setup: ModuleSetupConfig = {
     ],
     partner_member: [
       'customers.*',
+      'partnerships.case-studies.manage',
       'partnerships.widgets.wip-count',
       'partnerships.widgets.onboarding-checklist',
     ],
