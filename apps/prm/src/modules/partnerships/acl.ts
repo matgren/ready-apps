@@ -6,6 +6,7 @@ const features = [
   { id: 'partnerships.widgets.cross-org-wip', title: 'View cross-org WIP table', module: 'partnerships' },
   { id: 'partnerships.widgets.wic-summary', title: 'View WIC summary widget', module: 'partnerships' },
   { id: 'partnerships.license-deals.manage', title: 'Manage license deals (PM only)', module: 'partnerships' },
+  { id: 'partnerships.license-deals.view', title: 'View license deals', module: 'partnerships' },
   { id: 'partnerships.tier.manage', title: 'Manage tiers', module: 'partnerships' },
   { id: 'partnerships.widgets.tier-status', title: 'View tier status widget', module: 'partnerships' },
   { id: 'partnerships.rfp.manage', title: 'Manage RFP campaigns (PM only)', module: 'partnerships' },

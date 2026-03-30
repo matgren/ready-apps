@@ -29,7 +29,7 @@ const listSchema = z
   .passthrough()
 
 const routeMetadata = {
-  GET: { requireAuth: true, requireFeatures: ['partnerships.license-deals.manage'] },
+  GET: { requireAuth: true, requireFeatures: ['partnerships.license-deals.view'] },
   POST: { requireAuth: true, requireFeatures: ['partnerships.license-deals.manage'] },
   PUT: { requireAuth: true, requireFeatures: ['partnerships.license-deals.manage'] },
   DELETE: { requireAuth: true, requireFeatures: ['partnerships.license-deals.manage'] },

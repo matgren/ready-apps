@@ -6,7 +6,7 @@ import { readJsonSafe, getTokenContext } from '@open-mercato/core/helpers/integr
  * TC-PRM-012: PartnerLicenseDeal CRUD
  *
  * Route: /api/partnerships/partner-license-deals
- * Auth:  requireAuth + requireFeatures: ['partnerships.license-deals.manage'] (PM only)
+ * Auth: GET requireFeatures: ['partnerships.license-deals.view'], writes requireFeatures: ['partnerships.license-deals.manage'] (PM only)
  *
  * Tests:
  * T1 — PM can create a PartnerLicenseDeal (201, id returned)

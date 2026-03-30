@@ -9,7 +9,7 @@ import { readJsonSafe, getTokenContext } from '@open-mercato/core/helpers/integr
  *   /backend/partnerships/license-deals          (list)
  *   /backend/partnerships/license-deals/create    (create form)
  *
- * Auth: requireFeatures: ['partnerships.license-deals.manage'] (PM only)
+ * Auth: GET requireFeatures: ['partnerships.license-deals.view'], writes requireFeatures: ['partnerships.license-deals.manage'] (PM only)
  *
  * Tests:
  * T1 — PM sees license deals list with demo data

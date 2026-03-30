@@ -6,7 +6,7 @@ import { getAuthToken } from '@open-mercato/core/helpers/integration/api'
  *
  * Page: /backend/partnerships/license-deals/create
  * The company search is embedded in the license deal creation flow.
- * Auth: requireFeatures: ['partnerships.license-deals.manage'] (PM only)
+ * Auth: GET requireFeatures: ['partnerships.license-deals.view'], writes requireFeatures: ['partnerships.license-deals.manage'] (PM only)
  *
  * Tests:
  * T1 — PM can search companies on create page (results appear)
