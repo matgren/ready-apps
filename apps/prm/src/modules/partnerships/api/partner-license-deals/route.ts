@@ -162,18 +162,44 @@ export async function GET(req: Request) {
     if (!auth?.tenantId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const url = new URL(req.url)
+    const container = await createRequestContainer()
+    const { resolve } = container
+    const em = resolve('em') as import('@mikro-orm/postgresql').EntityManager
+
+    // Single record by ID
+    const idParam = url.searchParams.get('id')
+    if (idParam) {
+      const item = await em.findOne(PartnerLicenseDeal, { id: idParam, tenantId: auth.tenantId })
+      if (!item) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      return NextResponse.json(item)
+    }
+
+    // Resolve org scope from org switcher
+    const { resolveOrganizationScopeForRequest } = await import('@open-mercato/core/modules/directory/utils/organizationScope')
+    const scope = await resolveOrganizationScopeForRequest({ container, auth, request: req })
+    const tenantId = scope?.tenantId ?? auth.tenantId
+
+    // PM sees scoped to org switcher, agency sees own org
+    const rbac = resolve('rbacService') as import('@open-mercato/core/modules/auth/services/rbacService').RbacService
+    const selectedOrgId = scope?.selectedId ?? auth.orgId ?? null
+    const isPm = await rbac.userHasAllFeatures(auth.sub!, ['partnerships.license-deals.manage'], {
+      tenantId,
+      organizationId: selectedOrgId,
+    })
+
+    // List
     const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10) || 1)
     const pageSize = Math.min(100, Math.max(1, parseInt(url.searchParams.get('pageSize') ?? '50', 10) || 50))
     const search = url.searchParams.get('search') ?? undefined
-    const orgFilter = url.searchParams.get('organizationId') ?? undefined
     const yearFilter = url.searchParams.get('year') ? parseInt(url.searchParams.get('year')!, 10) : undefined
     const statusFilter = url.searchParams.get('status') ?? undefined
 
-    const { resolve } = await createRequestContainer()
-    const em = resolve('em') as import('@mikro-orm/postgresql').EntityManager
-
-    const where: Record<string, unknown> = { tenantId: auth.tenantId }
-    if (orgFilter) where.organizationId = orgFilter
+    const where: Record<string, unknown> = { tenantId }
+    if (isPm) {
+      if (scope?.filterIds) where.organizationId = { $in: scope.filterIds }
+    } else {
+      where.organizationId = auth.orgId
+    }
     if (yearFilter) where.year = yearFilter
     if (statusFilter) where.status = statusFilter
     if (search) where.licenseIdentifier = { $ilike: `%${escapeLikePattern(search)}%` }
