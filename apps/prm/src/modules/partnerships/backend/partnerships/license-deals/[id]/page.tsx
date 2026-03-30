@@ -1,33 +1,44 @@
 "use client"
 
 import * as React from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { Page, PageBody } from '@open-mercato/ui/backend/Page'
 import { apiCall } from '@open-mercato/ui/backend/utils/apiCall'
 import { flash } from '@open-mercato/ui/backend/FlashMessages'
 import { useT } from '@open-mercato/shared/lib/i18n/context'
 import { Spinner } from '@open-mercato/ui/primitives/spinner'
 
-type CompanySearchItem = {
-  companyId: string
-  companyName: string
+type LicenseDeal = {
+  id: string
   organizationId: string
-  agencyName: string
+  companyId: string
+  licenseIdentifier: string
+  industryTag: string
+  type: string
+  status: string
+  isRenewal: boolean
+  startDate: string | null
+  endDate: string | null
+  closedAt: string | null
+  year: number
 }
 
-export default function CreateLicenseDealPage() {
+function toDateInput(value: string | null | undefined): string {
+  if (!value) return ''
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toISOString().split('T')[0]
+}
+
+export default function EditLicenseDealPage() {
   const t = useT()
   const router = useRouter()
+  const params = useParams()
+  const id = params.id as string
 
-  // Company search
-  const [companyQuery, setCompanyQuery] = React.useState('')
-  const [companyResults, setCompanyResults] = React.useState<CompanySearchItem[]>([])
-  const [searching, setSearching] = React.useState(false)
-  const [selectedCompany, setSelectedCompany] = React.useState<CompanySearchItem | null>(null)
-  const [showDropdown, setShowDropdown] = React.useState(false)
-  const searchTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [loading, setLoading] = React.useState(true)
+  const [notFound, setNotFound] = React.useState(false)
 
-  // Form fields
   const [licenseIdentifier, setLicenseIdentifier] = React.useState('')
   const [industryTag, setIndustryTag] = React.useState('')
   const [startDate, setStartDate] = React.useState('')
@@ -39,43 +50,37 @@ export default function CreateLicenseDealPage() {
   const [submitting, setSubmitting] = React.useState(false)
   const [submitError, setSubmitError] = React.useState<string | null>(null)
 
-  function handleCompanyQueryChange(value: string) {
-    setCompanyQuery(value)
-    setSelectedCompany(null)
-    setShowDropdown(false)
-    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
-    if (value.trim().length < 2) { setCompanyResults([]); return }
-    searchTimeoutRef.current = setTimeout(async () => {
-      setSearching(true)
-      const call = await apiCall<{ results: CompanySearchItem[] }>(
-        `/api/partnerships/company-search?q=${encodeURIComponent(value.trim())}`,
-      )
-      setSearching(false)
-      if (call.ok && call.result?.results) {
-        setCompanyResults(call.result.results)
-        setShowDropdown(true)
+  React.useEffect(() => {
+    async function load() {
+      const call = await apiCall<LicenseDeal>(`/api/partnerships/partner-license-deals/${id}`)
+      if (call.ok && call.result) {
+        const d = call.result
+        setLicenseIdentifier(d.licenseIdentifier ?? '')
+        setIndustryTag(d.industryTag ?? '')
+        setStartDate(toDateInput(d.startDate))
+        setEndDate(toDateInput(d.endDate))
+        setClosedAt(toDateInput(d.closedAt))
+        setType(d.type ?? 'enterprise')
+        setStatus(d.status ?? 'won')
+        setIsRenewal(d.isRenewal ?? false)
+      } else {
+        setNotFound(true)
       }
-    }, 400)
-  }
-
-  function selectCompany(company: CompanySearchItem) {
-    setSelectedCompany(company)
-    setCompanyQuery(company.companyName)
-    setShowDropdown(false)
-  }
+      setLoading(false)
+    }
+    load()
+  }, [id])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!selectedCompany) { setSubmitError('Please select a company.'); return }
     setSubmitting(true)
     setSubmitError(null)
 
-    const call = await apiCall<{ id: string }>('/api/partnerships/partner-license-deals', {
-      method: 'POST',
+    const call = await apiCall<{ ok: boolean }>('/api/partnerships/partner-license-deals', {
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        organizationId: selectedCompany.organizationId,
-        companyId: selectedCompany.companyId,
+        id,
         licenseIdentifier,
         industryTag,
         startDate,
@@ -89,66 +94,27 @@ export default function CreateLicenseDealPage() {
     setSubmitting(false)
 
     if (call.ok) {
-      flash(t('partnerships.licenseDeals.created', 'License deal created successfully'))
+      flash(t('partnerships.licenseDeals.updated', 'License deal updated successfully'))
       router.push('/backend/partnerships/license-deals')
     } else {
       const payload = call.result as Record<string, unknown> | null
-      setSubmitError(typeof payload?.error === 'string' ? payload.error : 'Failed to create license deal.')
+      setSubmitError(typeof payload?.error === 'string' ? payload.error : 'Failed to update license deal.')
     }
+  }
+
+  if (loading) {
+    return <Page><PageBody><div className="flex h-64 items-center justify-center"><Spinner className="h-8 w-8 text-muted-foreground" /></div></PageBody></Page>
+  }
+
+  if (notFound) {
+    return <Page><PageBody><div className="flex h-64 items-center justify-center"><p className="text-muted-foreground">License deal not found.</p></div></PageBody></Page>
   }
 
   return (
     <Page>
       <PageBody>
         <form onSubmit={handleSubmit} className="mx-auto max-w-2xl space-y-5 rounded-lg border bg-card p-6">
-          <h2 className="text-lg font-semibold">{t('partnerships.licenseDeals.createTitle', 'Add License Deal')}</h2>
-
-          {/* Company search (typeahead) */}
-          <div className="relative">
-            <label htmlFor="companySearch" className="block text-sm font-medium mb-1">
-              {t('partnerships.licenseDeals.fields.company', 'Company')}
-            </label>
-            <div className="relative">
-              <input
-                id="companySearch"
-                type="text"
-                required
-                value={companyQuery}
-                onChange={(e) => handleCompanyQueryChange(e.target.value)}
-                placeholder={t('partnerships.companySearch.placeholder', 'Search by company name...')}
-                className="w-full rounded-md border px-3 py-2 text-sm"
-                autoComplete="off"
-              />
-              {searching && (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                  <Spinner className="h-4 w-4 text-muted-foreground" />
-                </div>
-              )}
-            </div>
-            {selectedCompany && (
-              <p className="mt-1 text-xs text-muted-foreground">
-                {selectedCompany.agencyName} &middot; {selectedCompany.companyId.slice(0, 8)}
-              </p>
-            )}
-            {showDropdown && companyResults.length > 0 && (
-              <div className="absolute z-10 mt-1 w-full rounded-lg border bg-popover shadow-md divide-y max-h-60 overflow-auto">
-                {companyResults.map((c) => (
-                  <button
-                    key={c.companyId}
-                    type="button"
-                    onClick={() => selectCompany(c)}
-                    className="w-full text-left px-4 py-2.5 hover:bg-muted/50 text-sm"
-                  >
-                    <span className="font-medium">{c.companyName}</span>
-                    <span className="text-muted-foreground ml-2">{c.agencyName}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-            {showDropdown && companyResults.length === 0 && !searching && (
-              <p className="mt-1 text-xs text-muted-foreground">{t('partnerships.companySearch.noResults', 'No companies found.')}</p>
-            )}
-          </div>
+          <h2 className="text-lg font-semibold">{t('partnerships.licenseDeals.editTitle', 'Edit License Deal')}</h2>
 
           <div>
             <label htmlFor="licenseIdentifier" className="block text-sm font-medium mb-1">
@@ -156,7 +122,7 @@ export default function CreateLicenseDealPage() {
             </label>
             <input id="licenseIdentifier" type="text" required value={licenseIdentifier}
               onChange={(e) => setLicenseIdentifier(e.target.value)}
-              className="w-full rounded-md border px-3 py-2 text-sm" placeholder="e.g. LIC-ACME-2026-001" />
+              className="w-full rounded-md border px-3 py-2 text-sm" />
           </div>
 
           <div>
@@ -165,7 +131,7 @@ export default function CreateLicenseDealPage() {
             </label>
             <input id="industryTag" type="text" required value={industryTag}
               onChange={(e) => setIndustryTag(e.target.value)}
-              className="w-full rounded-md border px-3 py-2 text-sm" placeholder="e.g. FinTech" />
+              className="w-full rounded-md border px-3 py-2 text-sm" />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -234,10 +200,16 @@ export default function CreateLicenseDealPage() {
             <div className="rounded-md border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">{submitError}</div>
           )}
 
-          <button type="submit" disabled={submitting}
-            className="w-full inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
-            {submitting ? <><Spinner className="mr-2 h-4 w-4" />{t('partnerships.licenseDeals.submitting', 'Creating...')}</> : t('partnerships.licenseDeals.submitButton', 'Create License Deal')}
-          </button>
+          <div className="flex gap-3">
+            <button type="submit" disabled={submitting}
+              className="flex-1 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50">
+              {submitting ? <><Spinner className="mr-2 h-4 w-4" />{t('partnerships.licenseDeals.saving', 'Saving...')}</> : t('partnerships.licenseDeals.saveButton', 'Save Changes')}
+            </button>
+            <button type="button" onClick={() => router.push('/backend/partnerships/license-deals')}
+              className="rounded-md border px-4 py-2 text-sm hover:bg-muted/50">
+              {t('partnerships.licenseDeals.cancel', 'Cancel')}
+            </button>
+          </div>
         </form>
       </PageBody>
     </Page>

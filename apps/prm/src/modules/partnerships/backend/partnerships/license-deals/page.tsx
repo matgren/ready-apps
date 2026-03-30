@@ -143,7 +143,11 @@ export default function LicenseDealsPage() {
               </thead>
               <tbody>
                 {items.map((deal) => (
-                  <tr key={deal.id} className="border-b last:border-0 hover:bg-muted/30">
+                  <tr
+                    key={deal.id}
+                    className={`border-b last:border-0 hover:bg-muted/30 ${canManage ? 'cursor-pointer' : ''}`}
+                    onClick={canManage ? () => { window.location.href = `/backend/partnerships/license-deals/${deal.id}` } : undefined}
+                  >
                     <td className="px-4 py-3 font-medium">{deal.licenseIdentifier}</td>
                     <td className="px-4 py-3 text-muted-foreground">{deal.industryTag}</td>
                     <td className="px-4 py-3 text-right tabular-nums">{deal.year}</td>
