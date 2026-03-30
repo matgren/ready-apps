@@ -7,7 +7,7 @@ export const metadata = {
   pageGroupKey: 'partnerships.nav.group',
   pagePriority: 10,
   pageOrder: 152,
-  showInSidebar: false,
+  navHidden: true,
   breadcrumb: [
     { label: 'Partnerships', labelKey: 'partnerships.nav.group' },
     { label: 'RFP Campaigns', labelKey: 'partnerships.rfpCampaigns.title' },

@@ -1,7 +1,7 @@
 export const metadata = {
   requireAuth: true,
   requireFeatures: ['partnerships.tier.manage'],
-  showInSidebar: false,
+  navHidden: true,
   pageTitle: 'Tier Review',
   pageTitleKey: 'partnerships.tierReview.title',
   pageGroup: 'Partnerships',

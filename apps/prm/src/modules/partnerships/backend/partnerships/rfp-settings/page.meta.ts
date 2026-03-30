@@ -1,7 +1,7 @@
 export const metadata = {
   requireAuth: true,
   requireFeatures: ['partnerships.rfp.manage'],
-  showInSidebar: false,
+  navHidden: true,
   pageTitle: 'RFP Message Templates',
   pageTitleKey: 'partnerships.rfpSettings.title',
   pageGroup: 'Partnerships',
