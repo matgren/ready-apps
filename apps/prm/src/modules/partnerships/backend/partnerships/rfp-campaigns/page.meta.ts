@@ -1,5 +1,6 @@
 export const metadata = {
   requireAuth: true,
+  requireFeatures: ['partnerships.rfp.view'],
   pageTitle: 'RFP Campaigns',
   pageTitleKey: 'partnerships.rfpCampaigns.title',
   pageGroup: 'Partnerships',

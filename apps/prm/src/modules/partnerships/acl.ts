@@ -9,6 +9,7 @@ const features = [
   { id: 'partnerships.tier.manage', title: 'Manage tiers', module: 'partnerships' },
   { id: 'partnerships.widgets.tier-status', title: 'View tier status widget', module: 'partnerships' },
   { id: 'partnerships.rfp.manage', title: 'Manage RFP campaigns (PM only)', module: 'partnerships' },
+  { id: 'partnerships.rfp.view', title: 'View RFP campaigns', module: 'partnerships' },
   { id: 'partnerships.rfp.respond', title: 'Respond to RFP campaigns', module: 'partnerships' },
 ]
 

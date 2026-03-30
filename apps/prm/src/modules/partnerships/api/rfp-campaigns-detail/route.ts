@@ -7,7 +7,7 @@ import { PartnerRfpCampaign } from '../../data/entities'
 
 export const metadata = {
   path: '/partnerships/rfp-campaigns/[id]',
-  GET: { requireAuth: true },
+  GET: { requireAuth: true, requireFeatures: ['partnerships.rfp.view'] },
   PUT: { requireAuth: true, requireFeatures: ['partnerships.rfp.manage'] },
   DELETE: { requireAuth: true, requireFeatures: ['partnerships.rfp.manage'] },
 }

@@ -30,7 +30,7 @@ const listSchema = z
   .passthrough()
 
 const routeMetadata = {
-  GET: { requireAuth: true },
+  GET: { requireAuth: true, requireFeatures: ['partnerships.rfp.view'] },
   POST: { requireAuth: true, requireFeatures: ['partnerships.rfp.manage'] },
   PUT: { requireAuth: true, requireFeatures: ['partnerships.rfp.manage'] },
   DELETE: { requireAuth: true, requireFeatures: ['partnerships.rfp.manage'] },
