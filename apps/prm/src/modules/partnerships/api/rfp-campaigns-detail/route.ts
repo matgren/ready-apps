@@ -3,6 +3,7 @@ import { createRequestContainer } from '@open-mercato/shared/lib/di/container'
 import { getAuthFromRequest } from '@open-mercato/shared/lib/auth/server'
 import type { EntityManager } from '@mikro-orm/postgresql'
 import type { OpenApiMethodDoc, OpenApiRouteDoc } from '@open-mercato/shared/lib/openapi'
+import type { RbacService } from '@open-mercato/core/modules/auth/services/rbacService'
 import { PartnerRfpCampaign } from '../../data/entities'
 
 export const metadata = {
@@ -10,6 +11,16 @@ export const metadata = {
   GET: { requireAuth: true, requireFeatures: ['partnerships.rfp.view'] },
   PUT: { requireAuth: true, requireFeatures: ['partnerships.rfp.manage'] },
   DELETE: { requireAuth: true, requireFeatures: ['partnerships.rfp.manage'] },
+}
+
+function isCampaignVisibleToOrganization(
+  campaign: Pick<PartnerRfpCampaign, 'audience' | 'selectedAgencyIds' | 'status'>,
+  organizationId: string | null | undefined,
+): boolean {
+  if (campaign.status === 'draft') return false
+  if (campaign.audience !== 'selected') return true
+  if (!organizationId) return false
+  return Array.isArray(campaign.selectedAgencyIds) && campaign.selectedAgencyIds.includes(organizationId)
 }
 
 function extractId(req: Request): string | null {
@@ -26,16 +37,25 @@ function extractId(req: Request): string | null {
 export async function GET(req: Request) {
   try {
     const auth = await getAuthFromRequest(req)
-    if (!auth?.tenantId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!auth?.tenantId || !auth.sub) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const id = extractId(req)
     if (!id) return NextResponse.json({ error: 'Invalid campaign ID' }, { status: 400 })
 
     const container = await createRequestContainer()
     const em = container.resolve('em') as EntityManager
+    const rbac = container.resolve('rbacService') as RbacService
 
     const campaign = await em.findOne(PartnerRfpCampaign, { id, tenantId: auth.tenantId })
     if (!campaign) return NextResponse.json({ error: 'Campaign not found' }, { status: 404 })
+
+    const isPm = await rbac.userHasAllFeatures(auth.sub, ['partnerships.rfp.manage'], {
+      tenantId: auth.tenantId,
+      organizationId: auth.orgId ?? null,
+    })
+    if (!isPm && !isCampaignVisibleToOrganization(campaign, auth.orgId)) {
+      return NextResponse.json({ error: 'Campaign not found' }, { status: 404 })
+    }
 
     return NextResponse.json(campaign)
   } catch (err) {

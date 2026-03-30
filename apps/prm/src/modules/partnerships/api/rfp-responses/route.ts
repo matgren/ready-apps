@@ -83,11 +83,21 @@ async function validateCampaignForResponse(
   em: EntityManager,
   campaignId: string,
   tenantId: string,
+  organizationId: string,
 ): Promise<{ campaign: PartnerRfpCampaign } | { error: string; status: number }> {
   const campaign = await em.findOne(PartnerRfpCampaign, { id: campaignId, tenantId })
   if (!campaign) return { error: 'Campaign not found', status: 404 }
   if (campaign.status === 'awarded' || campaign.status === 'closed') {
     return { error: 'Campaign is no longer accepting responses', status: 422 }
+  }
+  if (campaign.status !== 'open') {
+    return { error: 'Campaign is not open for responses', status: 422 }
+  }
+  if (
+    campaign.audience === 'selected' &&
+    (!Array.isArray(campaign.selectedAgencyIds) || !campaign.selectedAgencyIds.includes(organizationId))
+  ) {
+    return { error: 'Your agency is not invited to this campaign', status: 403 }
   }
   if (new Date(campaign.deadline) < new Date()) {
     return { error: 'Campaign deadline has passed', status: 422 }
@@ -118,7 +128,7 @@ async function POST(req: Request) {
     const container = await createRequestContainer()
     const em = container.resolve('em') as EntityManager
 
-    const validation = await validateCampaignForResponse(em, parsed.data.campaignId, auth.tenantId)
+    const validation = await validateCampaignForResponse(em, parsed.data.campaignId, auth.tenantId, auth.orgId)
     if ('error' in validation) {
       return NextResponse.json({ error: validation.error }, { status: validation.status })
     }
@@ -176,7 +186,7 @@ async function PUT(req: Request) {
     const container = await createRequestContainer()
     const em = container.resolve('em') as EntityManager
 
-    const validation = await validateCampaignForResponse(em, parsed.data.campaignId, auth.tenantId)
+    const validation = await validateCampaignForResponse(em, parsed.data.campaignId, auth.tenantId, auth.orgId)
     if ('error' in validation) {
       return NextResponse.json({ error: validation.error }, { status: validation.status })
     }

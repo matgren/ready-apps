@@ -46,6 +46,10 @@ test.describe.serial('TC-PRM-029: PM Evaluates Responses & Awards', () => {
     const campBody = await readJsonSafe<{ id: string }>(campRes)
     campaignId = campBody!.id
 
+    await apiRequest(request, 'POST', `/api/partnerships/rfp-campaigns/${campaignId}/publish`, {
+      token: pmToken,
+    }).catch(() => {})
+
     // Acme BD responds
     const respRes = await apiRequest(request, 'POST', '/api/partnerships/rfp-responses', {
       token: bdToken,

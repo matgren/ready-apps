@@ -29,6 +29,7 @@ export default function RfpCampaignsPage() {
   const t = useT()
   const [items, setItems] = React.useState<RfpCampaignRow[]>([])
   const [loading, setLoading] = React.useState(true)
+  const [canManage, setCanManage] = React.useState(false)
 
   React.useEffect(() => {
     async function load() {
@@ -39,6 +40,30 @@ export default function RfpCampaignsPage() {
       setLoading(false)
     }
     load()
+  }, [])
+
+  React.useEffect(() => {
+    let cancelled = false
+
+    async function loadManageAccess() {
+      try {
+        const call = await apiCall<{ ok?: boolean; granted?: string[] }>('/api/auth/feature-check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ features: ['partnerships.rfp.manage'] }),
+        })
+        if (cancelled) return
+        const granted = Array.isArray(call.result?.granted) ? call.result.granted : []
+        setCanManage(call.result?.ok === true || granted.includes('partnerships.rfp.manage'))
+      } catch {
+        if (!cancelled) setCanManage(false)
+      }
+    }
+
+    loadManageAccess()
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   if (loading) {
@@ -60,12 +85,14 @@ export default function RfpCampaignsPage() {
           <h2 className="text-lg font-semibold">
             {t('partnerships.rfpCampaigns.title', 'RFP Campaigns')} ({items.length})
           </h2>
-          <a
-            href="/backend/partnerships/rfp-campaigns/create"
-            className="inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            {t('partnerships.rfpCampaigns.createButton', 'Create Campaign')}
-          </a>
+          {canManage && (
+            <a
+              href="/backend/partnerships/rfp-campaigns/create"
+              className="inline-flex items-center rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              {t('partnerships.rfpCampaigns.createButton', 'Create Campaign')}
+            </a>
+          )}
         </div>
 
         {items.length === 0 ? (
@@ -73,12 +100,14 @@ export default function RfpCampaignsPage() {
             <p className="text-muted-foreground">
               {t('partnerships.rfpCampaigns.noData', 'No RFP campaigns yet.')}
             </p>
-            <a
-              href="/backend/partnerships/rfp-campaigns/create"
-              className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-            >
-              {t('partnerships.rfpCampaigns.createButton', 'Create Campaign')}
-            </a>
+            {canManage && (
+              <a
+                href="/backend/partnerships/rfp-campaigns/create"
+                className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                {t('partnerships.rfpCampaigns.createButton', 'Create Campaign')}
+              </a>
+            )}
           </div>
         ) : (
           <div className="rounded-lg border">

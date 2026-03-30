@@ -10,6 +10,7 @@ import { resolveTranslations } from '@open-mercato/shared/lib/i18n/server'
 import { getAuthFromRequest } from '@open-mercato/shared/lib/auth/server'
 import { createRequestContainer } from '@open-mercato/shared/lib/di/container'
 import { escapeLikePattern } from '@open-mercato/shared/lib/db/escapeLikePattern'
+import type { RbacService } from '@open-mercato/core/modules/auth/services/rbacService'
 import {
   createPartnershipsCrudOpenApi,
   createPagedListResponseSchema,
@@ -37,6 +38,16 @@ const routeMetadata = {
 }
 
 export const metadata = routeMetadata
+
+function isCampaignVisibleToOrganization(
+  campaign: Pick<PartnerRfpCampaign, 'audience' | 'selectedAgencyIds' | 'status'>,
+  organizationId: string | null | undefined,
+): boolean {
+  if (campaign.status === 'draft') return false
+  if (campaign.audience !== 'selected') return true
+  if (!organizationId) return false
+  return Array.isArray(campaign.selectedAgencyIds) && campaign.selectedAgencyIds.includes(organizationId)
+}
 
 const crud = makeCrudRoute({
   metadata: routeMetadata,
@@ -149,7 +160,7 @@ const crud = makeCrudRoute({
 export async function GET(req: Request) {
   try {
     const auth = await getAuthFromRequest(req)
-    if (!auth?.tenantId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!auth?.tenantId || !auth.sub) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const url = new URL(req.url)
     const page = Math.max(1, parseInt(url.searchParams.get('page') ?? '1', 10) || 1)
@@ -159,12 +170,19 @@ export async function GET(req: Request) {
 
     const { resolve } = await createRequestContainer()
     const em = resolve('em') as import('@mikro-orm/postgresql').EntityManager
+    const rbac = resolve('rbacService') as RbacService
+    const isPm = await rbac.userHasAllFeatures(auth.sub, ['partnerships.rfp.manage'], {
+      tenantId: auth.tenantId,
+      organizationId: auth.orgId ?? null,
+    })
 
     // Single campaign by ID
     const idFilter = url.searchParams.get('id')
     if (idFilter && /^[0-9a-f-]{36}$/i.test(idFilter)) {
       const campaign = await em.findOne(PartnerRfpCampaign, { id: idFilter, tenantId: auth.tenantId })
-      if (!campaign) return NextResponse.json({ items: [], total: 0, page: 1, pageSize: 1, totalPages: 0 })
+      if (!campaign || (!isPm && !isCampaignVisibleToOrganization(campaign, auth.orgId))) {
+        return NextResponse.json({ items: [], total: 0, page: 1, pageSize: 1, totalPages: 0 })
+      }
       return NextResponse.json({ items: [campaign], total: 1, page: 1, pageSize: 1, totalPages: 1 })
     }
 
@@ -172,14 +190,12 @@ export async function GET(req: Request) {
     if (statusFilter) where.status = statusFilter
     if (search) where.title = { $ilike: `%${escapeLikePattern(search)}%` }
 
-    const [items, total] = await Promise.all([
-      em.find(PartnerRfpCampaign, where, {
-        limit: pageSize,
-        offset: (page - 1) * pageSize,
-        orderBy: { createdAt: 'DESC' },
-      }),
-      em.count(PartnerRfpCampaign, where),
-    ])
+    const allItems = await em.find(PartnerRfpCampaign, where, {
+      orderBy: { createdAt: 'DESC' },
+    })
+    const visibleItems = isPm ? allItems : allItems.filter((campaign) => isCampaignVisibleToOrganization(campaign, auth.orgId))
+    const total = visibleItems.length
+    const items = visibleItems.slice((page - 1) * pageSize, page * pageSize)
 
     return NextResponse.json({
       items,

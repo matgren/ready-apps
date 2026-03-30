@@ -45,6 +45,8 @@ export default function RfpCampaignDetailPage() {
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
   const [publishing, setPublishing] = React.useState(false)
+  const [canManage, setCanManage] = React.useState(false)
+  const [canRespond, setCanRespond] = React.useState(false)
 
   // Responses state
   const [responses, setResponses] = React.useState<Array<{ id: string; organizationId: string; responseText: string; submittedBy: string; createdAt: string; agencyName?: string }>>([])
@@ -99,6 +101,49 @@ export default function RfpCampaignDetailPage() {
       })
       .catch(() => {})
   }, [campaignId, loading, responseSubmitted])
+
+  React.useEffect(() => {
+    let cancelled = false
+
+    async function loadCapabilities() {
+      try {
+        const [manageCall, respondCall] = await Promise.all([
+          apiCall<{ ok?: boolean; granted?: string[] }>('/api/auth/feature-check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ features: ['partnerships.rfp.manage'] }),
+          }),
+          apiCall<{ ok?: boolean; granted?: string[] }>('/api/auth/feature-check', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ features: ['partnerships.rfp.respond'] }),
+          }),
+        ])
+
+        if (cancelled) return
+
+        const manageGranted = Array.isArray(manageCall.result?.granted)
+          ? manageCall.result.granted.includes('partnerships.rfp.manage')
+          : manageCall.result?.ok === true
+        const respondGranted = Array.isArray(respondCall.result?.granted)
+          ? respondCall.result.granted.includes('partnerships.rfp.respond')
+          : respondCall.result?.ok === true
+
+        setCanManage(manageGranted)
+        setCanRespond(respondGranted)
+      } catch {
+        if (!cancelled) {
+          setCanManage(false)
+          setCanRespond(false)
+        }
+      }
+    }
+
+    loadCapabilities()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   async function handleSubmitResponse(e: React.FormEvent) {
     e.preventDefault()
@@ -201,6 +246,7 @@ export default function RfpCampaignDetailPage() {
   const createdDate = campaign.createdAt || campaign.created_at
   const agencyIds = campaign.selectedAgencyIds ?? campaign.selected_agency_ids
   const winnerId = campaign.winnerOrganizationId ?? campaign.winner_organization_id
+  const showResponseForm = canRespond && !canManage
 
   return (
     <Page>
@@ -219,7 +265,7 @@ export default function RfpCampaignDetailPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {campaign.status === 'draft' && (
+              {canManage && campaign.status === 'draft' && (
                 <button
                   onClick={handlePublish}
                   disabled={publishing}
@@ -294,7 +340,7 @@ export default function RfpCampaignDetailPage() {
           </div>
 
           {/* Response submit/edit form (BD view) */}
-          {deadlineDate && deadlineDate > new Date() && campaign.status !== 'awarded' && campaign.status !== 'closed' && (
+          {showResponseForm && deadlineDate && deadlineDate > new Date() && campaign.status !== 'awarded' && campaign.status !== 'closed' && (
             <div className="rounded-lg border bg-card p-6">
               <h3 className="text-sm font-semibold mb-3">
                 {t('partnerships.rfpResponses.yourResponse', 'Your Response')}
@@ -343,7 +389,7 @@ export default function RfpCampaignDetailPage() {
                       <span className="text-sm font-medium">
                         {r.agencyName || agencies[r.organizationId] || 'Agency'}
                       </span>
-                      {campaign.status !== 'awarded' && campaign.status !== 'closed' && (
+                      {canManage && campaign.status !== 'awarded' && campaign.status !== 'closed' && (
                         <button
                           onClick={() => handleAward(r.organizationId)}
                           disabled={awarding}
