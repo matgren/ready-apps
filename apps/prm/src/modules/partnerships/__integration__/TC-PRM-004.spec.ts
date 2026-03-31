@@ -7,7 +7,7 @@ import { deleteUserIfExists } from '@open-mercato/core/helpers/integration/authF
  * TC-PRM-004: Add Agency API (US-1.1)
  *
  * Route: POST /api/partnerships/agencies
- * Auth:  requireAuth + requireFeatures: ['partnerships.manage'] (PM only)
+ * Auth:  requireAuth + requireFeatures: ['partnerships.agencies.manage'] (PM only)
  * Body:  { agencyName: string, adminEmail: string, seedDemoData: boolean }
  *
  * Creates: Organization + User (partner_admin) + UserAcl (restricted to org) + optional demo data
@@ -176,7 +176,7 @@ test.describe('TC-PRM-004: Add Agency API (US-1.1)', () => {
   // -------------------------------------------------------------------------
   // T4: Non-PM user (BD) gets 403
   // -------------------------------------------------------------------------
-  test('T4: Non-PM user (BD) gets 403 — lacks partnerships.manage', async ({ request }) => {
+  test('T4: Non-PM user (BD) gets 403 — lacks partnerships.agencies.manage', async ({ request }) => {
     const bdToken = await getAuthToken(request, BD_EMAIL, BD_PASSWORD)
     const ts = Date.now()
 

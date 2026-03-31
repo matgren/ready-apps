@@ -199,9 +199,9 @@ async function GET(req: Request) {
       : getCurrentTierThreshold('OM Agency')
     const thresholds = { wic: monthly.wic * 12, wip: monthly.wip * 12, min: monthly.min }
 
-    // Determine view mode based on user features
-    // directory.organizations.manage = PM/admin → full KPI view
-    // otherwise (member/contributor) → badge only
+    // Determine view mode based on user features.
+    // PM and agency operators (admin + BD) get full KPI view.
+    // Contributors get a compact badge view.
     type RbacService = {
       userHasAllFeatures(userId: string, required: string[], scope: { tenantId: string | null; organizationId: string | null }): Promise<boolean>
     }
@@ -209,8 +209,12 @@ async function GET(req: Request) {
     try {
       const rbac = container.resolve('rbacService') as RbacService | undefined
       if (rbac?.userHasAllFeatures) {
-        const hasPmFeature = await rbac.userHasAllFeatures(auth.sub, ['directory.organizations.manage'], { tenantId, organizationId })
-        if (hasPmFeature) {
+        const [canManageAgencies, canManageAgencyProfile, canRespondToRfp] = await Promise.all([
+          rbac.userHasAllFeatures(auth.sub, ['partnerships.agencies.manage'], { tenantId, organizationId }),
+          rbac.userHasAllFeatures(auth.sub, ['partnerships.agency-profile.manage'], { tenantId, organizationId }),
+          rbac.userHasAllFeatures(auth.sub, ['partnerships.rfp.respond'], { tenantId, organizationId }),
+        ])
+        if (canManageAgencies || canManageAgencyProfile || canRespondToRfp) {
           viewMode = 'full'
         }
       }

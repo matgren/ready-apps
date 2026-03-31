@@ -54,11 +54,9 @@ export async function detectRole(
 ): Promise<DetectedRole> {
   const scope = { tenantId, organizationId }
 
-  const hasManage = await rbacService.userHasAllFeatures(userId, ['partnerships.manage'], scope)
-  if (hasManage) {
-    // partnership_manager also has partnerships.manage but does NOT have onboarding-checklist feature
-    // The metadata guard already ensures the user has partnerships.widgets.onboarding-checklist,
-    // so if they also have partnerships.manage, they are partner_admin (not partnership_manager).
+  const canManageAgencyProfile = await rbacService.userHasAllFeatures(userId, ['partnerships.agency-profile.manage'], scope)
+  if (canManageAgencyProfile) {
+    // partner_admin manages the agency profile; other agency roles do not.
     return 'partner_admin'
   }
 
@@ -79,6 +77,40 @@ export type CompletionContext = {
   em: EntityManager
   tenantId: string
   organizationId: string | null
+}
+
+async function detectRoleByAssignment(
+  em: EntityManager,
+  userId: string,
+  tenantId: string,
+  organizationId: string | null,
+): Promise<DetectedRole> {
+  const userFilter = organizationId
+    ? { id: userId, organizationId, deletedAt: null }
+    : { id: userId, deletedAt: null }
+
+  const hasAdminRole = await em.findOne(UserRole, {
+    user: userFilter,
+    role: { name: 'partner_admin', tenantId, deletedAt: null },
+    deletedAt: null,
+  })
+  if (hasAdminRole) return 'partner_admin'
+
+  const hasMemberRole = await em.findOne(UserRole, {
+    user: userFilter,
+    role: { name: 'partner_member', tenantId, deletedAt: null },
+    deletedAt: null,
+  })
+  if (hasMemberRole) return 'partner_member'
+
+  const hasContributorRole = await em.findOne(UserRole, {
+    user: userFilter,
+    role: { name: 'partner_contributor', tenantId, deletedAt: null },
+    deletedAt: null,
+  })
+  if (hasContributorRole) return 'partner_contributor'
+
+  return null
 }
 
 export async function checkProfileFilled(ctx: CompletionContext): Promise<boolean> {
@@ -161,7 +193,10 @@ export async function checkDealCreated(ctx: CompletionContext): Promise<boolean>
 // Item builders
 // ---------------------------------------------------------------------------
 
-export async function buildAdminItems(ctx: CompletionContext): Promise<OnboardingChecklistItem[]> {
+export async function buildAdminItems(
+  ctx: CompletionContext,
+  links?: { profile?: string; caseStudies?: string },
+): Promise<OnboardingChecklistItem[]> {
   const [profileFilled, caseStudyExists, bdInvited, contributorInvited] = await Promise.all([
     checkProfileFilled(ctx),
     checkCaseStudyExists(ctx),
@@ -169,9 +204,8 @@ export async function buildAdminItems(ctx: CompletionContext): Promise<Onboardin
     checkContributorInvited(ctx),
   ])
 
-  const profileLink = ctx.organizationId
-    ? `/backend/directory/organizations/${ctx.organizationId}/edit`
-    : '/backend/directory/organizations'
+  const profileLink = links?.profile ?? '/backend/partnerships/agency-profile'
+  const caseStudiesLink = links?.caseStudies ?? '/backend/partnerships/case-studies'
 
   return [
     {
@@ -184,7 +218,7 @@ export async function buildAdminItems(ctx: CompletionContext): Promise<Onboardin
       id: 'add_case_study',
       label: 'partnerships.widgets.onboardingChecklist.addCaseStudy',
       completed: caseStudyExists,
-      link: '/backend/partnerships/case-studies',
+      link: caseStudiesLink,
     },
     {
       id: 'invite_bd',
@@ -258,17 +292,22 @@ async function GET(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const role = await detectRole(rbacService, userId, tenantId, organizationId)
+    const em = container.resolve('em') as EntityManager
+    const role =
+      await detectRoleByAssignment(em, userId, tenantId, organizationId)
+      ?? await detectRole(rbacService, userId, tenantId, organizationId)
     if (!role) {
       return NextResponse.json({ role: null, items: [], allCompleted: false })
     }
 
-    const em = container.resolve('em') as EntityManager
     const ctx: CompletionContext = { em, tenantId, organizationId }
 
     let items: OnboardingChecklistItem[]
     if (role === 'partner_admin') {
-      items = await buildAdminItems(ctx)
+      items = await buildAdminItems(ctx, {
+        profile: '/backend/partnerships/agency-profile',
+        caseStudies: '/backend/partnerships/case-studies',
+      })
     } else if (role === 'partner_member') {
       items = await buildBdItems(ctx)
     } else {

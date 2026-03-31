@@ -14,6 +14,7 @@ import { getAuthToken } from '@open-mercato/core/helpers/integration/api'
 
 const ADMIN_EMAIL = 'acme-admin@demo.local'
 const CONTRIBUTOR_EMAIL = 'acme-contributor@demo.local'
+const BD_EMAIL = 'acme-bd@demo.local'
 const DEMO_PASSWORD = 'Demo123!'
 const BASE = process.env.BASE_URL ?? 'http://127.0.0.1:5001'
 
@@ -23,10 +24,12 @@ async function loginInBrowser(page: Page, token: string): Promise<void> {
 
 test.describe('TC-PRM-034: Role-scoped tier status widget', () => {
   let adminToken: string
+  let bdToken: string
   let contributorToken: string
 
   test.beforeAll(async ({ request }) => {
     adminToken = await getAuthToken(request, ADMIN_EMAIL, DEMO_PASSWORD)
+    bdToken = await getAuthToken(request, BD_EMAIL, DEMO_PASSWORD)
     contributorToken = await getAuthToken(request, CONTRIBUTOR_EMAIL, DEMO_PASSWORD)
   })
 
@@ -78,6 +81,17 @@ test.describe('TC-PRM-034: Role-scoped tier status widget', () => {
     const hasNoTier = await noTier.isVisible({ timeout: 2_000 }).catch(() => false)
 
     expect(hasBadge || hasNoTier, 'Contributor should see tier badge or "no tier" message').toBe(true)
+  })
+
+  test('T3: BD sees full tier widget with KPI progress bars', async ({ page }) => {
+    await loginInBrowser(page, bdToken)
+    await page.goto(`${BASE}/backend`)
+
+    const tierWidget = page.locator('text=/Current Tier|Tier Status/i').first()
+    await expect(tierWidget).toBeVisible({ timeout: 15_000 })
+
+    await expect(page.locator('text=/WIP Count/').first()).toBeVisible({ timeout: 5_000 })
+    await expect(page.locator('text=/MIN Count/').first()).toBeVisible()
   })
 })
 

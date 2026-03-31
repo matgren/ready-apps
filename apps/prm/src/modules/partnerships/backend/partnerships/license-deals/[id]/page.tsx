@@ -12,6 +12,8 @@ type LicenseDeal = {
   id: string
   organizationId: string
   companyId: string
+  organizationName: string | null
+  companyName: string | null
   licenseIdentifier: string
   industryTag: string
   type: string
@@ -20,6 +22,18 @@ type LicenseDeal = {
   startDate: string | null
   endDate: string | null
   year: number
+}
+
+type CompanySearchItem = {
+  companyId: string
+  companyName: string
+  organizationId: string
+  agencyName: string
+}
+
+type OrgOption = {
+  id: string
+  name: string
 }
 
 function toDateInput(value: string | null | undefined): string {
@@ -37,6 +51,20 @@ export default function EditLicenseDealPage({ params }: { params?: { id?: string
   const [loading, setLoading] = React.useState(true)
   const [notFound, setNotFound] = React.useState(false)
 
+  // Organization selector
+  const [organizations, setOrganizations] = React.useState<OrgOption[]>([])
+  const [selectedOrgId, setSelectedOrgId] = React.useState('')
+  const [orgsLoading, setOrgsLoading] = React.useState(true)
+
+  // Company search
+  const [companyQuery, setCompanyQuery] = React.useState('')
+  const [companyResults, setCompanyResults] = React.useState<CompanySearchItem[]>([])
+  const [searching, setSearching] = React.useState(false)
+  const [selectedCompany, setSelectedCompany] = React.useState<CompanySearchItem | null>(null)
+  const [showDropdown, setShowDropdown] = React.useState(false)
+  const searchTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // Form fields
   const [licenseIdentifier, setLicenseIdentifier] = React.useState('')
   const [industryTag, setIndustryTag] = React.useState('')
   const [startDate, setStartDate] = React.useState('')
@@ -47,12 +75,46 @@ export default function EditLicenseDealPage({ params }: { params?: { id?: string
   const [submitting, setSubmitting] = React.useState(false)
   const [submitError, setSubmitError] = React.useState<string | null>(null)
 
+  // Load organizations
+  React.useEffect(() => {
+    type OrgNode = { id: string; name: string; selectable?: boolean; children?: OrgNode[] }
+    function flattenOrgs(nodes: OrgNode[], depth = 0): OrgOption[] {
+      const result: OrgOption[] = []
+      for (const node of nodes) {
+        if (node.selectable !== false) {
+          result.push({ id: node.id, name: depth > 0 ? '\u2003'.repeat(depth) + node.name : node.name })
+        }
+        if (node.children?.length) {
+          result.push(...flattenOrgs(node.children, depth + 1))
+        }
+      }
+      return result
+    }
+    async function loadOrgs() {
+      const call = await apiCall<{ items: OrgNode[] }>('/api/directory/organization-switcher')
+      if (call.ok && call.result?.items) {
+        setOrganizations(flattenOrgs(call.result.items))
+      }
+      setOrgsLoading(false)
+    }
+    loadOrgs()
+  }, [])
+
+  // Load deal data
   React.useEffect(() => {
     if (!id) return
     async function load() {
       const call = await apiCall<LicenseDeal>(`/api/partnerships/partner-license-deals/${id}`)
       if (call.ok && call.result) {
         const d = call.result
+        setSelectedOrgId(d.organizationId ?? '')
+        setCompanyQuery(d.companyName ?? '')
+        setSelectedCompany({
+          companyId: d.companyId,
+          companyName: d.companyName ?? d.companyId,
+          organizationId: d.organizationId,
+          agencyName: d.organizationName ?? d.organizationId,
+        })
         setLicenseIdentifier(d.licenseIdentifier ?? '')
         setIndustryTag(d.industryTag ?? '')
         setStartDate(toDateInput(d.startDate))
@@ -68,8 +130,43 @@ export default function EditLicenseDealPage({ params }: { params?: { id?: string
     load()
   }, [id])
 
+  function handleOrgChange(orgId: string) {
+    setSelectedOrgId(orgId)
+    setSelectedCompany(null)
+    setCompanyQuery('')
+    setCompanyResults([])
+    setShowDropdown(false)
+  }
+
+  function handleCompanyQueryChange(value: string) {
+    setCompanyQuery(value)
+    setSelectedCompany(null)
+    setShowDropdown(false)
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
+    if (!selectedOrgId || value.trim().length < 2) { setCompanyResults([]); return }
+    searchTimeoutRef.current = setTimeout(async () => {
+      setSearching(true)
+      const call = await apiCall<{ results: CompanySearchItem[] }>(
+        `/api/partnerships/company-search?q=${encodeURIComponent(value.trim())}`,
+      )
+      setSearching(false)
+      if (call.ok && call.result?.results) {
+        setCompanyResults(call.result.results.filter((c) => c.organizationId === selectedOrgId))
+        setShowDropdown(true)
+      }
+    }, 400)
+  }
+
+  function selectCompany(company: CompanySearchItem) {
+    setSelectedCompany(company)
+    setCompanyQuery(company.companyName)
+    setShowDropdown(false)
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!selectedCompany) { setSubmitError('Please select a company.'); return }
+    if (!selectedOrgId) { setSubmitError('Please select an organization.'); return }
     setSubmitting(true)
     setSubmitError(null)
 
@@ -78,6 +175,8 @@ export default function EditLicenseDealPage({ params }: { params?: { id?: string
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         id,
+        organizationId: selectedOrgId,
+        companyId: selectedCompany.companyId,
         licenseIdentifier,
         industryTag,
         startDate,
@@ -111,6 +210,79 @@ export default function EditLicenseDealPage({ params }: { params?: { id?: string
       <PageBody>
         <form onSubmit={handleSubmit} className="mx-auto max-w-2xl space-y-5 rounded-lg border bg-card p-6">
           <h2 className="text-lg font-semibold">{t('partnerships.licenseDeals.editTitle', 'Edit License Deal')}</h2>
+
+          {/* Organization selector */}
+          <div>
+            <label htmlFor="organizationId" className="block text-sm font-medium mb-1">
+              {t('partnerships.licenseDeals.fields.organization', 'Agency / Organization')}
+            </label>
+            {orgsLoading ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Spinner className="h-4 w-4" />
+                {t('partnerships.licenseDeals.loadingOrgs', 'Loading organizations...')}
+              </div>
+            ) : (
+              <select
+                id="organizationId"
+                required
+                value={selectedOrgId}
+                onChange={(e) => handleOrgChange(e.target.value)}
+                className="w-full rounded-md border px-3 py-2 text-sm"
+              >
+                <option value="">{t('partnerships.licenseDeals.selectOrg', '— Select organization —')}</option>
+                {organizations.map((org) => (
+                  <option key={org.id} value={org.id}>{org.name}</option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          {/* Company search (typeahead) */}
+          <div className="relative">
+            <label htmlFor="companySearch" className="block text-sm font-medium mb-1">
+              {t('partnerships.licenseDeals.fields.company', 'Company')}
+            </label>
+            <div className="relative">
+              <input
+                id="companySearch"
+                type="text"
+                required
+                disabled={!selectedOrgId}
+                value={companyQuery}
+                onChange={(e) => handleCompanyQueryChange(e.target.value)}
+                placeholder={selectedOrgId ? t('partnerships.companySearch.placeholder', 'Search by company name...') : t('partnerships.companySearch.selectOrgFirst', 'Select an organization first')}
+                className="w-full rounded-md border px-3 py-2 text-sm disabled:bg-muted/30 disabled:cursor-not-allowed"
+                autoComplete="off"
+              />
+              {searching && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <Spinner className="h-4 w-4 text-muted-foreground" />
+                </div>
+              )}
+            </div>
+            {selectedCompany && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {selectedCompany.agencyName} &middot; {selectedCompany.companyId.slice(0, 8)}
+              </p>
+            )}
+            {showDropdown && companyResults.length > 0 && (
+              <div className="absolute z-10 mt-1 w-full rounded-lg border bg-popover shadow-md divide-y max-h-60 overflow-auto">
+                {companyResults.map((c) => (
+                  <button
+                    key={c.companyId}
+                    type="button"
+                    onClick={() => selectCompany(c)}
+                    className="w-full text-left px-4 py-2.5 hover:bg-muted/50 text-sm"
+                  >
+                    <span className="font-medium">{c.companyName}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {showDropdown && companyResults.length === 0 && !searching && (
+              <p className="mt-1 text-xs text-muted-foreground">{t('partnerships.companySearch.noResults', 'No companies found.')}</p>
+            )}
+          </div>
 
           <div>
             <label htmlFor="licenseIdentifier" className="block text-sm font-medium mb-1">

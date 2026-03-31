@@ -64,27 +64,27 @@ const USER_ID = 'user-001'
 
 describe('onboarding-status', () => {
   describe('detectRole', () => {
-    it('returns partner_admin when user has partnerships.manage feature', async () => {
+    it('returns partner_admin when user has agency-profile manage feature', async () => {
       const rbac = createMockRbacService({
-        'partnerships.manage': true,
+        'partnerships.agency-profile.manage': true,
         'partnerships.widgets.wip-count': true,
       })
       const role = await detectRole(rbac, USER_ID, TENANT_ID, ORG_ID)
       expect(role).toBe('partner_admin')
     })
 
-    it('returns partner_member when user has wip-count but not manage', async () => {
+    it('returns partner_member when user has wip-count but not agency-profile manage', async () => {
       const rbac = createMockRbacService({
-        'partnerships.manage': false,
+        'partnerships.agency-profile.manage': false,
         'partnerships.widgets.wip-count': true,
       })
       const role = await detectRole(rbac, USER_ID, TENANT_ID, ORG_ID)
       expect(role).toBe('partner_member')
     })
 
-    it('returns partner_contributor when user has neither manage nor wip-count', async () => {
+    it('returns partner_contributor when user has neither agency-profile manage nor wip-count', async () => {
       const rbac = createMockRbacService({
-        'partnerships.manage': false,
+        'partnerships.agency-profile.manage': false,
         'partnerships.widgets.wip-count': false,
       })
       const role = await detectRole(rbac, USER_ID, TENANT_ID, ORG_ID)
@@ -114,10 +114,23 @@ describe('onboarding-status', () => {
       expect(items[2].label).toBe('partnerships.widgets.onboardingChecklist.inviteBd')
       expect(items[3].label).toBe('partnerships.widgets.onboardingChecklist.inviteContributor')
       // Verify links
-      expect(items[0].link).toBe('/backend/directory/organizations/org-001/edit')
+      expect(items[0].link).toBe('/backend/partnerships/agency-profile')
       expect(items[1].link).toBe('/backend/partnerships/case-studies')
       expect(items[2].link).toBe('/backend/users/create')
       expect(items[3].link).toBe('/backend/users/create')
+    })
+
+    it('supports overriding admin links for legacy and transitional permission states', async () => {
+      const { em } = createMockEm()
+      const ctx: CompletionContext = { em, tenantId: TENANT_ID, organizationId: ORG_ID }
+
+      const items = await buildAdminItems(ctx, {
+        profile: '/backend/directory/organizations/org-001/edit',
+        caseStudies: '/backend/partnerships/case-studies',
+      })
+
+      expect(items[0].link).toBe('/backend/directory/organizations/org-001/edit')
+      expect(items[1].link).toBe('/backend/partnerships/case-studies')
     })
 
     it('marks fill_profile as completed when custom fields are populated', async () => {
@@ -210,11 +223,11 @@ describe('onboarding-status', () => {
   })
 
   describe('partner_contributor (fallback)', () => {
-    it('returns partner_contributor when user has neither manage nor wip-count', async () => {
-      // Contributor has only onboarding-checklist feature (no manage, no wip-count).
+    it('returns partner_contributor when user has neither agency-profile manage nor wip-count', async () => {
+      // Contributor has only onboarding-checklist feature (no agency-profile manage, no wip-count).
       // detectRole falls through to partner_contributor as the default.
       const rbac = createMockRbacService({
-        'partnerships.manage': false,
+        'partnerships.agency-profile.manage': false,
         'partnerships.widgets.wip-count': false,
       })
       const role = await detectRole(rbac, USER_ID, TENANT_ID, ORG_ID)

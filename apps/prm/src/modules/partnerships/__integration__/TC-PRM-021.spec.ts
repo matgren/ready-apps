@@ -5,7 +5,7 @@ import { getAuthToken } from '@open-mercato/core/helpers/integration/api'
  * TC-PRM-021: Agencies List + Change Tier UI
  *
  * Page: /backend/partnerships/agencies
- * Auth: requireFeatures: ['partnerships.manage'] (PM only)
+ * Auth: requireFeatures: ['partnerships.agencies.manage'] (PM only)
  *
  * Tests:
  * T1 — PM sees agencies list with tier column
@@ -144,7 +144,7 @@ test.describe.serial('TC-PRM-021: Agencies List + Change Tier UI', () => {
     await loginInBrowser(page, contributorToken)
     await page.goto(`${BASE}/backend/partnerships/agencies`)
 
-    // Contributor lacks partnerships.manage — page should not render agency data.
+    // Contributor lacks partnerships.agencies.manage — page should not render agency data.
     const tableHeaders = page.locator('th:text-is("Agency")')
 
     await page.waitForTimeout(3_000)

@@ -11,7 +11,7 @@ import { escapeLikePattern } from '@open-mercato/shared/lib/db/escapeLikePattern
 
 export const metadata = {
   path: '/partnerships/company-search',
-  GET: { requireAuth: true, requireFeatures: ['partnerships.manage'] },
+  GET: { requireAuth: true, requireFeatures: ['partnerships.agencies.manage'] },
 }
 
 // ---------------------------------------------------------------------------
@@ -151,7 +151,7 @@ const getDoc: OpenApiMethodDoc = {
   responses: [
     {
       status: 200,
-      description: 'Matching companies across all agencies',
+      description: 'Matching companies (filtered by selected organization on the client)',
       schema: z.object({ results: z.array(companySearchItemSchema) }),
     },
     { status: 400, description: 'Search term too short (min 2 chars)' },

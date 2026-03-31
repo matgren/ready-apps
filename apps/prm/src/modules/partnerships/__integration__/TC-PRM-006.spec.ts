@@ -5,7 +5,7 @@ import { getAuthToken } from '@open-mercato/core/helpers/integration/api'
  * TC-PRM-006: Agencies Page UI (US-2.3 PM view)
  *
  * Page: /backend/partnerships/agencies
- * Auth: requireFeatures: ['partnerships.manage'] (PM only)
+ * Auth: requireFeatures: ['partnerships.agencies.manage'] (PM only)
  *
  * Tests:
  * T1 — PM sees agencies table with correct columns and demo data
@@ -126,7 +126,7 @@ test.describe('TC-PRM-006: Agencies Page UI', () => {
 
     await page.waitForTimeout(3_000)
 
-    // BD lacks partnerships.manage — table should not render
+    // BD lacks partnerships.agencies.manage — table should not render
     const tableVisible = await page.locator('th:text-is("Agency")').isVisible().catch(() => false)
     expect(tableVisible, 'BD should not see agencies table').toBe(false)
   })

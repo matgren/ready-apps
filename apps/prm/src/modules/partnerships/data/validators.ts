@@ -184,6 +184,8 @@ export type PartnerLicenseDealCreateInput = z.infer<typeof partnerLicenseDealCre
 
 export const partnerLicenseDealUpdateSchema = z.object({
   id: z.string().uuid(),
+  organizationId: z.string().uuid().optional(),
+  companyId: z.string().uuid().optional(),
   licenseIdentifier: z.string().min(1).optional(),
   industryTag: z.string().min(1).optional(),
   type: z.string().optional(),

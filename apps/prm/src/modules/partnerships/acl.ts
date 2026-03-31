@@ -1,5 +1,7 @@
 const features = [
   { id: 'partnerships.agencies.manage', title: 'Manage agencies', module: 'partnerships' },
+  { id: 'partnerships.agency-profile.manage', title: 'Manage agency profile', module: 'partnerships' },
+  { id: 'partnerships.case-studies.manage', title: 'Manage case studies', module: 'partnerships' },
   { id: 'partnerships.wic.manage', title: 'Manage WIC imports', module: 'partnerships' },
   { id: 'partnerships.wic.view', title: 'View WIC scores', module: 'partnerships' },
   { id: 'partnerships.widgets.wip-count', title: 'View WIP count widget', module: 'partnerships' },

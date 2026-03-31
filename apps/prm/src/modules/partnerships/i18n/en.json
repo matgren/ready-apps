@@ -23,6 +23,36 @@
       "tierChanged": "Tier updated successfully",
       "noTier": "No tier"
     },
+    "agencyProfile": {
+      "title": "Agency Profile",
+      "subtitle": "Update how your agency is presented in PRM",
+      "save": "Save Profile",
+      "saved": "Agency profile updated",
+      "groups": {
+        "positioning": "Positioning",
+        "company": "Company",
+        "partnership": "Partnership"
+      },
+      "fields": {
+        "description": "Description",
+        "services": "Services",
+        "industries": "Industries",
+        "technologies": "Technologies",
+        "verticals": "Verticals",
+        "teamSize": "Team Size",
+        "foundedYear": "Founded Year",
+        "website": "Website",
+        "headquartersCity": "Headquarters City",
+        "headquartersCountry": "Headquarters Country",
+        "partnershipStartDate": "Partnership Start Date",
+        "primaryContactName": "Primary Contact Name",
+        "primaryContactEmail": "Primary Contact Email"
+      },
+      "placeholders": {
+        "description": "How do you position your agency?",
+        "tags": "Type or pick values..."
+      }
+    },
     "myWic": {
       "title": "WIC Scores",
       "noData": "No WIC scores for this month.",

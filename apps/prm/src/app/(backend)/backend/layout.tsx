@@ -101,7 +101,8 @@ export default async function BackendLayout({ children, params }: { children: Re
         roles: auth.roles || [],
         sub: auth.sub,
         tenantId: auth.tenantId,
-        orgId: auth.orgId,
+        orgId: selectedOrgForScope ?? auth.orgId,
+        homeOrgId: auth.orgId,
       }
     : undefined
   const ctx = { auth: ctxAuth, path }

@@ -13,10 +13,10 @@ import { readJsonSafe } from '@open-mercato/core/helpers/integration/generalFixt
  *
  * Data creation uses API calls; verification happens in the browser.
  *
- * Note: fill_profile requires UI form interaction on the org edit page.
- * The directory organizations PUT does not persist custom fields via API
- * (OM core limitation). This test completes fill_profile via API as PM
- * (who has full access), then verifies the remaining 3 items via admin.
+ * Note: fill_profile uses the dedicated PRM agency profile route rather than
+ * the core directory organizations edit page. This keeps the permission model
+ * narrow: agency admins edit only their own profile, without organization
+ * management rights.
  *
  * Phase: 1
  */
@@ -238,31 +238,20 @@ test.describe.serial('TC-PRM-019: Onboarding Checklist UI — Fresh Agency', () 
   })
 
   // -------------------------------------------------------------------------
-  // T5: Fill profile as PM (who can set custom fields) → all done, widget gone
+  // T5: Fill profile via dedicated agency-profile route → all done, widget gone
   // -------------------------------------------------------------------------
 
-  test('T5: After PM fills profile, all items done and widget disappears', async ({ page, request }) => {
-    // PM sets org profile custom fields (PM has full directory access)
-    const res = await apiRequest(request, 'PUT', '/api/directory/organizations', {
-      token: pmToken,
-      data: { id: orgId, customFields: { services: 'Consulting' } },
+  test('T5: After admin fills profile, all items done and widget disappears', async ({ page, request }) => {
+    const res = await apiRequest(request, 'PUT', '/api/partnerships/agency-profile', {
+      token: adminToken,
+      data: { values: { services: ['Consulting'] } },
     })
-    expect([200, 201].includes(res.status()), `PM set org profile failed: ${res.status()}`).toBe(true)
+    expect([200, 201].includes(res.status()), `Admin set agency profile failed: ${res.status()}`).toBe(true)
 
-    // Verify via API first — if fill_profile is still false, this is an OM core limitation
     const checkRes = await apiRequest(request, 'GET', '/api/partnerships/onboarding-status', { token: adminToken })
     const checkBody = await readJsonSafe<{ items: Array<{ id: string; completed: boolean }>; allCompleted: boolean }>(checkRes)
     const fillProfileDone = checkBody?.items?.find((i) => i.id === 'fill_profile')?.completed ?? false
-
-    if (!fillProfileDone) {
-      // OM core directory PUT does not persist custom fields via API — skip UI check
-      console.log('[T5] fill_profile not persisted via directory PUT — OM core limitation, skipping widget-disappears check')
-      // Still verify the other 3 items are done
-      expect(checkBody?.items?.find((i) => i.id === 'add_case_study')?.completed).toBe(true)
-      expect(checkBody?.items?.find((i) => i.id === 'invite_bd')?.completed).toBe(true)
-      expect(checkBody?.items?.find((i) => i.id === 'invite_contributor')?.completed).toBe(true)
-      return
-    }
+    expect(fillProfileDone, 'fill_profile should be completed after agency-profile update').toBe(true)
 
     // If fill_profile IS done, widget should disappear in the UI
     await loginInBrowser(page, adminToken)
@@ -294,7 +283,7 @@ test.describe.serial('TC-PRM-019: Onboarding Checklist UI — Fresh Agency', () 
     expect(byId.add_case_study, 'add_case_study should be completed').toBe(true)
     expect(byId.invite_bd, 'invite_bd should be completed').toBe(true)
     expect(byId.invite_contributor, 'invite_contributor should be completed').toBe(true)
-    // fill_profile may or may not be completed depending on OM core PUT behavior
+    expect(byId.fill_profile, 'fill_profile should be completed').toBe(true)
   })
 })
 

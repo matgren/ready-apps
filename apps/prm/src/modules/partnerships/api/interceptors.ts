@@ -171,7 +171,7 @@ export const interceptors: ApiInterceptor[] = [
       const rbacService = context.container.resolve('rbacService') as RbacService
       const isPm = await rbacService.userHasAllFeatures(
         context.userId,
-        ['partnerships.manage'],
+        ['partnerships.wic.manage'],
         { tenantId: context.tenantId, organizationId: context.organizationId },
       )
 

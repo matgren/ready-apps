@@ -13,7 +13,7 @@ import { TierAssignment } from '../../data/entities'
 
 export const metadata = {
   path: '/partnerships/agencies',
-  POST: { requireAuth: true, requireFeatures: ['partnerships.manage'] },
+  POST: { requireAuth: true, requireFeatures: ['partnerships.agencies.manage'] },
 }
 
 // ---------------------------------------------------------------------------

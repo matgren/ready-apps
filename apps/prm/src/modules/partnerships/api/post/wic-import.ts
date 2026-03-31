@@ -12,7 +12,7 @@ import { wicImportRequestSchema } from '../../data/validators'
 
 export const metadata = {
   path: '/partnerships/wic/import',
-  POST: { requireAuth: true, requireFeatures: ['partnerships.manage'] },
+  POST: { requireAuth: true, requireFeatures: ['partnerships.wic.manage'] },
 }
 
 // ---------------------------------------------------------------------------

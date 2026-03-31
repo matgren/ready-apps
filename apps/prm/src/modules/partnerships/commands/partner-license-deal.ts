@@ -103,6 +103,8 @@ const updatePldCommand: CommandHandler<Record<string, unknown>, { id: string }> 
     ensureTenantScope(ctx, record.tenantId)
     ensureOrganizationScope(ctx, record.organizationId)
 
+    if (parsed.organizationId !== undefined) record.organizationId = parsed.organizationId
+    if (parsed.companyId !== undefined) record.companyId = parsed.companyId
     if (parsed.licenseIdentifier !== undefined) record.licenseIdentifier = parsed.licenseIdentifier
     if (parsed.industryTag !== undefined) record.industryTag = parsed.industryTag
     if (parsed.type !== undefined) record.type = parsed.type
