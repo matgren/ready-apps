@@ -54,7 +54,6 @@ export default function RfpCampaignDetailPage() {
   const [submittingResponse, setSubmittingResponse] = React.useState(false)
   const [responseSubmitted, setResponseSubmitted] = React.useState(false)
   const [awarding, setAwarding] = React.useState(false)
-  const [agencies, setAgencies] = React.useState<Record<string, string>>({})
 
   React.useEffect(() => {
     if (!campaignId) return
@@ -83,21 +82,11 @@ export default function RfpCampaignDetailPage() {
   // Load responses + agency names
   React.useEffect(() => {
     if (!campaignId || loading) return
-    // Use plain fetch to avoid org-scoped headers (responses are cross-org)
+
     fetch(`/api/partnerships/rfp-responses?campaignId=${campaignId}`)
       .then((r) => r.json())
       .then((data) => {
         if (data?.items) setResponses(data.items)
-      })
-      .catch(() => {})
-    fetch('/api/partnerships/agencies')
-      .then((r) => r.json())
-      .then((data) => {
-        if (data?.agencies) {
-          const map: Record<string, string> = {}
-          for (const a of data.agencies) map[a.organizationId] = a.name
-          setAgencies(map)
-        }
       })
       .catch(() => {})
   }, [campaignId, loading, responseSubmitted])
@@ -387,7 +376,7 @@ export default function RfpCampaignDetailPage() {
                   <div key={r.id} className="rounded-md border p-4 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium">
-                        {r.agencyName || agencies[r.organizationId] || 'Agency'}
+                        {r.agencyName || 'Agency'}
                       </span>
                       {canManage && campaign.status !== 'awarded' && campaign.status !== 'closed' && (
                         <button

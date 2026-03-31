@@ -141,6 +141,8 @@ test.describe.serial('TC-PRM-028: BD Submits RFP Response', () => {
     // T1: BD sees campaign title and description
     await expect(page.getByText(`QA Response Campaign ${stamp}`)).toBeVisible({ timeout: 10_000 })
     await expect(page.getByText(/FinTech|PCI/)).toBeVisible({ timeout: 5_000 })
+    await expect(page.locator('body')).not.toContainText('partnerships.agencies.manage')
+    await expect(page.locator('body')).not.toContainText('Forbidden')
 
     // T2: BD fills and submits response
     const responseField = page.locator('textarea').first()

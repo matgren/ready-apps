@@ -123,9 +123,11 @@ export default function RfpCampaignsPage() {
                   <th className="px-4 py-3 text-left font-medium">
                     {t('partnerships.rfpCampaigns.columns.deadline', 'Deadline')}
                   </th>
-                  <th className="px-4 py-3 text-left font-medium">
-                    {t('partnerships.rfpCampaigns.columns.audience', 'Audience')}
-                  </th>
+                  {canManage && (
+                    <th className="px-4 py-3 text-left font-medium">
+                      {t('partnerships.rfpCampaigns.columns.audience', 'Audience')}
+                    </th>
+                  )}
                   <th className="px-4 py-3 text-left font-medium">
                     {t('partnerships.rfpCampaigns.columns.created', 'Created')}
                   </th>
@@ -154,9 +156,11 @@ export default function RfpCampaignsPage() {
                       <td className="px-4 py-3 text-muted-foreground">
                         {campaign.deadline ? new Date(campaign.deadline).toLocaleDateString() : '\u2014'}
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground">
-                        {t(`partnerships.rfpCampaigns.audience.${campaign.audience}`, campaign.audience)}
-                      </td>
+                      {canManage && (
+                        <td className="px-4 py-3 text-muted-foreground">
+                          {t(`partnerships.rfpCampaigns.audience.${campaign.audience}`, campaign.audience)}
+                        </td>
+                      )}
                       <td className="px-4 py-3 text-muted-foreground">
                         {createdDate ? new Date(createdDate).toLocaleDateString() : '\u2014'}
                       </td>

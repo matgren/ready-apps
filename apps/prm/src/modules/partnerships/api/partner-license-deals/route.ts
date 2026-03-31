@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { wrap } from '@mikro-orm/core'
 import { makeCrudRoute } from '@open-mercato/shared/lib/crud/factory'
 import { CrudHttpError } from '@open-mercato/shared/lib/crud/errors'
 import { PartnerLicenseDeal } from '../../data/entities'
@@ -11,6 +12,7 @@ import {
   defaultOkResponseSchema,
 } from '../openapi'
 import { escapeLikePattern } from '@open-mercato/shared/lib/db/escapeLikePattern'
+import { Organization } from '@open-mercato/core/modules/directory/data/entities'
 
 const rawBodySchema = z.object({}).passthrough()
 
@@ -166,9 +168,12 @@ export async function GET(req: Request) {
     const em = resolve('em') as import('@mikro-orm/postgresql').EntityManager
 
     // Resolve org scope from org switcher
-    const { resolveOrganizationScopeForRequest } = await import('@open-mercato/core/modules/directory/utils/organizationScope')
+    const { resolveOrganizationScopeForRequest, getSelectedOrganizationFromRequest } = await import('@open-mercato/core/modules/directory/utils/organizationScope')
+    const { isAllOrganizationsSelection } = await import('@open-mercato/core/modules/directory/constants')
     const scope = await resolveOrganizationScopeForRequest({ container, auth, request: req })
     const tenantId = scope?.tenantId ?? auth.tenantId
+    const rawOrgSelection = getSelectedOrganizationFromRequest(req)
+    const explicitAllSelected = rawOrgSelection !== null && isAllOrganizationsSelection(rawOrgSelection)
 
     // PM sees scoped to org switcher, agency sees own org
     const rbac = resolve('rbacService') as import('@open-mercato/core/modules/auth/services/rbacService').RbacService
@@ -187,7 +192,14 @@ export async function GET(req: Request) {
 
     const where: Record<string, unknown> = { tenantId }
     if (isPm) {
-      if (scope?.filterIds) where.organizationId = { $in: scope.filterIds }
+      // PM with "All Organizations" selected + unrestricted ACL: tenant-wide view
+      // PM with specific org selected: scope to that org + descendants
+      const unrestrictedAccess = scope?.allowedIds === null
+      if (explicitAllSelected && unrestrictedAccess) {
+        // No org filter — PM sees all deals in tenant
+      } else if (scope?.filterIds) {
+        where.organizationId = { $in: scope.filterIds }
+      }
     } else {
       where.organizationId = auth.orgId
     }
@@ -204,8 +216,17 @@ export async function GET(req: Request) {
       em.count(PartnerLicenseDeal, where),
     ])
 
+    // Resolve organization names
+    const orgIds = [...new Set(items.map((i) => i.organizationId).filter(Boolean))]
+    const orgs = orgIds.length ? await em.find(Organization, { id: { $in: orgIds } }) : []
+    const orgMap = new Map(orgs.map((o) => [o.id, o.name]))
+    const enrichedItems = items.map((item) => ({
+      ...wrap(item).toObject(),
+      organizationName: orgMap.get(item.organizationId) ?? null,
+    }))
+
     return NextResponse.json({
-      items,
+      items: enrichedItems,
       total,
       page,
       pageSize,

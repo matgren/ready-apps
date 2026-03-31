@@ -75,18 +75,21 @@ test.describe('TC-PRM-026: RFP Campaign Creation — Negative', () => {
     expect([400, 422].includes(res.status()), `Past deadline should be rejected, got ${res.status()}`).toBe(true)
   })
 
-  // T3: BD cannot see Create button on RFP campaigns page
-  test('T3: BD has no access to create campaigns', async ({ page }) => {
+  // T3: BD cannot see PM-only controls on RFP campaigns page
+  test('T3: BD has no access to create campaigns or audience column', async ({ page }) => {
     await loginInBrowser(page, bdToken)
     await page.goto(`${BASE}/backend/partnerships/rfp-campaigns`, { waitUntil: 'domcontentloaded' })
 
     // Either page is inaccessible (403/redirect) or Create button is absent
     const bodyText = await page.locator('body').textContent().catch(() => '')
     const noAccess = bodyText?.includes("don't have access") || bodyText?.includes('403') || bodyText?.includes('Forbidden')
+    const main = page.locator('main')
     const createButton = page.getByRole('button', { name: /create|new/i })
     const hasCreateButton = await createButton.isVisible().catch(() => false)
+    const audienceHeaderVisible = await main.getByRole('columnheader', { name: /audience/i }).isVisible().catch(() => false)
 
     expect(noAccess || !hasCreateButton, 'BD should not be able to create campaigns').toBe(true)
+    expect(noAccess || !audienceHeaderVisible, 'BD should not see the Audience column').toBe(true)
   })
 
   // T4: Agency Admin cannot create campaign via API
@@ -101,6 +104,18 @@ test.describe('TC-PRM-026: RFP Campaign Creation — Negative', () => {
       },
     })
     expect(res.status(), 'Agency Admin should get 403').toBe(403)
+  })
+
+  test('T4b: Agency Admin cannot see audience column on campaigns page', async ({ page }) => {
+    await loginInBrowser(page, adminToken)
+    await page.goto(`${BASE}/backend/partnerships/rfp-campaigns`, { waitUntil: 'domcontentloaded' })
+
+    const bodyText = await page.locator('body').textContent().catch(() => '')
+    const noAccess = bodyText?.includes("don't have access") || bodyText?.includes('403') || bodyText?.includes('Forbidden')
+    const main = page.locator('main')
+    const audienceHeaderVisible = await main.getByRole('columnheader', { name: /audience/i }).isVisible().catch(() => false)
+
+    expect(noAccess || !audienceHeaderVisible, 'Agency Admin should not see the Audience column').toBe(true)
   })
 })
 
