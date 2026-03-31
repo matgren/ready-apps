@@ -19,5 +19,9 @@ ggg/
 **/queue/
 **/.env
 **/.env.local
+**/.env.backup
+**/.env.clean
+**/.env.clean-backup
+**/.env.lean
 **/data/
 !**/src/**/data/
