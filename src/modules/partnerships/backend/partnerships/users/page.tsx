@@ -328,10 +328,15 @@ export default function UsersPage() {
       setBootstrapError(null)
 
       try {
-        // Fetch role detection, organizations, and roles in parallel
-        const [statusCall, orgsCall, rolesCall] = await Promise.all([
-          apiCall<{ role: string | null }>(
-            '/api/partnerships/onboarding-status',
+        // Fetch PM detection, organizations, and roles in parallel
+        const [featureCall, orgsCall, rolesCall] = await Promise.all([
+          apiCall<{ ok: boolean; granted: string[] }>(
+            '/api/auth/feature-check',
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ features: ['partnerships.agencies.manage'] }),
+            },
           ),
           apiCall<{ items: Array<{ id: string; name: string }> }>(
             '/api/directory/organizations?page=1&pageSize=100',
@@ -343,9 +348,9 @@ export default function UsersPage() {
 
         if (cancelled) return
 
-        // Detect PM: onboarding-status returns null role for PM (PM is not partner_admin/member/contributor)
-        const detectedRole = statusCall.ok ? statusCall.result?.role ?? null : null
-        const isPM = detectedRole === null
+        // PM has partnerships.agencies.manage, agency users don't
+        const isPM = !!(featureCall.ok
+          && featureCall.result?.granted?.includes('partnerships.agencies.manage'))
         setActorIsPM(isPM)
 
         // Organizations

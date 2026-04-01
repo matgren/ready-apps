@@ -1,8 +1,10 @@
 import { lazyDashboardWidget, type DashboardWidgetModule } from '@open-mercato/shared/modules/dashboard/widgets'
 
-const OnboardingChecklistWidget = lazyDashboardWidget(() => import('./widget.client'))
+type ChecklistSettings = { checkedItems: string[] }
 
-const widget: DashboardWidgetModule = {
+const OnboardingChecklistWidget = lazyDashboardWidget<ChecklistSettings>(() => import('./widget.client'))
+
+const widget: DashboardWidgetModule<ChecklistSettings> = {
   metadata: {
     id: 'partnerships.dashboard.onboarding-checklist',
     title: 'Getting Started',

@@ -732,13 +732,13 @@ Success: Admin opens `/backend/users/create`, enters email + password, organizat
 Success: Admin opens `/backend/users/create`, enters email + password, organization is pre-filled (Admin sees only own org via UserAcl), assigns `partner_contributor` role. Shares credentials out-of-band. Contributor logs in, sees WIC score dashboard scoped to their org. Nothing else visible. (Phase 4: replaced by email invitation via SPEC-038.)
 
 **US-1.6** As BD, I add my first prospect and create a deal so that my onboarding is complete.
-Success: Company + Deal created in CRM, onboarding workflow marks BD step as done.
+Success: Company + Deal created in CRM, BD can check off onboarding items on dashboard.
 
 **US-1.7** As Agency Admin, I see a checklist on my dashboard showing which onboarding steps I've completed and which remain so that I know what to do next without asking PM.
-Success: Dashboard widget shows checklist: fill organization profile (done/pending), add case study (done/pending), invite BD (done/pending), invite Contributor (done/pending). Each item links to the relevant page. Completed items show checkmark. Widget disappears when all items are done.
+Success: Dashboard widget shows checklist: fill organization profile, add case study, invite BD, invite Contributor. Each item links to the relevant page. User manually checks items off. Checked items show checkmark + strikethrough. Widget disappears when all items checked.
 
 **US-1.8** As BD, I see a checklist on my dashboard showing my onboarding steps so that I know I need to create my first deal.
-Success: Dashboard widget shows: add prospect company (done/pending), create first deal (done/pending). Links to CRM. Disappears when done.
+Success: Dashboard widget shows: add prospect company, create first deal. Links to CRM. User manually checks items off. Disappears when all checked.
 
 ### WF2: Pipeline Building (WIP)
 
@@ -968,7 +968,7 @@ Success: Every file follows OM conventions (auto-discovery paths, UMES patterns,
 | US-1.4 | auth module | 0 | — | Admin creates BD via `/backend/users/create` (auth.users.* feature). Domain rule: Admin can only assign partner_member, partner_contributor, partner_admin roles — NOT partnership_manager. |
 | US-1.5 | auth module | 0 | — | Same mechanism as US-1.4 |
 | US-1.6 | customers module CRM | 0 | — | Zero code — CRM exists |
-| US-1.7 + US-1.8 | partnerships widget injection | 1 | `app` | Onboarding checklist widget. Role-conditional (Admin sees 4 items, BD sees 2). Completion derived from live data queries (profile, case study, users, deals). Disappears when done. |
+| US-1.7 + US-1.8 | partnerships widget injection | 1 | `app` | Onboarding checklist widget. Role-conditional (Admin sees 4 items, BD sees 2, Contributor sees 1). Manual checkoff — users mark items done themselves. No cross-module live queries. Disappears when all checked. |
 | US-2.1 | customers module CRM | 0 | — | Zero code |
 | US-2.2 | UMES API interceptor + entities custom field | 1 | `app` | Interceptor stamps `wip_registered_at` on deal at SQL stage. Custom field seeded in setup.ts (bundled with US-1.2). Interceptor = 1 commit. |
 | US-2.3 | partnerships widget injection | 1 | `app` | KPI dashboard widget. Live query: `COUNT WHERE wip_registered_at IN month`. No batch worker needed. |
@@ -1052,8 +1052,8 @@ Success: Every file follows OM conventions (auto-discovery paths, UMES patterns,
 - [ ] ~~PM's org switcher reads are read-only~~ — DEFERRED: OM RBAC is tenant-wide by design (see Decision log). Phase 1: PM has `customers.*` everywhere, cross-org read-only is procedural. Enforced read-only requires per-org feature scoping (not planned upstream).
 - [ ] Case study requires minimum fields: `title`, at least one `industry`, at least one `technologies`, `budget_bucket`, `duration_bucket` — partial saves rejected at entity level
 - [ ] WIP live-query widget scopes by authenticated user's org (or PM's switched org) — no unscoped cross-org counts
-- [ ] Onboarding checklist widget visible only to users who have incomplete onboarding steps — not shown to PM, not shown after completion
-- [ ] Checklist completion state derived from live data (profile fields non-empty, case study exists, users with BD/Contributor role exist in org, deal exists) — not from a separate flag that can drift
+- [ ] Onboarding checklist widget visible only to agency roles with unchecked items — not shown to PM, not shown after all items checked
+- [ ] Checklist uses manual checkoff — users mark items done themselves. No cross-module live queries. Self-contained widget.
 
 **Business criteria** `Mat`:
 - [ ] PM can onboard an agency (creates Admin account in backend → shares credentials out-of-band → Admin logs in → fills profile → adds case study → creates BD account)

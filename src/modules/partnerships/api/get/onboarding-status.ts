@@ -4,9 +4,7 @@ import { createRequestContainer } from '@open-mercato/shared/lib/di/container'
 import { getAuthFromRequest } from '@open-mercato/shared/lib/auth/server'
 import { resolveOrganizationScopeForRequest } from '@open-mercato/core/modules/directory/utils/organizationScope'
 import { CrudHttpError } from '@open-mercato/shared/lib/crud/errors'
-import { CustomerEntity, CustomerDeal } from '@open-mercato/core/modules/customers/data/entities'
-import { CustomFieldValue, CustomEntityStorage } from '@open-mercato/core/modules/entities/data/entities'
-import { Role, User, UserRole } from '@open-mercato/core/modules/auth/data/entities'
+import { Role, UserRole } from '@open-mercato/core/modules/auth/data/entities'
 import type { EntityManager } from '@mikro-orm/postgresql'
 import type { OpenApiMethodDoc, OpenApiRouteDoc } from '@open-mercato/shared/lib/openapi'
 
@@ -22,14 +20,12 @@ export const metadata = {
 export type OnboardingChecklistItem = {
   id: string
   label: string
-  completed: boolean
   link: string
 }
 
 export type OnboardingStatusResponse = {
   role: 'partner_admin' | 'partner_member' | 'partner_contributor'
   items: OnboardingChecklistItem[]
-  allCompleted: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -56,7 +52,6 @@ export async function detectRole(
 
   const canManageAgencyProfile = await rbacService.userHasAllFeatures(userId, ['partnerships.agency-profile.manage'], scope)
   if (canManageAgencyProfile) {
-    // partner_admin manages the agency profile; other agency roles do not.
     return 'partner_admin'
   }
 
@@ -65,18 +60,7 @@ export async function detectRole(
     return 'partner_member'
   }
 
-  // Contributor has only partnerships.widgets.onboarding-checklist (no wip-count, no manage)
   return 'partner_contributor'
-}
-
-// ---------------------------------------------------------------------------
-// Completion checks
-// ---------------------------------------------------------------------------
-
-export type CompletionContext = {
-  em: EntityManager
-  tenantId: string
-  organizationId: string | null
 }
 
 async function detectRoleByAssignment(
@@ -113,161 +97,61 @@ async function detectRoleByAssignment(
   return null
 }
 
-export async function checkProfileFilled(ctx: CompletionContext): Promise<boolean> {
-  const cfvCount = await ctx.em.count(CustomFieldValue, {
-    entityId: 'directory:organization',
-    tenantId: ctx.tenantId,
-    ...(ctx.organizationId ? { organizationId: ctx.organizationId } : {}),
-    fieldKey: { $in: ['services', 'industries'] },
-    valueText: { $nin: [null, ''] },
-  })
-  return cfvCount > 0
-}
+// ---------------------------------------------------------------------------
+// Static item definitions per role
+// ---------------------------------------------------------------------------
 
-export async function checkCaseStudyExists(ctx: CompletionContext): Promise<boolean> {
-  const count = await ctx.em.count(CustomEntityStorage, {
-    entityType: 'partnerships:case_study',
-    tenantId: ctx.tenantId,
-    ...(ctx.organizationId ? { organizationId: ctx.organizationId } : {}),
-    deletedAt: null,
-  })
-  return count > 0
-}
+const ADMIN_ITEMS: OnboardingChecklistItem[] = [
+  {
+    id: 'fill_profile',
+    label: 'partnerships.widgets.onboardingChecklist.fillProfile',
+    link: '/backend/partnerships/agency-profile',
+  },
+  {
+    id: 'add_case_study',
+    label: 'partnerships.widgets.onboardingChecklist.addCaseStudy',
+    link: '/backend/partnerships/case-studies',
+  },
+  {
+    id: 'invite_bd',
+    label: 'partnerships.widgets.onboardingChecklist.inviteBd',
+    link: '/backend/partnerships/users',
+  },
+  {
+    id: 'invite_contributor',
+    label: 'partnerships.widgets.onboardingChecklist.inviteContributor',
+    link: '/backend/partnerships/users',
+  },
+]
 
-async function countUsersWithRoleInOrg(
-  em: EntityManager,
-  roleName: string,
-  tenantId: string,
-  organizationId: string | null,
-): Promise<number> {
-  const role = await em.findOne(Role, { name: roleName, tenantId, deletedAt: null })
-  if (!role) return 0
-  const filters: Record<string, unknown> = { role, deletedAt: null }
-  if (organizationId) {
-    filters.user = { organizationId, deletedAt: null }
+const BD_ITEMS: OnboardingChecklistItem[] = [
+  {
+    id: 'add_prospect',
+    label: 'partnerships.widgets.onboardingChecklist.addProspect',
+    link: '/backend/customers/companies',
+  },
+  {
+    id: 'create_deal',
+    label: 'partnerships.widgets.onboardingChecklist.createDeal',
+    link: '/backend/customers/deals',
+  },
+]
+
+const CONTRIBUTOR_ITEMS: OnboardingChecklistItem[] = [
+  {
+    id: 'set_gh_username',
+    label: 'partnerships.widgets.onboardingChecklist.setGhUsername',
+    link: '/backend/auth/profile',
+  },
+]
+
+export function getItemsForRole(role: DetectedRole): OnboardingChecklistItem[] {
+  switch (role) {
+    case 'partner_admin': return ADMIN_ITEMS
+    case 'partner_member': return BD_ITEMS
+    case 'partner_contributor': return CONTRIBUTOR_ITEMS
+    default: return []
   }
-  return em.count(UserRole, filters)
-}
-
-export async function checkBdInvited(ctx: CompletionContext): Promise<boolean> {
-  const count = await countUsersWithRoleInOrg(ctx.em, 'partner_member', ctx.tenantId, ctx.organizationId)
-  return count > 0
-}
-
-export async function checkContributorInvited(ctx: CompletionContext): Promise<boolean> {
-  const count = await countUsersWithRoleInOrg(ctx.em, 'partner_contributor', ctx.tenantId, ctx.organizationId)
-  return count > 0
-}
-
-export async function checkGhUsernameFilled(ctx: CompletionContext, userId: string): Promise<boolean> {
-  const cfvCount = await ctx.em.count(CustomFieldValue, {
-    entityId: 'auth:user',
-    tenantId: ctx.tenantId,
-    fieldKey: 'github_username',
-    recordId: userId,
-    valueText: { $nin: [null, ''] },
-  })
-  return cfvCount > 0
-}
-
-export async function checkProspectAdded(ctx: CompletionContext): Promise<boolean> {
-  const count = await ctx.em.count(CustomerEntity, {
-    kind: 'company',
-    tenantId: ctx.tenantId,
-    ...(ctx.organizationId ? { organizationId: ctx.organizationId } : {}),
-    deletedAt: null,
-  })
-  return count > 0
-}
-
-export async function checkDealCreated(ctx: CompletionContext): Promise<boolean> {
-  const count = await ctx.em.count(CustomerDeal, {
-    tenantId: ctx.tenantId,
-    ...(ctx.organizationId ? { organizationId: ctx.organizationId } : {}),
-    deletedAt: null,
-  })
-  return count > 0
-}
-
-// ---------------------------------------------------------------------------
-// Item builders
-// ---------------------------------------------------------------------------
-
-export async function buildAdminItems(
-  ctx: CompletionContext,
-  links?: { profile?: string; caseStudies?: string },
-): Promise<OnboardingChecklistItem[]> {
-  const [profileFilled, caseStudyExists, bdInvited, contributorInvited] = await Promise.all([
-    checkProfileFilled(ctx),
-    checkCaseStudyExists(ctx),
-    checkBdInvited(ctx),
-    checkContributorInvited(ctx),
-  ])
-
-  const profileLink = links?.profile ?? '/backend/partnerships/agency-profile'
-  const caseStudiesLink = links?.caseStudies ?? '/backend/partnerships/case-studies'
-
-  return [
-    {
-      id: 'fill_profile',
-      label: 'partnerships.widgets.onboardingChecklist.fillProfile',
-      completed: profileFilled,
-      link: profileLink,
-    },
-    {
-      id: 'add_case_study',
-      label: 'partnerships.widgets.onboardingChecklist.addCaseStudy',
-      completed: caseStudyExists,
-      link: caseStudiesLink,
-    },
-    {
-      id: 'invite_bd',
-      label: 'partnerships.widgets.onboardingChecklist.inviteBd',
-      completed: bdInvited,
-      link: '/backend/partnerships/users',
-    },
-    {
-      id: 'invite_contributor',
-      label: 'partnerships.widgets.onboardingChecklist.inviteContributor',
-      completed: contributorInvited,
-      link: '/backend/partnerships/users',
-    },
-  ]
-}
-
-export async function buildBdItems(ctx: CompletionContext): Promise<OnboardingChecklistItem[]> {
-  const [prospectAdded, dealCreated] = await Promise.all([
-    checkProspectAdded(ctx),
-    checkDealCreated(ctx),
-  ])
-
-  return [
-    {
-      id: 'add_prospect',
-      label: 'partnerships.widgets.onboardingChecklist.addProspect',
-      completed: prospectAdded,
-      link: '/backend/customers/companies',
-    },
-    {
-      id: 'create_deal',
-      label: 'partnerships.widgets.onboardingChecklist.createDeal',
-      completed: dealCreated,
-      link: '/backend/customers/deals',
-    },
-  ]
-}
-
-export async function buildContributorItems(ctx: CompletionContext, userId: string): Promise<OnboardingChecklistItem[]> {
-  const ghFilled = await checkGhUsernameFilled(ctx, userId)
-
-  return [
-    {
-      id: 'set_gh_username',
-      label: 'partnerships.widgets.onboardingChecklist.setGhUsername',
-      completed: ghFilled,
-      link: '/backend/auth/profile',
-    },
-  ]
 }
 
 // ---------------------------------------------------------------------------
@@ -286,37 +170,23 @@ async function GET(req: Request) {
     const tenantId: string = scope?.tenantId ?? auth.tenantId
     const organizationId = scope?.selectedId ?? auth.orgId ?? null
 
-    const rbacService = container.resolve('rbacService') as RbacService
     const userId = auth.sub
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const em = container.resolve('em') as EntityManager
+    const rbacService = container.resolve('rbacService') as RbacService
+
     const role =
       await detectRoleByAssignment(em, userId, tenantId, organizationId)
       ?? await detectRole(rbacService, userId, tenantId, organizationId)
     if (!role) {
-      return NextResponse.json({ role: null, items: [], allCompleted: false })
+      return NextResponse.json({ role: null, items: [] })
     }
 
-    const ctx: CompletionContext = { em, tenantId, organizationId }
-
-    let items: OnboardingChecklistItem[]
-    if (role === 'partner_admin') {
-      items = await buildAdminItems(ctx, {
-        profile: '/backend/partnerships/agency-profile',
-        caseStudies: '/backend/partnerships/case-studies',
-      })
-    } else if (role === 'partner_member') {
-      items = await buildBdItems(ctx)
-    } else {
-      items = await buildContributorItems(ctx, userId)
-    }
-
-    const allCompleted = items.length > 0 && items.every((item) => item.completed)
-
-    const response: OnboardingStatusResponse = { role, items, allCompleted }
+    const items = getItemsForRole(role)
+    const response: OnboardingStatusResponse = { role, items }
     return NextResponse.json(response)
   } catch (err) {
     if (err instanceof CrudHttpError) {
@@ -334,28 +204,26 @@ async function GET(req: Request) {
 const onboardingItemSchema = z.object({
   id: z.string(),
   label: z.string(),
-  completed: z.boolean(),
   link: z.string(),
 })
 
 const responseSchema = z.object({
   role: z.enum(['partner_admin', 'partner_member', 'partner_contributor']).nullable(),
   items: z.array(onboardingItemSchema),
-  allCompleted: z.boolean(),
 })
 
 const getDoc: OpenApiMethodDoc = {
-  summary: 'Get onboarding checklist status for current user',
+  summary: 'Get onboarding checklist items for current user',
   tags: ['Partnerships'],
   responses: [
-    { status: 200, description: 'Onboarding checklist status', schema: responseSchema },
+    { status: 200, description: 'Onboarding checklist items', schema: responseSchema },
     { status: 401, description: 'Unauthorized' },
   ],
 }
 
 export const openApi: OpenApiRouteDoc = {
   tag: 'Partnerships',
-  summary: 'Onboarding checklist status',
+  summary: 'Onboarding checklist items',
   methods: {
     GET: getDoc,
   },

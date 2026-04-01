@@ -288,12 +288,20 @@ export const interceptors: ApiInterceptor[] = [
       const roles = request.body?.roles as string[] | undefined
       let features: string[] = []
       if (Array.isArray(roles) && roles.length > 0) {
-        const roleAcl = await em.findOne(RoleAcl, {
-          role: roles[0],
-          tenantId: context.tenantId,
-        } as Record<string, unknown>)
-        if (roleAcl && Array.isArray(roleAcl.featuresJson)) {
-          features = roleAcl.featuresJson as string[]
+        // roles[0] may be a UUID (role ID) or a name string — resolve to Role entity first
+        const roleRef = roles[0]
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(roleRef)
+        const role = isUuid
+          ? await em.findOne(Role, { id: roleRef, tenantId: context.tenantId, deletedAt: null })
+          : await em.findOne(Role, { name: roleRef, tenantId: context.tenantId, deletedAt: null })
+        if (role) {
+          const roleAcl = await em.findOne(RoleAcl, {
+            role: role.id,
+            tenantId: context.tenantId,
+          } as Record<string, unknown>)
+          if (roleAcl && Array.isArray(roleAcl.featuresJson)) {
+            features = roleAcl.featuresJson as string[]
+          }
         }
       }
 
