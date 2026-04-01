@@ -85,7 +85,8 @@ TierAssignment {
 - Rename column `effective_date` -> `valid_from` (ALTER RENAME)
 - Add column `valid_until` (TIMESTAMPTZ, nullable, default NULL)
 - Existing rows keep `valid_until = NULL` — no fabricated dates
-- Audit all codebase references to `effectiveDate` and update
+- Audit all codebase references to `effectiveDate` and update (9 files — see analysis report)
+- Includes `api/post/agencies.ts` initial tier assignment path
 
 ### 3.2 Computed Read-Model States
 
@@ -100,13 +101,18 @@ These projections power UI banners and PM filters. When async notifications (ema
 
 When PM assigns a tier (manual):
 - `validFrom` = today (not editable)
-- `validUntil` = required date picker (no default — PM must choose)
+- `validUntil` = required date picker (default: today + 12 months, rounded to end of month)
 - Validation: `validUntil > today`
 
 When PM approves a TierChangeProposal:
 - `validFrom` = today (automatic)
-- `validUntil` = required date picker in approval dialog
+- `validUntil` = required date picker in approval dialog (default: today + 12 months, rounded to end of month)
 - Validation: `validUntil > today`
+
+When PM creates a new agency (Add Agency flow):
+- Initial TierAssignment uses `validFrom` = today
+- `validUntil` = optional (null). PM can set review date later via tier-assign.
+- Rationale: don't block the onboarding flow with a required date
 
 ### 3.4 EXPIRY_NOTICE_DAYS Configuration
 
@@ -222,7 +228,7 @@ so that I know when the current tier is scheduled for re-evaluation.
 | US-TV-1: Entity change | MikroORM entity | Yes — migration + entity | Rename field, add nullable column, update entity class |
 | US-TV-1: Assign form | Backend UI (page) | Yes — form extension | Add date picker to tier-assign page/dialog |
 | US-TV-2: Proposal approval | Backend UI (page) | Yes — dialog extension | Add date picker to approval dialog on tier-review page |
-| US-TV-3+4: Agency banner | Dashboard widget | Yes — new widget | Banner widget reading tier-status API isExpiring/isExpired |
+| US-TV-3+4: Agency banner | Dashboard widget | Yes — new widget | Banner widget reading tier-status API isExpiring/isExpired. Seeded via `seedDashboardDefaultsForTenant()` in setup.ts. New ACL feature: `partnerships.widgets.tier-expiry-banner` (partner_admin + partner_member). |
 | US-TV-5: PM agencies list | Backend UI (page) | Yes — page extension | Computed fields in agencies GET API + badges + filter |
 | US-TV-6: Tier status API | API route | Yes — response extension | Add fields to tier-status response + widget update |
 
@@ -234,13 +240,13 @@ so that I know when the current tier is scheduled for re-evaluation.
 
 | # | Commit | Stories | Score | Description |
 |---|--------|---------|-------|-------------|
-| C1 | Entity + migration | All | 2 | Rename `effectiveDate` -> `validFrom`, add nullable `validUntil` to TierAssignment. Migration. Update all entity references across codebase. Add `EXPIRY_NOTICE_DAYS` to tier-thresholds config. |
-| C2 | Tier assign API + form | US-TV-1 | 2 | Extend tier-assign API schema (validUntil required). Extend tier-assign backend page with date picker. Update Add Agency initial tier assignment. |
-| C3 | Tier proposal approval | US-TV-2 | 1 | Extend tier-proposals-action API: validUntil required on approve. Add date picker to approval dialog on tier-review page. |
+| C1 | Entity + migration | All | 2 | Rename `effectiveDate` -> `validFrom`, add nullable `validUntil` to TierAssignment. Migration. Update all 9 entity references across codebase (incl. `agencies.ts` initial tier path). Add `EXPIRY_NOTICE_DAYS` to tier-thresholds config. Remove unused `AgencyTierChanged` event (events.ts, tier-proposals-action.ts emit, workflow JSON). |
+| C2 | Tier assign API + form | US-TV-1 | 2 | Extend tier-assign API schema (`validUntil` required, zod). Extend tier-assign backend page with date picker (default: today + 12 months, end of month). Update OpenAPI export. |
+| C3 | Tier proposal approval | US-TV-2 | 1 | Extend tier-proposals-action API: `validUntil` required on approve (zod, conditional). Add date picker to approval dialog on tier-review page (default: today + 12 months, end of month). Update OpenAPI export. |
 | C4 | Tier status API + widget | US-TV-6 | 2 | Extend tier-status response with validFrom, validUntil, isExpiring, isExpired. Update tier status widget to show review date with color coding. |
-| C5 | Agency expiry banner | US-TV-3, US-TV-4 | 2 | New dashboard banner widget: reads tier-status API, shows info/warning banners conditionally. Feature-gated to Admin + BD. Widget injection in injection-table.ts. |
+| C5 | Agency expiry banner | US-TV-3, US-TV-4 | 2 | New dashboard banner widget: reads tier-status API, shows info/warning banners conditionally. New ACL feature `partnerships.widgets.tier-expiry-banner`. Widget seeded via `seedDashboardDefaultsForTenant()` in setup.ts for partner_admin + partner_member roles. Files: `widgets/dashboard/tier-expiry-banner/widget.ts` + `widget.client.tsx`. |
 | C6 | PM agencies list indicators | US-TV-5 | 2 | Extend agencies GET API with computed review status. Add badges + status filter to agencies list page. |
-| C7 | Seed data + tests | All | 1 | Update demo seed with realistic validUntil dates. Update existing unit tests for renamed field. New tests for expiry logic. |
+| C7 | Seed data + tests | All | 1 | Update demo seed with realistic validUntil dates (include one past = overdue, one within 30 days = expiring). Update existing unit tests for renamed field. New tests for expiry logic. Add i18n keys. |
 
 **Total: 7 atomic commits, Score 12**
 
@@ -279,7 +285,38 @@ so that I know when the current tier is scheduled for re-evaluation.
 
 ---
 
-## 10. Cleanup
+## 10. i18n Keys
+
+Add to `src/i18n/{en,pl,es,de}.json`:
+
+| Key | EN value |
+|-----|----------|
+| `partnerships.tierStatus.reviewDate` | `Review date` |
+| `partnerships.tierStatus.noReviewDate` | `No review date` |
+| `partnerships.tierStatus.expiring` | `Expiring` |
+| `partnerships.tierStatus.overdue` | `Overdue` |
+| `partnerships.tierStatus.expiringBanner` | `Your partnership tier {{tier}} is due for review on {{date}}. Your partnership is being evaluated.` |
+| `partnerships.tierStatus.overdueBanner` | `Your partnership tier review is overdue. Please contact your Partnership Manager.` |
+| `partnerships.tierStatus.daysRemaining` | `{{days}} days remaining` |
+
+---
+
+## 11. Integration Test Scenarios
+
+| # | Scenario | Phase |
+|---|----------|-------|
+| T1 | PM assigns tier with validUntil via tier-assign API → TierAssignment persisted with both dates | A |
+| T2 | PM approves tier proposal with validUntil → new TierAssignment created with validFrom=today, validUntil=chosen date | A |
+| T3 | Legacy assignment (null validUntil) → tier-status API returns `validUntil: null`, `isExpiring: false`, `isExpired: false` | A |
+| T4 | Tier-assign API rejects validUntil in the past → 422 | A |
+| T5 | Tier-status API returns validFrom, validUntil, isExpiring, isExpired fields | B |
+| T6 | Agency with validUntil within 30 days → tier-status returns `isExpiring: true` | B |
+| T7 | Agency with validUntil in the past → tier-status returns `isExpired: true` | B |
+| T8 | PM agencies list shows review status badges and supports status filter | B |
+
+---
+
+## 12. Cleanup
 
 ### Remove unused AgencyTierChanged event
 
@@ -291,7 +328,7 @@ If a consumer is needed in the future, re-add with the correct payload at that t
 
 ---
 
-## 11. Deferred
+## 13. Deferred
 
 - **Partnership Suspension** — account blocking when tier review is overdue. GitHub issue matgren/prm-ready-app#27.
 - **Domain events for review approaching/overdue** — TierReviewApproaching, TierReviewOverdue events for async notifications (email/push). Add when notification channels are implemented.
