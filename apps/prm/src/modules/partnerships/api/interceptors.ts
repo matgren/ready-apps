@@ -2,7 +2,7 @@ import type { ApiInterceptor, InterceptorContext } from '@open-mercato/shared/li
 import type { EntityManager } from '@mikro-orm/postgresql'
 import { CustomerPipelineStage } from '@open-mercato/core/modules/customers/data/entities'
 import { CustomFieldValue } from '@open-mercato/core/modules/entities/data/entities'
-import { User, Role, UserRole } from '@open-mercato/core/modules/auth/data/entities'
+import { User, Role, UserRole, UserAcl, RoleAcl } from '@open-mercato/core/modules/auth/data/entities'
 import { ActionLogService } from '@open-mercato/core/modules/audit_logs/services/actionLogService'
 import type { RbacService } from './get/onboarding-status'
 import { PRM_SQL_STAGE_ORDER } from '../data/custom-fields'
@@ -272,6 +272,45 @@ export const interceptors: ApiInterceptor[] = [
       }
 
       return { ok: true, body: patchedBody }
+    },
+    async after(request, response, context) {
+      // After successful user creation by partner_admin, restrict the new user to actor's org
+      if (request.method !== 'POST') return {}
+      if (response.statusCode !== 201) return {}
+      if (!await isPartnerAdmin(context)) return {}
+
+      const newUserId = (response.body.id ?? response.body.userId) as string | undefined
+      if (!newUserId) return {}
+
+      const em = context.em.fork()
+
+      // Load the role's features to copy into UserAcl
+      const roles = request.body?.roles as string[] | undefined
+      let features: string[] = []
+      if (Array.isArray(roles) && roles.length > 0) {
+        const roleAcl = await em.findOne(RoleAcl, {
+          role: roles[0],
+          tenantId: context.tenantId,
+        } as Record<string, unknown>)
+        if (roleAcl && Array.isArray(roleAcl.featuresJson)) {
+          features = roleAcl.featuresJson as string[]
+        }
+      }
+
+      // Create UserAcl restricting new user to actor's org
+      const aclData = {
+        user: newUserId,
+        tenantId: context.tenantId,
+        organizationsJson: [context.organizationId],
+        featuresJson: features,
+        isSuperAdmin: false,
+        createdAt: new Date(),
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      em.persist(em.create(UserAcl, aclData as any))
+      await em.flush()
+
+      return {}
     },
   },
 
