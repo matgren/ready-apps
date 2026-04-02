@@ -10,6 +10,7 @@ import { apiCall } from '@open-mercato/ui/backend/utils/apiCall'
 import { flash } from '@open-mercato/ui/backend/FlashMessages'
 import { LoadingMessage, ErrorMessage } from '@open-mercato/ui/backend/detail'
 import { useT } from '@open-mercato/shared/lib/i18n/context'
+import { getCurrentOrganizationScope, subscribeOrganizationScopeChanged } from '@open-mercato/shared/lib/frontend/organizationEvents'
 import { useConfirmDialog } from '@open-mercato/ui/backend/confirm-dialog'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@open-mercato/ui/primitives/dialog'
 
@@ -297,9 +298,12 @@ export default function UsersPage() {
   // State: actor role (PM vs agency admin)
   const [actorIsPM, setActorIsPM] = React.useState(false)
 
-  // State: organizations (for PM agency picker)
+  // State: organizations (for name lookup in DataTable title)
   const [organizations, setOrganizations] = React.useState<Organization[]>([])
-  const [selectedOrgId, setSelectedOrgId] = React.useState<string | null>(null)
+  // Org selection comes from the global OrganizationSwitcher
+  const [selectedOrgId, setSelectedOrgId] = React.useState<string | null>(
+    () => getCurrentOrganizationScope().organizationId,
+  )
 
   // State: roles
   const [agencyRoles, setAgencyRoles] = React.useState<Role[]>([])
@@ -353,14 +357,9 @@ export default function UsersPage() {
           && featureCall.result?.granted?.includes('partnerships.agencies.manage'))
         setActorIsPM(isPM)
 
-        // Organizations
+        // Organizations (for name lookup only — selection comes from global switcher)
         if (orgsCall.ok && orgsCall.result?.items) {
-          const orgs = orgsCall.result.items
-          setOrganizations(orgs)
-          // Auto-select for agency admin (not PM) — use their own org
-          if (!isPM && orgs.length >= 1) {
-            setSelectedOrgId(orgs[0].id)
-          }
+          setOrganizations(orgsCall.result.items)
         } else {
           setBootstrapError(t('partnerships.users.loadError', 'Failed to load data'))
           setBootstrapLoading(false)
@@ -387,6 +386,17 @@ export default function UsersPage() {
     bootstrap()
     return () => { cancelled = true }
   }, [t])
+
+  // -----------------------------------------------------------------------
+  // Sync with global OrganizationSwitcher
+  // -----------------------------------------------------------------------
+  React.useEffect(() => {
+    return subscribeOrganizationScopeChanged((detail) => {
+      setSelectedOrgId(detail.organizationId)
+      setPage(1)
+      setCredentialMessage(null)
+    })
+  }, [])
 
   // -----------------------------------------------------------------------
   // Load users when org is selected
@@ -478,13 +488,6 @@ export default function UsersPage() {
     setDialogUser(null)
   }
 
-  function handleOrgChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const value = e.target.value
-    setSelectedOrgId(value || null)
-    setPage(1)
-    setCredentialMessage(null)
-  }
-
   // -----------------------------------------------------------------------
   // Role id -> name mapping for display
   // -----------------------------------------------------------------------
@@ -554,27 +557,12 @@ export default function UsersPage() {
       <Page>
         <PageHeader title={t('partnerships.users.title', 'Users')} />
         <PageBody>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-1" htmlFor="agency-selector">
-                {t('partnerships.users.selectAgency', 'Select Agency')}
-              </label>
-              <select
-                id="agency-selector"
-                className="w-full max-w-sm rounded-md border bg-background px-3 py-2 text-sm"
-                value=""
-                onChange={handleOrgChange}
-              >
-                <option value="">
-                  {t('partnerships.users.selectAgencyPlaceholder', '-- Choose an agency --')}
-                </option>
-                {organizations.map((org) => (
-                  <option key={org.id} value={org.id}>{org.name}</option>
-                ))}
-              </select>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {t('partnerships.users.selectAgencyHint', 'Select an agency to manage its users.')}
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <p className="text-lg font-medium mb-2">
+              {t('partnerships.users.noOrgSelected', 'Select an agency')}
+            </p>
+            <p className="text-sm text-muted-foreground max-w-md">
+              {t('partnerships.users.noOrgSelectedHint', 'Use the organization switcher in the top-right corner to choose an agency, then manage its users here.')}
             </p>
           </div>
         </PageBody>
@@ -590,28 +578,6 @@ export default function UsersPage() {
   return (
     <Page>
       <PageBody>
-        {/* PM agency selector */}
-        {actorIsPM && (
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1" htmlFor="agency-selector">
-              {t('partnerships.users.selectAgency', 'Select Agency')}
-            </label>
-            <select
-              id="agency-selector"
-              className="w-full max-w-sm rounded-md border bg-background px-3 py-2 text-sm"
-              value={selectedOrgId ?? ''}
-              onChange={handleOrgChange}
-            >
-              <option value="">
-                {t('partnerships.users.selectAgencyPlaceholder', '-- Choose an agency --')}
-              </option>
-              {organizations.map((org) => (
-                <option key={org.id} value={org.id}>{org.name}</option>
-              ))}
-            </select>
-          </div>
-        )}
-
         {/* Credential handoff banner */}
         {credentialMessage && (
           <CredentialBanner
