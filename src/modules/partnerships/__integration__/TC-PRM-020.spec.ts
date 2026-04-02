@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { getAuthToken, apiRequest } from '@open-mercato/core/helpers/integration/api'
 import { readJsonSafe, getTokenContext } from '@open-mercato/core/helpers/integration/generalFixtures'
+import { loginInBrowser } from './helpers/login'
 
 /**
  * TC-PRM-020: License Deals UI
@@ -31,16 +32,6 @@ const ADMIN_PASSWORD = 'Demo123!'
 const CONTRIBUTOR_EMAIL = 'acme-contributor@demo.local'
 const CONTRIBUTOR_PASSWORD = 'Demo123!'
 const BASE = process.env.BASE_URL ?? 'http://127.0.0.1:5001'
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-async function loginInBrowser(page: Page, token: string): Promise<void> {
-  await page.context().addCookies([
-    { name: 'auth_token', value: token, url: BASE },
-  ])
-}
 
 // ---------------------------------------------------------------------------
 // Tests

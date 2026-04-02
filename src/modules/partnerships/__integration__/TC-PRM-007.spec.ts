@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test'
 import { getAuthToken, apiRequest } from '@open-mercato/core/helpers/integration/api'
 import { readJsonSafe, getTokenContext, getTokenScope } from '@open-mercato/core/helpers/integration/generalFixtures'
 import { deleteUserIfExists } from '@open-mercato/core/helpers/integration/authFixtures'
+import { loginInBrowser } from './helpers/login'
 
 /**
  * TC-PRM-007: Admin Creates Users UI (US-1.4 + US-1.5)
@@ -28,14 +29,6 @@ const ADMIN_PASSWORD = 'Demo123!'
 const BD_EMAIL = 'acme-bd@demo.local'
 const BD_PASSWORD = 'Demo123!'
 const BASE = process.env.BASE_URL ?? 'http://127.0.0.1:5001'
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-async function loginInBrowser(page: Page, token: string): Promise<void> {
-  await page.context().addCookies([{ name: 'auth_token', value: token, url: BASE }])
-}
 
 // ---------------------------------------------------------------------------
 // Tests

@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { getAuthToken } from '@open-mercato/core/helpers/integration/api'
+import { loginInBrowser } from './helpers/login'
 
 /**
  * TC-PRM-013: Cross-Org Company Search UI
@@ -24,10 +25,6 @@ const CONTRIBUTOR_EMAIL = 'acme-contributor@demo.local'
 const DEMO_PASSWORD = 'Demo123!'
 const BASE = process.env.BASE_URL ?? 'http://127.0.0.1:5001'
 const CREATE_URL = `${BASE}/backend/partnerships/license-deals/create`
-
-async function loginInBrowser(page: Page, token: string): Promise<void> {
-  await page.context().addCookies([{ name: 'auth_token', value: token, url: BASE }])
-}
 
 /** Navigate to create page, select an agency, and wait for enabled search input. */
 async function gotoCreatePage(page: Page, token: string): Promise<void> {

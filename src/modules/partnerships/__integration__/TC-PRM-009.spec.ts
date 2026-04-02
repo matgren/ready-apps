@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { getAuthToken } from '@open-mercato/core/helpers/integration/api'
 import { getTokenContext } from '@open-mercato/core/helpers/integration/generalFixtures'
+import { loginInBrowser } from './helpers/login'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as os from 'os'
@@ -27,10 +28,6 @@ const CONTRIBUTOR_EMAIL = 'acme-contributor@demo.local'
 const DEMO_PASSWORD = 'Demo123!'
 const BASE = process.env.BASE_URL ?? 'http://127.0.0.1:5001'
 const GH_USERNAME = 'carol-acme'
-
-async function loginInBrowser(page: Page, token: string): Promise<void> {
-  await page.context().addCookies([{ name: 'auth_token', value: token, url: BASE }])
-}
 
 /** Write JSON to a temp file and return its path. Caller should clean up. */
 function writeTempJson(data: unknown): string {

@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { getAuthToken, apiRequest } from '@open-mercato/core/helpers/integration/api'
 import { readJsonSafe } from '@open-mercato/core/helpers/integration/generalFixtures'
+import { loginInBrowser } from './helpers/login'
 
 /**
  * TC-PRM-019: Onboarding Checklist UI — Fresh Agency Admin
@@ -47,10 +48,9 @@ type ItemId = keyof typeof ITEMS
 // Helpers
 // ---------------------------------------------------------------------------
 
-async function loginInBrowser(page: Page, token: string): Promise<void> {
-  await page.context().addCookies([
-    { name: 'auth_token', value: token, url: BASE },
-  ])
+/** Navigate to backend dashboard after setting auth cookie. */
+async function loginAndGotoDashboard(page: Page, token: string): Promise<void> {
+  await loginInBrowser(page, token)
   await page.goto(`${BASE}/backend`)
 }
 
@@ -123,7 +123,7 @@ test.describe.serial('TC-PRM-019: Onboarding Checklist UI — Fresh Agency', () 
   // -------------------------------------------------------------------------
 
   test('T1: Fresh admin dashboard shows 4 unchecked onboarding items', async ({ page }) => {
-    await loginInBrowser(page, adminToken)
+    await loginAndGotoDashboard(page, adminToken)
     await waitForAnyItem(page)
 
     const state = await getChecklistState(page)
@@ -138,7 +138,7 @@ test.describe.serial('TC-PRM-019: Onboarding Checklist UI — Fresh Agency', () 
   // -------------------------------------------------------------------------
 
   test('T1b: Every checklist link leads to a working page', async ({ page }) => {
-    await loginInBrowser(page, adminToken)
+    await loginAndGotoDashboard(page, adminToken)
     await waitForAnyItem(page)
 
     for (const [, label] of Object.entries(ITEMS)) {
@@ -162,7 +162,7 @@ test.describe.serial('TC-PRM-019: Onboarding Checklist UI — Fresh Agency', () 
       expect(noAccess, `"${label}" link (${href}) leads to access denied`).toBeFalsy()
 
       // Navigate back to dashboard for next check
-      await loginInBrowser(page, adminToken)
+      await loginAndGotoDashboard(page, adminToken)
       await page.goto(`${BASE}/backend`, { waitUntil: 'domcontentloaded' })
       await waitForAnyItem(page)
     }
@@ -182,7 +182,7 @@ test.describe.serial('TC-PRM-019: Onboarding Checklist UI — Fresh Agency', () 
     })
     expect([200, 201].includes(res.status()), `Create case study failed: ${res.status()}`).toBe(true)
 
-    await loginInBrowser(page, adminToken)
+    await loginAndGotoDashboard(page, adminToken)
     await waitForAnyItem(page)
 
     expect(await isItemChecked(page, ITEMS.add_case_study), 'add_case_study should now be checked').toBe(true)
@@ -207,7 +207,7 @@ test.describe.serial('TC-PRM-019: Onboarding Checklist UI — Fresh Agency', () 
     })
     expect([200, 201].includes(res.status()), `Create BD user failed: ${res.status()}`).toBe(true)
 
-    await loginInBrowser(page, adminToken)
+    await loginAndGotoDashboard(page, adminToken)
     await waitForAnyItem(page)
 
     expect(await isItemChecked(page, ITEMS.invite_bd), 'invite_bd should now be checked').toBe(true)
@@ -231,7 +231,7 @@ test.describe.serial('TC-PRM-019: Onboarding Checklist UI — Fresh Agency', () 
     })
     expect([200, 201].includes(res.status()), `Create Contributor failed: ${res.status()}`).toBe(true)
 
-    await loginInBrowser(page, adminToken)
+    await loginAndGotoDashboard(page, adminToken)
     await waitForAnyItem(page)
 
     expect(await isItemChecked(page, ITEMS.invite_contributor), 'invite_contributor should now be checked').toBe(true)
@@ -254,7 +254,7 @@ test.describe.serial('TC-PRM-019: Onboarding Checklist UI — Fresh Agency', () 
     expect(fillProfileDone, 'fill_profile should be completed after agency-profile update').toBe(true)
 
     // If fill_profile IS done, widget should disappear in the UI
-    await loginInBrowser(page, adminToken)
+    await loginAndGotoDashboard(page, adminToken)
     // Give widget time to load — if all done, it renders null
     await page.waitForTimeout(3_000)
     for (const label of Object.values(ITEMS)) {

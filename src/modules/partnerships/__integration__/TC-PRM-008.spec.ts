@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { getAuthToken, apiRequest } from '@open-mercato/core/helpers/integration/api'
+import { loginInBrowser } from './helpers/login'
 
 /**
  * TC-PRM-008: Seed Data Verification UI (US-1.2, US-1.3, US-7.2, US-7.3)
@@ -32,14 +33,6 @@ const NORDIC_ADMIN_EMAIL = 'nordic-admin@demo.local'
 const NORDIC_BD_EMAIL = 'nordic-bd@demo.local'
 const DEMO_PASSWORD = 'Demo123!'
 const BASE = process.env.BASE_URL ?? 'http://127.0.0.1:5001'
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-async function loginInBrowser(page: Page, token: string): Promise<void> {
-  await page.context().addCookies([{ name: 'auth_token', value: token, url: BASE }])
-}
 
 // ---------------------------------------------------------------------------
 // Tests

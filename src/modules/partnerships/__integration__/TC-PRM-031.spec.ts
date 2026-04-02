@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { getAuthToken, apiRequest } from '@open-mercato/core/helpers/integration/api'
 import { readJsonSafe } from '@open-mercato/core/helpers/integration/generalFixtures'
+import { loginInBrowser } from './helpers/login'
 
 /**
  * TC-PRM-031: RFP Message Templates (US-4.6)
@@ -20,10 +21,6 @@ const PM_PASSWORD = 'Demo123!'
 const BD_EMAIL = 'acme-bd@demo.local'
 const BD_PASSWORD = 'Demo123!'
 const BASE = process.env.BASE_URL ?? 'http://127.0.0.1:5001'
-
-async function loginInBrowser(page: Page, token: string) {
-  await page.context().addCookies([{ name: 'auth_token', value: token, url: BASE }])
-}
 
 test.describe('TC-PRM-031: RFP Message Templates', () => {
   let pmToken: string

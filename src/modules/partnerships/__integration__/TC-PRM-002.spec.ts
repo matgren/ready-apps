@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { getAuthToken } from '@open-mercato/core/helpers/integration/api'
+import { loginInBrowser } from './helpers/login'
 
 /**
  * TC-PRM-002: WIP Count KPI Dashboard Widget UI
@@ -19,10 +20,6 @@ const BD_EMAIL = 'acme-bd@demo.local'
 const ADMIN_EMAIL = 'acme-admin@demo.local'
 const DEMO_PASSWORD = 'Demo123!'
 const BASE = process.env.BASE_URL ?? 'http://127.0.0.1:5001'
-
-async function loginInBrowser(page: Page, token: string): Promise<void> {
-  await page.context().addCookies([{ name: 'auth_token', value: token, url: BASE }])
-}
 
 test.describe('TC-PRM-002: WIP Count KPI Dashboard Widget UI', () => {
   let bdToken: string

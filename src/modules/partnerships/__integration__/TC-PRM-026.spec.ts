@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { getAuthToken, apiRequest } from '@open-mercato/core/helpers/integration/api'
+import { loginInBrowser } from './helpers/login'
 
 /**
  * TC-PRM-026: RFP Campaign Creation — Negative (US-4.1)
@@ -16,10 +17,6 @@ const BD_PASSWORD = 'Demo123!'
 const ADMIN_EMAIL = 'acme-admin@demo.local'
 const ADMIN_PASSWORD = 'Demo123!'
 const BASE = process.env.BASE_URL ?? 'http://127.0.0.1:5001'
-
-async function loginInBrowser(page: import('@playwright/test').Page, token: string) {
-  await page.context().addCookies([{ name: 'auth_token', value: token, url: BASE }])
-}
 
 test.describe('TC-PRM-026: RFP Campaign Creation — Negative', () => {
   let pmToken: string

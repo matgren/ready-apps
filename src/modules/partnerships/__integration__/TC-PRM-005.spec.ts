@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { getAuthToken } from '@open-mercato/core/helpers/integration/api'
+import { loginInBrowser } from './helpers/login'
 
 /**
  * TC-PRM-005: Org Isolation UI (US-6.1 through US-6.4)
@@ -31,10 +32,6 @@ const BASE = process.env.BASE_URL ?? 'http://127.0.0.1:5001'
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-async function loginInBrowser(page: Page, token: string): Promise<void> {
-  await page.context().addCookies([{ name: 'auth_token', value: token, url: BASE }])
-}
 
 /** Wait for table data to load (not a loading placeholder) then extract row texts. */
 async function getTableRowTexts(page: Page): Promise<string[]> {

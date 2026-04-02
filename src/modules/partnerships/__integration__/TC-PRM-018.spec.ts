@@ -1,5 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { getAuthToken } from '@open-mercato/core/helpers/integration/api'
+import { loginInBrowser } from './helpers/login'
 
 /**
  * TC-PRM-018: Tier Review Page UI (US-5.3)
@@ -26,14 +27,6 @@ const PM_EMAIL = 'partnership-manager@demo.local'
 const ADMIN_EMAIL = 'acme-admin@demo.local'
 const DEMO_PASSWORD = 'Demo123!'
 const BASE = process.env.BASE_URL ?? 'http://127.0.0.1:5001'
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-async function loginInBrowser(page: Page, token: string): Promise<void> {
-  await page.context().addCookies([{ name: 'auth_token', value: token, url: BASE }])
-}
 
 // ---------------------------------------------------------------------------
 // Tests

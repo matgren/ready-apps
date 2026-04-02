@@ -52,6 +52,9 @@ mercato test ephemeral
 # View HTML integration test report
 mercato test coverage
 
+# IMPORTANT: `mercato test integration` runs the full suite.
+# `mercato test ephemeral` only starts the app for manual QA — it does NOT run tests.
+
 # Generate code from modules
 yarn generate
 
@@ -109,6 +112,13 @@ Custom modules go in `src/modules/`. Each module can define:
 
 Add new modules to `src/modules.ts` with `from: '@app'`.
 Install official package-backed modules with `yarn mercato module add @open-mercato/<package>`.
+
+### Integration Tests
+
+- Tests live in `src/modules/partnerships/__integration__/TC-PRM-*.spec.ts`
+- Shared helpers in `src/modules/partnerships/__integration__/helpers/`
+- **Login helper**: Always use `loginInBrowser()` from `./helpers/login` — it sets the auth token AND dismisses global notice bars (demo banner, cookie consent). Without this, fixed-position overlays intercept Playwright click actions.
+- The `entities.generated.mjs` file is a pre-compiled MikroORM metadata snapshot. `yarn generate` regenerates the `.ts` source but NOT the `.mjs`. After entity changes, rebuild it: `npx tsx -e "import{build}from'esbuild';build({entryPoints:['.mercato/generated/entities.generated.ts'],outfile:'.mercato/generated/entities.generated.mjs',format:'esm',platform:'node',bundle:true,external:['@mikro-orm/*','reflect-metadata'],target:'node24'})"` — or the ephemeral test runner will use stale entity metadata.
 
 ### Path Aliases
 

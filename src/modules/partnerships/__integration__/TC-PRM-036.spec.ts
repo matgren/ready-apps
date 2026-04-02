@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test'
 import { getAuthToken, apiRequest } from '@open-mercato/core/helpers/integration/api'
 import { readJsonSafe, getTokenContext } from '@open-mercato/core/helpers/integration/generalFixtures'
 import { deleteUserIfExists } from '@open-mercato/core/helpers/integration/authFixtures'
+import { loginInBrowser } from './helpers/login'
 
 /**
  * TC-PRM-036: Agency Onboarding E2E — Create Agency, Admin Creates Users
@@ -24,14 +25,6 @@ import { deleteUserIfExists } from '@open-mercato/core/helpers/integration/authF
 const PM_EMAIL = 'partnership-manager@demo.local'
 const PM_PASSWORD = 'Demo123!'
 const BASE = process.env.BASE_URL ?? 'http://127.0.0.1:5001'
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-async function loginInBrowser(page: Page, token: string): Promise<void> {
-  await page.context().addCookies([{ name: 'auth_token', value: token, url: BASE }])
-}
 
 // ---------------------------------------------------------------------------
 // Shared state across tests in this file

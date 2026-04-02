@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { getAuthToken, apiRequest } from '@open-mercato/core/helpers/integration/api'
 import { readJsonSafe } from '@open-mercato/core/helpers/integration/generalFixtures'
+import { loginInBrowser } from './helpers/login'
 
 /**
  * TC-PRM-028: BD Submits RFP Response (US-4.3)
@@ -21,10 +22,6 @@ const CONTRIBUTOR_PASSWORD = 'Demo123!'
 const BASE = process.env.BASE_URL ?? 'http://127.0.0.1:5001'
 
 const stamp = Date.now()
-
-async function loginInBrowser(page: import('@playwright/test').Page, token: string) {
-  await page.context().addCookies([{ name: 'auth_token', value: token, url: BASE }])
-}
 
 test.describe.serial('TC-PRM-028: BD Submits RFP Response', () => {
   let pmToken: string
