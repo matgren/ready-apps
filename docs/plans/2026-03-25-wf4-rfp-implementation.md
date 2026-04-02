@@ -155,7 +155,7 @@ In `acl.ts`, add:
 - [ ] **Step 5: Add defaultRoleFeatures in setup.ts**
 
 In `setup.ts` seedDefaults, add to partnership_manager role: `'partnerships.rfp.manage'`
-Add to partner_admin and partner_member roles: `'partnerships.rfp.respond'`
+Add to agency_admin and agency_business_developer roles: `'partnerships.rfp.respond'`
 
 - [ ] **Step 6: Create makeCrudRoute for campaigns**
 
@@ -376,7 +376,7 @@ export const notificationTypes: NotificationTypeDefinition[] = [
 `subscribers/rfp-campaign-published.ts`:
 - Listens to `partnerships.rfp_campaign.published`
 - Reads campaign audience (all or selectedAgencyIds)
-- Finds all BD users (partner_member + partner_admin roles) in target agencies
+- Finds all BD users (agency_business_developer + agency_admin roles) in target agencies
 - Reads RFP message template from RfpSettings
 - Resolves placeholders (`[first-name]`, `[last-name]`, `[agency-name]`, `[campaign-title]`)
 - Creates Notification per BD user via `em.create(Notification, ...)`

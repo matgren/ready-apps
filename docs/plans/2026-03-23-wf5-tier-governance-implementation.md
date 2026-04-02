@@ -265,7 +265,7 @@ API key auth via `x-api-key` header checked against `process.env.CRON_SECRET`.
 - [ ] Create `api/get/tier-status.ts` — reads TierAssignment + TierEvaluationState + live KPIs
 - [ ] Create widget.ts + widget.client.tsx
 - [ ] Register in injection-table.ts
-- [ ] Add `partnerships.widgets.tier-status` to acl.ts + partner_admin/partner_member roles
+- [ ] Add `partnerships.widgets.tier-status` to acl.ts + agency_admin/agency_business_developer roles
 - [ ] Add widget to AGENCY_WIDGETS in setup.ts
 - [ ] Add i18n keys
 - [ ] Run `yarn generate && yarn typecheck`

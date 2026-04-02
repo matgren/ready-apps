@@ -116,10 +116,10 @@ None.
    - **Recommendation:** Make `validUntil` optional for initial assignment (onboarding). PM can set review date later via tier-assign. This avoids blocking the "Add Agency" flow.
 
 2. **Widget registration mechanism wrong in spec**: C5 says "Widget injection in injection-table.ts" but `injection-table.ts` is intentionally empty. Dashboard widgets are seeded via `setup.ts` → `seedDashboardDefaultsForTenant()`.
-   - **Recommendation:** Update C5 description to use setup.ts seeding pattern. New widget needs: (a) `widget.ts` + `widget.client.tsx` in `widgets/dashboard/tier-expiry-banner/`, (b) ACL feature `partnerships.widgets.tier-expiry-banner` in `acl.ts`, (c) seed entry in `seedDashboardDefaultsForTenant()` for partner_admin and partner_member roles.
+   - **Recommendation:** Update C5 description to use setup.ts seeding pattern. New widget needs: (a) `widget.ts` + `widget.client.tsx` in `widgets/dashboard/tier-expiry-banner/`, (b) ACL feature `partnerships.widgets.tier-expiry-banner` in `acl.ts`, (c) seed entry in `seedDashboardDefaultsForTenant()` for agency_admin and agency_business_developer roles.
 
 3. **Missing ACL feature for new banner widget**: The spec defines a new dashboard widget (C5) but doesn't specify the ACL feature ID. Existing widgets each have their own feature (e.g., `partnerships.widgets.tier-status`).
-   - **Recommendation:** Add `partnerships.widgets.tier-expiry-banner` to `acl.ts`. Map to partner_admin and partner_member in `PRM_ROLE_FEATURES`. Exclude partner_contributor (per US-TV-3).
+   - **Recommendation:** Add `partnerships.widgets.tier-expiry-banner` to `acl.ts`. Map to agency_admin and agency_business_developer in `PRM_ROLE_FEATURES`. Exclude agency_developer (per US-TV-3).
 
 4. **i18n keys not planned**: 6+ new UI strings needed (review date labels, banner messages). No i18n key list in spec.
    - **Recommendation:** Add to spec or handle during implementation. Keys needed in `src/i18n/{en,pl,es,de}.json`.

@@ -1240,7 +1240,7 @@ Add to `acl.ts` features array:
 { id: 'partnerships.widgets.wic-summary', title: 'View WIC summary widget', module: 'partnerships' },
 ```
 
-In `setup.ts`, add `'partnerships.widgets.wic-summary'` to `partner_contributor` features in `PRM_ROLE_FEATURES`.
+In `setup.ts`, add `'partnerships.widgets.wic-summary'` to `agency_developer` features in `PRM_ROLE_FEATURES`.
 
 Also add `'partnerships.dashboard.wic-summary'` to the `AGENCY_WIDGETS` array in `seedDefaults`.
 

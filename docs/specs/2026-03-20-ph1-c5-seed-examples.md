@@ -38,15 +38,15 @@ After this commit, running `yarn initialize` populates a complete Phase 1 demo e
 | User | Role | Agency |
 |------|------|--------|
 | pm@demo.local | partnership_manager | PM org (top-level) |
-| admin@acme-demo.local | partner_admin | Acme Digital |
-| bd@acme-demo.local | partner_member | Acme Digital |
-| contributor@acme-demo.local | partner_contributor | Acme Digital |
-| admin@nordic-demo.local | partner_admin | Nordic AI Labs |
-| bd@nordic-demo.local | partner_member | Nordic AI Labs |
-| contributor@nordic-demo.local | partner_contributor | Nordic AI Labs |
-| admin@cloudbridge-demo.local | partner_admin | CloudBridge Solutions |
-| bd@cloudbridge-demo.local | partner_member | CloudBridge Solutions |
-| contributor@cloudbridge-demo.local | partner_contributor | CloudBridge Solutions |
+| admin@acme-demo.local | agency_admin | Acme Digital |
+| bd@acme-demo.local | agency_business_developer | Acme Digital |
+| contributor@acme-demo.local | agency_developer | Acme Digital |
+| admin@nordic-demo.local | agency_admin | Nordic AI Labs |
+| bd@nordic-demo.local | agency_business_developer | Nordic AI Labs |
+| contributor@nordic-demo.local | agency_developer | Nordic AI Labs |
+| admin@cloudbridge-demo.local | agency_admin | CloudBridge Solutions |
+| bd@cloudbridge-demo.local | agency_business_developer | CloudBridge Solutions |
+| contributor@cloudbridge-demo.local | agency_developer | CloudBridge Solutions |
 
 All demo users: password `demo1234` (hashed with bcryptjs).
 

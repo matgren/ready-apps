@@ -28,7 +28,7 @@ After this commit, when an Agency Admin logs in for the first time, they see a d
 
 ## Acceptance Criteria
 **Domain (Vernon):**
-- [ ] Onboarding checklist widget visible only to agency roles (`partner_admin`, `partner_member`, `partner_contributor`) — not shown to PM
+- [ ] Onboarding checklist widget visible only to agency roles (`agency_admin`, `agency_business_developer`, `agency_developer`) — not shown to PM
 - [ ] Checklist items are role-conditional: Admin sees 4 items, BD sees 2 items, Contributor sees 1 item
 - [ ] Users can manually check/uncheck items by clicking the checkbox
 - [ ] Checked state is persisted per-user via widget `settings` and survives page reload
@@ -85,7 +85,7 @@ Returns static items per role. No checked state (that lives in widget settings):
 
 ```typescript
 type OnboardingStatusResponse = {
-  role: 'partner_admin' | 'partner_member' | 'partner_contributor'
+  role: 'agency_admin' | 'agency_business_developer' | 'agency_developer'
   items: Array<{
     id: string
     label: string   // i18n key
@@ -123,9 +123,9 @@ type OnboardingStatusResponse = {
 Role detection uses `detectRoleByAssignment` (DB lookup of user's role assignments) — no dependency on feature checks or cross-module queries.
 
 ### Role Filtering
-- `partner_admin`: show Admin items
-- `partner_member` (BD): show BD items
-- `partner_contributor`: show Contributor items
+- `agency_admin`: show Admin items
+- `agency_business_developer` (BD): show BD items
+- `agency_developer`: show Contributor items
 - `partnership_manager` (PM): no checklist (PM is not onboarding into an agency)
 
 ### Auto-Dismiss Logic
@@ -146,9 +146,9 @@ The widget client reads `settings.checkedItems` and compares against the items l
 
 | Function | Test |
 |----------|------|
-| `handler` | Returns 4 items for partner_admin role |
-| `handler` | Returns 2 items for partner_member role |
-| `handler` | Returns 1 item for partner_contributor role |
+| `handler` | Returns 4 items for agency_admin role |
+| `handler` | Returns 2 items for agency_business_developer role |
+| `handler` | Returns 1 item for agency_developer role |
 | `handler` | Returns 403 for partnership_manager (no checklist for PM) |
 
 ### Integration Test Scenarios

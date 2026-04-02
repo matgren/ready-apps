@@ -8,7 +8,7 @@ This means UMES interceptors — the primary mechanism for app-level guardrails 
 
 ## Context: How We Found This
 
-Building PRM's agency user management (Phase 2, Commit 8), we needed to restrict `/api/auth/users` GET results so `partner_admin` users only see users within their own organization. We registered an interceptor with `targetRoute: 'auth/users'` and `methods: ['GET']`.
+Building PRM's agency user management (Phase 2, Commit 8), we needed to restrict `/api/auth/users` GET results so `agency_admin` users only see users within their own organization. We registered an interceptor with `targetRoute: 'auth/users'` and `methods: ['GET']`.
 
 - **Mutation interceptors** (POST/PUT/DELETE) worked correctly — they go through `crud.POST`/`crud.PUT`/`crud.DELETE` which runs the interceptor pipeline.
 - **GET interceptor** never fired — the auth users GET handler is a custom `async function GET(req)` that bypasses `makeCrudRoute` entirely.

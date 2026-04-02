@@ -211,18 +211,18 @@ import type { ModuleSetupConfig } from '@$OM_REPO/shared/modules/setup'
 
 export const setup: ModuleSetupConfig = {
   defaultRoleFeatures: {
-    partner_admin: [
+    agency_admin: [
       'customers.*',
       'partnerships.manage',
       'partnerships.widgets.onboarding-checklist',
     ],
-    partner_member: [
+    agency_business_developer: [
       'customers.*',
       'partnerships.case-studies.manage',
       'partnerships.widgets.wip-count',
       'partnerships.widgets.onboarding-checklist',
     ],
-    partner_contributor: [
+    agency_developer: [
       'partnerships.widgets.onboarding-checklist',
     ],
     partnership_manager: [
@@ -557,8 +557,8 @@ Pattern: OM dashboard widget injection (lazyDashboardWidget + injection-table)"
 - [ ] **Step 1: Write failing unit tests**
 
 Create `api/get/onboarding-status.test.ts`:
-1. Returns 4 items for `partner_admin` role, all uncompleted in fresh org
-2. Returns 2 items for `partner_member` role
+1. Returns 4 items for `agency_admin` role, all uncompleted in fresh org
+2. Returns 2 items for `agency_business_developer` role
 3. Returns 403 for `partnership_manager` (no checklist for PM)
 4. Marks "Fill profile" as completed when services field is populated
 5. Returns `allCompleted: true` when all items pass
@@ -574,12 +574,12 @@ Expected: FAIL
 
 Create `api/get/onboarding-status.ts`:
 - Auth guard: `requireFeatures: ['partnerships.widgets.onboarding-checklist']`
-- Detect user's role (partner_admin vs partner_member) from context
+- Detect user's role (agency_admin vs agency_business_developer) from context
 - Run 4 or 2 completion check queries (all `COUNT` with `LIMIT 1`, very fast):
   - Profile: check if company profile has non-empty services or industries
   - Case study: check if `partnerships:case_study` records exist for org
-  - BD invited: check users with `partner_member` role in org
-  - Contributor invited: check users with `partner_contributor` role in org
+  - BD invited: check users with `agency_business_developer` role in org
+  - Contributor invited: check users with `agency_developer` role in org
   - Prospect added (BD only): check company records in org
   - Deal created (BD only): check deal records in org
 - Return `{ role, items: [{ id, label, completed, link }], allCompleted }`

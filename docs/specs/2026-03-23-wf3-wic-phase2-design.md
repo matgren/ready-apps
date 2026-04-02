@@ -153,8 +153,8 @@ Phase 2 enables PM to import WIC scores from the external `wic_assessment.mjs` s
 - Columns: contributor name, PR ID, feature key, level, WIC score, bounty status, source badge
 - Month picker (default: current month)
 - **Organization scoping:**
-  - `partner_contributor` — own rows only
-  - `partner_admin` / `partner_member` — all rows in own org
+  - `agency_developer` — own rows only
+  - `agency_admin` / `agency_business_developer` — all rows in own org
   - `partnership_manager` — all orgs (cross-org view with org filter)
 - Pagination, sort by `wic_score` desc
 
@@ -162,7 +162,7 @@ Phase 2 enables PM to import WIC scores from the external `wic_assessment.mjs` s
 
 - Tile: "WIC Score: **147**" + source badge (`manual` | `automated`)
 - Total WIC score for current month, org-scoped
-- **Roles:** `partner_contributor` only (per App Spec). Admin/BD see WIC as part of Tier Status widget in WF5.
+- **Roles:** `agency_developer` only (per App Spec). Admin/BD see WIC as part of Tier Status widget in WF5.
 - Feature: `partnerships.widgets.wic-summary`
 - Size: `sm`, supports refresh
 - Click-through: links to `/backend/partnerships/my-wic`

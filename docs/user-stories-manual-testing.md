@@ -50,13 +50,13 @@
 
 ### US-1.4 + US-1.5 — Admin tworzy konta BD i Contributor
 
-**Co robi:** Admin moze tworzyc uzytkownikow w swojej organizacji z rolami `partner_member` (BD) i `partner_contributor`.
+**Co robi:** Admin moze tworzyc uzytkownikow w swojej organizacji z rolami `agency_business_developer` (BD) i `agency_developer`.
 
 **Jak sprawdzic:**
 1. Zaloguj sie jako Acme Admin
 2. Idz do `/backend/users/create` — organizacja jest pre-filled (tylko Acme)
-3. Stworz usera z rola `partner_member` — sukces
-4. Stworz usera z rola `partner_contributor` — sukces
+3. Stworz usera z rola `agency_business_developer` — sukces
+4. Stworz usera z rola `agency_developer` — sukces
 5. Zaloguj sie jako BD (`acme-bd@demo.local`) — probujesz stworzyc usera → 403
 
 **Testy e2e:** TC-PRM-007 (T1-T3)

@@ -26,7 +26,7 @@ After this commit, the PRM module exists with all foundational data: four partne
 |------|--------|---------|
 | `src/modules/partnerships/index.ts` | Create | Module metadata (name, title, version, description) |
 | `src/modules/partnerships/acl.ts` | Create | Feature declarations: `partnerships.manage`, `partnerships.widgets.wip-count`, `partnerships.widgets.onboarding-checklist` + customers module feature grants per role |
-| `src/modules/partnerships/setup.ts` | Create | `seedDefaults`: seed roles (partner_admin, partner_member, partner_contributor, partnership_manager), 6 dictionaries (services, industries, technologies, budget_buckets, duration_buckets, verticals), PRM pipeline (7 stages: New→Contacted→Qualified→SQL→Proposal→Won→Lost), 13 company profile custom fields, `wip_registered_at` datetime CF on `customers.deal`, case study custom entity (19 fields). `defaultRoleFeatures`: map roles to features. |
+| `src/modules/partnerships/setup.ts` | Create | `seedDefaults`: seed roles (agency_admin, agency_business_developer, agency_developer, partnership_manager), 6 dictionaries (services, industries, technologies, budget_buckets, duration_buckets, verticals), PRM pipeline (7 stages: New→Contacted→Qualified→SQL→Proposal→Won→Lost), 13 company profile custom fields, `wip_registered_at` datetime CF on `customers.deal`, case study custom entity (19 fields). `defaultRoleFeatures`: map roles to features. |
 | `src/modules/partnerships/data/custom-fields.ts` | Create | Constants: company profile field definitions (13 fields), `wip_registered_at` deal field definition, case study entity field definitions (19 fields with required flags). Exported for use by setup.ts and interceptor (SQL stage threshold constant). |
 | `src/modules/partnerships/events.ts` | Create | Events config via `createModuleEvents({ moduleId: 'partnerships', events: [] as const })`. No domain events in Phase 1. Must follow the `as const` + `createModuleEvents` pattern for auto-discovery. |
 | `src/modules/partnerships/ce.ts` | Create | Custom entity declaration for `partnerships:case_study` with labelField, showInSidebar config |
@@ -42,9 +42,9 @@ After this commit, the PRM module exists with all foundational data: four partne
 
 ### Roles and Feature Grants
 Four roles with feature mappings:
-- `partner_admin`: `customers.*` (full CRM), `partnerships.case-studies.manage`, `partnerships.manage`, `partnerships.widgets.onboarding-checklist`
-- `partner_member` (BD): `customers.*` (full CRM), `partnerships.case-studies.manage`, `partnerships.widgets.wip-count`, `partnerships.widgets.onboarding-checklist`
-- `partner_contributor`: minimal — only WIC-related features (Phase 2), `partnerships.widgets.onboarding-checklist` (not used in Phase 1 but declared)
+- `agency_admin`: `customers.*` (full CRM), `partnerships.case-studies.manage`, `partnerships.manage`, `partnerships.widgets.onboarding-checklist`
+- `agency_business_developer` (BD): `customers.*` (full CRM), `partnerships.case-studies.manage`, `partnerships.widgets.wip-count`, `partnerships.widgets.onboarding-checklist`
+- `agency_developer`: minimal — only WIC-related features (Phase 2), `partnerships.widgets.onboarding-checklist` (not used in Phase 1 but declared)
 - `partnership_manager` (PM): `customers.*.view` (read-only CRM), `partnerships.manage`, `partnerships.widgets.wip-count`
 
 ### Pipeline Stages

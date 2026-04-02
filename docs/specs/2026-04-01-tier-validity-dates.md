@@ -178,8 +178,8 @@ so that I know my partnership is being evaluated.
 
 **Success:**
 - When `validUntil` is within EXPIRY_NOTICE_DAYS (default 30): dashboard shows info banner "Your partnership tier [tier name] is due for review on [date]. Your partnership is being evaluated."
-- Banner visible to Admin (`partner_admin`) and BD (`partner_member`)
-- Not visible to Contributor (`partner_contributor`)
+- Banner visible to Admin (`agency_admin`) and BD (`agency_business_developer`)
+- Not visible to Contributor (`agency_developer`)
 - Banner disappears when PM assigns new tier
 
 ### US-TV-4: Agency sees overdue review warning
@@ -228,7 +228,7 @@ so that I know when the current tier is scheduled for re-evaluation.
 | US-TV-1: Entity change | MikroORM entity | Yes — migration + entity | Rename field, add nullable column, update entity class |
 | US-TV-1: Assign form | Backend UI (page) | Yes — form extension | Add date picker to tier-assign page/dialog |
 | US-TV-2: Proposal approval | Backend UI (page) | Yes — dialog extension | Add date picker to approval dialog on tier-review page |
-| US-TV-3+4: Agency banner | Dashboard widget | Yes — new widget | Banner widget reading tier-status API isExpiring/isExpired. Seeded via `seedDashboardDefaultsForTenant()` in setup.ts. New ACL feature: `partnerships.widgets.tier-expiry-banner` (partner_admin + partner_member). |
+| US-TV-3+4: Agency banner | Dashboard widget | Yes — new widget | Banner widget reading tier-status API isExpiring/isExpired. Seeded via `seedDashboardDefaultsForTenant()` in setup.ts. New ACL feature: `partnerships.widgets.tier-expiry-banner` (agency_admin + agency_business_developer). |
 | US-TV-5: PM agencies list | Backend UI (page) | Yes — page extension | Computed fields in agencies GET API + badges + filter |
 | US-TV-6: Tier status API | API route | Yes — response extension | Add fields to tier-status response + widget update |
 
@@ -244,7 +244,7 @@ so that I know when the current tier is scheduled for re-evaluation.
 | C2 | Tier assign API + form | US-TV-1 | 2 | Extend tier-assign API schema (`validUntil` required, zod). Extend tier-assign backend page with date picker (default: today + 12 months, end of month). Update OpenAPI export. |
 | C3 | Tier proposal approval | US-TV-2 | 1 | Extend tier-proposals-action API: `validUntil` required on approve (zod, conditional). Add date picker to approval dialog on tier-review page (default: today + 12 months, end of month). Update OpenAPI export. |
 | C4 | Tier status API + widget | US-TV-6 | 2 | Extend tier-status response with validFrom, validUntil, isExpiring, isExpired. Update tier status widget to show review date with color coding. |
-| C5 | Agency expiry banner | US-TV-3, US-TV-4 | 2 | New dashboard banner widget: reads tier-status API, shows info/warning banners conditionally. New ACL feature `partnerships.widgets.tier-expiry-banner`. Widget seeded via `seedDashboardDefaultsForTenant()` in setup.ts for partner_admin + partner_member roles. Files: `widgets/dashboard/tier-expiry-banner/widget.ts` + `widget.client.tsx`. |
+| C5 | Agency expiry banner | US-TV-3, US-TV-4 | 2 | New dashboard banner widget: reads tier-status API, shows info/warning banners conditionally. New ACL feature `partnerships.widgets.tier-expiry-banner`. Widget seeded via `seedDashboardDefaultsForTenant()` in setup.ts for agency_admin + agency_business_developer roles. Files: `widgets/dashboard/tier-expiry-banner/widget.ts` + `widget.client.tsx`. |
 | C6 | PM agencies list indicators | US-TV-5 | 2 | Extend agencies GET API with computed review status. Add badges + status filter to agencies list page. |
 | C7 | Seed data + tests | All | 1 | Update demo seed with realistic validUntil dates (include one past = overdue, one within 30 days = expiring). Update existing unit tests for renamed field. New tests for expiry logic. Add i18n keys. |
 
@@ -351,5 +351,5 @@ If a consumer is needed in the future, re-add with the correct payload at that t
 
 ### Phase B — Detailed Progress
 - [x] C4: Tier status API returns validFrom, validUntil, isExpiring, isExpired. Widget shows review date with color coding.
-- [x] C5: New tier-expiry-banner dashboard widget with ACL feature. Seeded for partner_admin + partner_member.
+- [x] C5: New tier-expiry-banner dashboard widget with ACL feature. Seeded for agency_admin + agency_business_developer.
 - [x] C6: Agencies GET API returns validUntil + reviewStatus. Page has Expiring/Overdue filter buttons + ReviewBadge + Review date column.

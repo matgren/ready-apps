@@ -6,11 +6,11 @@
 - Commit plan: `commits-WF1.md`, Commit 8
 
 ## What This Delivers
-After this commit, Agency Admins and Partnership Managers have a dedicated PRM entrypoint at `Settings > Users` for agency user management: list, invite, edit, and delete for users with roles `partner_admin`, `partner_member`, and `partner_contributor`. The page is a discoverable wrapper around the existing auth user-management capability, not a replacement for it: it reuses `auth` list/create/update/delete APIs, keeps App Spec role capabilities intact, and adds app-level guardrails so Agency Admins are always limited to their own organization and the three allowed agency roles. PMs use an explicit agency selector on the page, so the flow does not depend on the current org switcher state. After successful creation or password reset, the page shows the same kind of copyable credential handoff used by `Add Agency`: a ready-made message for email/chat containing login email, temporary password, and login path.
+After this commit, Agency Admins and Partnership Managers have a dedicated PRM entrypoint at `Settings > Users` for agency user management: list, invite, edit, and delete for users with roles `agency_admin`, `agency_business_developer`, and `agency_developer`. The page is a discoverable wrapper around the existing auth user-management capability, not a replacement for it: it reuses `auth` list/create/update/delete APIs, keeps App Spec role capabilities intact, and adds app-level guardrails so Agency Admins are always limited to their own organization and the three allowed agency roles. PMs use an explicit agency selector on the page, so the flow does not depend on the current org switcher state. After successful creation or password reset, the page shows the same kind of copyable credential handoff used by `Add Agency`: a ready-made message for email/chat containing login email, temporary password, and login path.
 
 ## Acceptance Criteria
 **Domain (Vernon):**
-- [ ] Agency Admin can only assign roles `partner_member`, `partner_contributor`, `partner_admin` to users in their own org. The `partnership_manager` role is reserved for PM and cannot be assigned by agency users.
+- [ ] Agency Admin can only assign roles `agency_business_developer`, `agency_developer`, `agency_admin` to users in their own org. The `partnership_manager` role is reserved for PM and cannot be assigned by agency users.
 - [ ] Agency data is isolated — no cross-org visibility for agency users.
 - [ ] Admin can do everything BD can, but BD cannot do what Admin does (user management).
 
@@ -23,7 +23,7 @@ After this commit, Agency Admins and Partnership Managers have a dedicated PRM e
 ## Files
 | File | Action | Purpose |
 |------|--------|---------|
-| `src/modules/partnerships/api/interceptors.ts` | Modify | Add PRM guardrails on top of existing auth routes. For `partner_admin`, force `/api/auth/users` reads/writes to the actor's org, reject any assigned role outside `partner_admin`, `partner_member`, `partner_contributor`, and block unsafe mutations such as deleting users outside the actor org. Narrow `/api/auth/roles` results to the same three agency roles so raw auth create/edit screens stay safe if opened directly. |
+| `src/modules/partnerships/api/interceptors.ts` | Modify | Add PRM guardrails on top of existing auth routes. For `agency_admin`, force `/api/auth/users` reads/writes to the actor's org, reject any assigned role outside `agency_admin`, `agency_business_developer`, `agency_developer`, and block unsafe mutations such as deleting users outside the actor org. Narrow `/api/auth/roles` results to the same three agency roles so raw auth create/edit screens stay safe if opened directly. |
 | `src/modules/partnerships/backend/partnerships/users/page.meta.ts` | Create | Register PRM `Settings > Users` page as the discoverable agency-user-management entrypoint. Base guard uses existing auth features, and the page degrades by sub-capability: list requires `auth.users.list`, invite requires `auth.users.create`, edit actions require `auth.users.edit`, delete actions require `auth.users.delete`. |
 | `src/modules/partnerships/backend/partnerships/users/page.tsx` | Create | Render a PRM-scoped agency-user-management page: current agency members list filtered to agency roles, invite form limited to the three agency roles, own-org behavior for Agency Admin, explicit agency selector for PM, row actions for edit and delete. Submit via existing `/api/auth/users` route, link edit actions to existing auth edit flow or an embedded equivalent, and show a copyable post-create or password-reset credential message mirroring `Add Agency`. |
 | `src/modules/partnerships/api/get/onboarding-status.ts` | Modify | Change checklist links for `invite_bd` and `invite_contributor` from raw auth screens to `/backend/partnerships/users`. |
@@ -38,16 +38,16 @@ After this commit, Agency Admins and Partnership Managers have a dedicated PRM e
 - Pattern: UI package conventions (`Button`, `CrudForm`, `DataTable`, settings navigation) — Reference: [`packages/ui/AGENTS.md`](/Users/maciejgren/Documents/OM-PRM/open-mercato/packages/ui/AGENTS.md)
 
 ## Implementation Notes
-- This commit must **not** remove `auth.users.*` from `partner_admin` or `auth.*` from `partnership_manager`. App Spec §2 defines those capabilities and this spec stays within that ceiling.
+- This commit must **not** remove `auth.users.*` from `agency_admin` or `auth.*` from `partnership_manager`. App Spec §2 defines those capabilities and this spec stays within that ceiling.
 - This commit must **not** introduce custom `agency-users` or `agency-user-invitations` APIs. OM already provides auth list/create APIs; the app-specific work here is discoverability plus guardrails.
 - PRM `Settings > Users` is the preferred, guided entrypoint for agency onboarding and day-2 agency user management. Raw auth user pages remain available for parity with App Spec and PM's broader auth responsibilities.
 - The PRM page itself only offers the three agency roles. `partnership_manager` is outside this flow even for PM; PM keeps broader auth powers through the raw auth surface.
 - The page must degrade cleanly by auth sub-capability. If a role has `auth.users.list` but not `auth.users.create`, the list still renders and invite CTA does not. If a role lacks `auth.users.edit` or `auth.users.delete`, the corresponding row actions are omitted rather than rendered and failing later.
 - For Agency Admin, org scope is derived from the authenticated actor and is never editable in the PRM page. The auth-route interceptor must enforce the same rule for direct raw-auth requests.
 - For PM, org targeting is explicit in the PRM page via an agency selector. Do **not** require the PM to switch org first. App Spec §1.4.3 says PM writes are global actions attributed to agencies, not writes scoped by the currently selected org in switcher.
-- Edit scope for agency users in this commit: update email, reset password by setting a new temporary password, and change role within `partner_admin`, `partner_member`, `partner_contributor`.
+- Edit scope for agency users in this commit: update email, reset password by setting a new temporary password, and change role within `agency_admin`, `agency_business_developer`, `agency_developer`.
 - Agency Admin must not be able to reassign a user to another organization, assign `partnership_manager`, or edit/delete users outside their own organization.
-- Delete scope in this commit: delete agency-role users within the currently targeted org (platform uses hard-delete with command-bus undo support). Add explicit business guardrails: no self-delete for the current actor and no deleting the last remaining `partner_admin` in the organization.
+- Delete scope in this commit: delete agency-role users within the currently targeted org (platform uses hard-delete with command-bus undo support). Add explicit business guardrails: no self-delete for the current actor and no deleting the last remaining `agency_admin` in the organization.
 - UX/UI should mirror `Add Agency` whenever credentials are newly generated: after successful creation or password reset, show a copyable ready-made message with email, temporary password, and login URL/path rather than only a generic success flash. Direct email invitation delivery remains the separate Phase 4 upgrade path via SPEC-038.
 - Temporary passwords are sensitive. They must never be written to logs, audit payloads, or list responses, and must only be shown once in the immediate success state after create/password reset.
 - No new persistence model, cache layer, or background worker is introduced in this commit. Existing auth storage, pagination, and command routes remain the execution path; app code only constrains scope and discoverability.
@@ -55,27 +55,27 @@ After this commit, Agency Admins and Partnership Managers have a dedicated PRM e
 ## Testing
 
 ### Unit Tests
-- `restrictAgencyUserRoles` — filters role options to `partner_admin`, `partner_member`, `partner_contributor` for `partner_admin`
-- `resolveAgencyUserScope` — returns actor org for `partner_admin`; preserves explicit target org for PM
-- `guardAgencyUserMutation` — rejects `partnership_manager` assignment and foreign-org writes for `partner_admin`
-- `guardAgencyUserListQuery` — rewrites raw `/api/auth/users` query to actor org for `partner_admin`
-- `guardAgencyUserDelete` — rejects self-delete, cross-org delete, and delete of the last remaining `partner_admin` in the org
+- `restrictAgencyUserRoles` — filters role options to `agency_admin`, `agency_business_developer`, `agency_developer` for `agency_admin`
+- `resolveAgencyUserScope` — returns actor org for `agency_admin`; preserves explicit target org for PM
+- `guardAgencyUserMutation` — rejects `partnership_manager` assignment and foreign-org writes for `agency_admin`
+- `guardAgencyUserListQuery` — rewrites raw `/api/auth/users` query to actor org for `agency_admin`
+- `guardAgencyUserDelete` — rejects self-delete, cross-org delete, and delete of the last remaining `agency_admin` in the org
 - `buildCredentialHandoffMessage` — returns the same message shape used by `Add Agency`, including login email, temporary password, and login path
 
 ### Integration Test Scenarios
 | ID | Type | Scenario | Expected Result |
 |----|------|----------|-----------------|
-| T1 | UI | Agency Admin opens `/backend/partnerships/users` | Page renders under `Settings`, shows existing agency users, invite form offers only `partner_admin`, `partner_member`, `partner_contributor` |
-| T2 | UI/API | Agency Admin creates user with role `partner_member` from PRM page | `201`, user created in Admin's org, visible in PRM list, and success state shows copyable credential handoff message |
-| T3 | UI/API | Agency Admin creates user with role `partner_contributor` from PRM page | `201`, user created in Admin's org, Contributor can log in and reach scoped dashboard |
-| T4 | UI/API | Agency Admin edits an existing `partner_member` from PRM flow | Email or role is updated within the same org; role picker still offers only the three agency roles |
+| T1 | UI | Agency Admin opens `/backend/partnerships/users` | Page renders under `Settings`, shows existing agency users, invite form offers only `agency_admin`, `agency_business_developer`, `agency_developer` |
+| T2 | UI/API | Agency Admin creates user with role `agency_business_developer` from PRM page | `201`, user created in Admin's org, visible in PRM list, and success state shows copyable credential handoff message |
+| T3 | UI/API | Agency Admin creates user with role `agency_developer` from PRM page | `201`, user created in Admin's org, Contributor can log in and reach scoped dashboard |
+| T4 | UI/API | Agency Admin edits an existing `agency_business_developer` from PRM flow | Email or role is updated within the same org; role picker still offers only the three agency roles |
 | T5 | UI/API | Agency Admin resets a user's password from PRM flow | Save succeeds and success state shows copyable credential handoff message with the new temporary password |
 | T6 | UI/API | Agency Admin deletes an agency user from the same org | Confirm dialog appears, delete succeeds, user disappears from PRM list |
 | T7 | API | Agency Admin submits `partnership_manager` to raw `/api/auth/users` | `403` or `422`, no user created or updated |
 | T8 | API | Agency Admin submits another organization ID to raw `/api/auth/users` | Request is rejected or rewritten to Admin's org; no user is created or moved outside Admin's org |
 | T9 | API | Agency Admin loads raw `/api/auth/users` without organization filter | Response contains only users from Admin's org |
-| T10 | API | Agency Admin tries to delete self or the last remaining `partner_admin` in the org | `403` or `422`, no deletion occurs |
-| T11 | UI/API | PM opens PRM page, selects an agency org, edits or invites `partner_admin` | Page works without org-switcher dependency and user remains scoped to the selected agency |
+| T10 | API | Agency Admin tries to delete self or the last remaining `agency_admin` in the org | `403` or `422`, no deletion occurs |
+| T11 | UI/API | PM opens PRM page, selects an agency org, edits or invites `agency_admin` | Page works without org-switcher dependency and user remains scoped to the selected agency |
 | T12 | UI | PM opens PRM page with no agency selected yet | Empty state asks to choose a target agency; no misleading switcher requirement |
 | T13 | UI | BD opens `/backend/partnerships/users` | No menu item or `403`; BD cannot manage users |
 | T14 | UI | Onboarding checklist links for `Invite BD` and `Invite Contributor` open `/backend/partnerships/users` | Guided onboarding lands on the PRM entrypoint |
@@ -91,26 +91,26 @@ yarn test:integration
 
 Check after verification:
 - `Settings > Users` is visible for Agency Admin and PM, but not for BD or Contributor.
-- Agency Admin can create, edit, and delete only `partner_admin`, `partner_member`, `partner_contributor`, always within their own org.
+- Agency Admin can create, edit, and delete only `agency_admin`, `agency_business_developer`, `agency_developer`, always within their own org.
 - PM can target any agency from the PRM page without depending on the currently selected org in switcher.
 - Raw auth user APIs remain the implementation base; the PRM page does not duplicate user CRUD routes.
 - Post-create and password-reset UX mirrors `Add Agency`: operator gets a copyable credential message with email and temporary password for out-of-band sharing.
-- Self-delete and deleting the last remaining `partner_admin` are blocked.
+- Self-delete and deleting the last remaining `agency_admin` are blocked.
 - Onboarding checklist links for `Invite BD` and `Invite Contributor` open `/backend/partnerships/users`.
 
 ## Implementation Checklist
 
 ### `/src/modules/partnerships/api/interceptors.ts`
 - Add auth-route matching for `/api/auth/users` `GET|POST|PUT|DELETE` and `/api/auth/roles` `GET`.
-- For `partner_admin`, rewrite auth user list/detail queries to actor org and agency-role subset before handler execution.
-- For `partner_admin`, reject create/update payloads that contain:
+- For `agency_admin`, rewrite auth user list/detail queries to actor org and agency-role subset before handler execution.
+- For `agency_admin`, reject create/update payloads that contain:
   - `organizationId` outside actor org
-  - any role outside `partner_admin`, `partner_member`, `partner_contributor`
-- For `partner_admin`, reject delete when target user:
+  - any role outside `agency_admin`, `agency_business_developer`, `agency_developer`
+- For `agency_admin`, reject delete when target user:
   - is outside actor org
   - is the current actor
-  - is the last remaining `partner_admin` in the org
-- For role-option queries, narrow visible roles to the three agency roles when actor is `partner_admin`.
+  - is the last remaining `agency_admin` in the org
+- For role-option queries, narrow visible roles to the three agency roles when actor is `agency_admin`.
 - Keep PM path pass-through except for PRM page-driven agency targeting rules handled in UI.
 - Add/extend helper functions so unit tests can cover scope rewrite, role filtering, delete guardrails, and last-admin detection independently.
 
@@ -120,7 +120,7 @@ Check after verification:
 - Ensure breadcrumb and grouping are consistent with `Agency Profile` and `Case Studies`.
 
 ### `/src/modules/partnerships/backend/partnerships/users/page.tsx`
-- Build agency selector for PM and fixed-org context for `partner_admin`.
+- Build agency selector for PM and fixed-org context for `agency_admin`.
 - Load current agency users via existing auth list API, filtered to selected org and agency roles.
 - Render `DataTable` with stable columns: email, role(s), organization name where useful, and row actions.
 - Render invite flow using existing auth create API with three allowed roles only.
@@ -142,7 +142,7 @@ Check after verification:
 - Add credential-handoff helper copy and copy-to-clipboard success/error messages.
 
 ### `/src/modules/partnerships/api/__tests__/auth-user-guardrails.test.ts`
-- Cover org-scope rewrite for auth user list/detail requests by `partner_admin`.
+- Cover org-scope rewrite for auth user list/detail requests by `agency_admin`.
 - Cover role filtering for auth role options.
 - Cover create/update rejection for forbidden roles and foreign-org payloads.
 - Cover delete rejection for self-delete, cross-org delete, and last-admin delete.
@@ -157,10 +157,10 @@ Check after verification:
 | Risk | Severity | Impact | Mitigation | Residual Risk |
 |------|----------|--------|------------|---------------|
 | Agency Admin reaches raw auth routes and sees/modifies users outside own org | High | Tenant/org isolation breach | Interceptors rewrite auth user list/query scope to actor org and reject cross-org create/update/delete attempts | Low — depends on interceptor coverage staying complete for all relevant methods |
-| Agency Admin escalates privileges by assigning `partnership_manager` | High | Unauthorized PM capability grant | Role options and mutation guards both restrict agency flow to `partner_admin`, `partner_member`, `partner_contributor` | Low |
+| Agency Admin escalates privileges by assigning `partnership_manager` | High | Unauthorized PM capability grant | Role options and mutation guards both restrict agency flow to `agency_admin`, `agency_business_developer`, `agency_developer` | Low |
 | PRM page renders actions the actor cannot actually execute | Medium | Broken UX, confusing permissions | Page degrades by `auth.users.list/create/edit/delete` sub-capabilities and hides unavailable actions | Low |
 | Credential handoff leaks temporary passwords via logs or later reloads | High | Credential exposure | Temporary password shown only in immediate success state, excluded from logs/responses beyond that state, never recoverable from list view | Medium — operator can still mishandle copied credentials out-of-band |
-| Agency loses administrative access by deleting the last `partner_admin` | High | Organization becomes unmanaged | Delete guard blocks removing the last remaining `partner_admin` in the targeted org | Low |
+| Agency loses administrative access by deleting the last `agency_admin` | High | Organization becomes unmanaged | Delete guard blocks removing the last remaining `agency_admin` in the targeted org | Low |
 | User deletes own account accidentally | Medium | Session/ownership disruption | Delete guard blocks self-delete in PRM flow and on raw auth delete path for agency admins | Low |
 
 ## Review
