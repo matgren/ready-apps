@@ -68,6 +68,12 @@ function ActionDialog({
 }) {
   const t = useT()
   const [reason, setReason] = React.useState('')
+  const [validUntil, setValidUntil] = React.useState(() => {
+    const d = new Date()
+    d.setMonth(d.getMonth() + 12)
+    d.setMonth(d.getMonth() + 1, 0)
+    return d.toISOString().slice(0, 10)
+  })
   const [submitting, setSubmitting] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const isReject = action === 'reject'
@@ -89,6 +95,7 @@ function ActionDialog({
           proposalId: proposal.id,
           action,
           reason: reason.trim() || undefined,
+          ...(action === 'approve' && { validUntil: new Date(validUntil).toISOString() }),
         }),
       },
     )
@@ -134,6 +141,26 @@ function ActionDialog({
             />
           </div>
 
+          {!isReject && (
+            <div>
+              <label className="text-sm font-medium" htmlFor="valid-until">
+                {t('partnerships.tierStatus.reviewDate', 'Review date')} *
+              </label>
+              <input
+                id="valid-until"
+                type="date"
+                className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm"
+                value={validUntil}
+                onChange={(e) => setValidUntil(e.target.value)}
+                min={new Date().toISOString().slice(0, 10)}
+                required
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t('partnerships.agencies.reviewDateHint', 'Scheduled date for re-evaluating this tier assignment')}
+              </p>
+            </div>
+          )}
+
           {error && (
             <p className="text-sm text-destructive">{error}</p>
           )}
@@ -145,7 +172,7 @@ function ActionDialog({
             <Button
               type="submit"
               variant={isReject ? 'destructive' : 'default'}
-              disabled={submitting}
+              disabled={submitting || (!isReject && !validUntil)}
             >
               {submitting
                 ? t('partnerships.tierReview.submitting', 'Submitting...')

@@ -1,7 +1,7 @@
 {
   "workflowId": "partnerships_tier_evaluation_v1",
   "workflowName": "Tier Evaluation Workflow",
-  "description": "Evaluates an agency's KPI snapshot, lets PM approve or reject tier change, then persists assignment and emits AgencyTierChanged event.",
+  "description": "Evaluates an agency's KPI snapshot, lets PM approve or reject tier change, then persists assignment and writes audit log.",
   "version": 1,
   "enabled": true,
   "metadata": {
@@ -54,7 +54,7 @@
         "stepId": "apply_tier_change",
         "stepName": "Apply Tier Change",
         "stepType": "AUTOMATED",
-        "description": "Update proposal status, create TierAssignment, emit AgencyTierChanged event, write audit log"
+        "description": "Update proposal status, create TierAssignment, write audit log"
       },
       {
         "stepId": "record_rejection",
@@ -119,26 +119,7 @@
           }
         ],
         "continueOnActivityFailure": true,
-        "activities": [
-          {
-            "activityId": "emit_tier_changed",
-            "activityName": "Emit Agency Tier Changed Event",
-            "activityType": "EMIT_EVENT",
-            "async": true,
-            "config": {
-              "eventName": "partnerships.agency.tier_changed",
-              "payload": {
-                "proposalId": "{{context.proposalId}}",
-                "organizationId": "{{context.organizationId}}",
-                "previousTier": "{{context.currentTier}}",
-                "newTier": "{{context.proposedTier}}",
-                "type": "{{context.type}}",
-                "approvedBy": "{{task.completedBy}}",
-                "timestamp": "{{now}}"
-              }
-            }
-          }
-        ]
+        "activities": []
       },
       {
         "transitionId": "pm_review_to_reject",

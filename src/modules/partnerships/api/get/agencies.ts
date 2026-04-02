@@ -210,7 +210,7 @@ async function GET(req: Request) {
     const tierAssignments = await em.find(TierAssignment, {
       tenantId,
       organizationId: { $in: agencies.map((a) => a.organizationId) },
-    }, { orderBy: { effectiveDate: 'DESC' } })
+    }, { orderBy: { validFrom: 'DESC' } })
 
     const currentTiers = new Map<string, string>()
     for (const ta of tierAssignments) {

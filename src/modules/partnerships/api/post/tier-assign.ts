@@ -22,6 +22,9 @@ const tierAssignSchema = z.object({
   organizationId: z.string().uuid(),
   tier: z.enum(TIER_NAMES),
   reason: z.string().min(1),
+  validUntil: z.coerce.date().refine((d) => d > new Date(), {
+    message: 'validUntil must be in the future',
+  }),
 })
 
 // ---------------------------------------------------------------------------
@@ -49,7 +52,8 @@ async function POST(req: Request) {
   const tierAssignment = em.create(TierAssignment, {
     organizationId: parsed.data.organizationId,
     tier: parsed.data.tier,
-    effectiveDate: new Date(),
+    validFrom: new Date(),
+    validUntil: parsed.data.validUntil,
     approvedBy: auth.sub,
     reason: parsed.data.reason,
     tenantId: auth.tenantId,

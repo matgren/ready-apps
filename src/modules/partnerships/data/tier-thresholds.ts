@@ -37,3 +37,9 @@ export function computeTierEligibility(wic: number, wip: number, min: number): T
 export function tierOrder(name: string): number {
   return TIER_THRESHOLDS.find((t) => t.tier === name)?.order ?? 0
 }
+
+/**
+ * Number of days before `validUntil` when a tier assignment is considered
+ * "expiring soon". Used by read-model projections (isExpiring).
+ */
+export const EXPIRY_NOTICE_DAYS = 30

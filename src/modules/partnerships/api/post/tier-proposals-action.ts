@@ -3,7 +3,6 @@ import { z } from 'zod'
 import { createRequestContainer } from '@open-mercato/shared/lib/di/container'
 import { getAuthFromRequest } from '@open-mercato/shared/lib/auth/server'
 import type { EntityManager } from '@mikro-orm/postgresql'
-import type { EventBus } from '@open-mercato/events/types'
 import type { OpenApiMethodDoc, OpenApiRouteDoc } from '@open-mercato/shared/lib/openapi'
 import { TierChangeProposal, TierAssignment } from '../../data/entities'
 
@@ -16,7 +15,11 @@ const actionSchema = z.object({
   proposalId: z.string().uuid(),
   action: z.enum(['approve', 'reject']),
   reason: z.string().optional(),
-})
+  validUntil: z.coerce.date().optional(),
+}).refine(
+  (data) => data.action !== 'approve' || (data.validUntil && data.validUntil > new Date()),
+  { message: 'validUntil is required and must be in the future when approving', path: ['validUntil'] },
+)
 
 async function POST(req: Request) {
   const auth = await getAuthFromRequest(req)
@@ -65,7 +68,8 @@ async function POST(req: Request) {
     const assignment = em.create(TierAssignment, {
       organizationId: proposal.organizationId,
       tier: proposal.proposedTier,
-      effectiveDate: now,
+      validFrom: now,
+      validUntil: parsed.data.validUntil!,
       approvedBy: userId,
       reason: reason || `${proposal.type} approved from ${proposal.currentTier} to ${proposal.proposedTier}`,
       tenantId,
@@ -73,21 +77,6 @@ async function POST(req: Request) {
     em.persist(assignment)
 
     await em.flush()
-
-    // Emit AgencyTierChanged event
-    try {
-      const eventBus = container.resolve('eventBus') as EventBus
-      void eventBus.emitEvent('partnerships.agency.tier_changed', {
-        organizationId: proposal.organizationId,
-        previousTier: proposal.currentTier,
-        newTier: proposal.proposedTier,
-        effectiveDate: now.toISOString(),
-        approvedBy: userId,
-        tenantId,
-      }).catch(() => undefined)
-    } catch {
-      // Event emission is best-effort
-    }
 
     return NextResponse.json({
       ok: true,

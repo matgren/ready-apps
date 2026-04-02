@@ -141,7 +141,7 @@ async function POST(req: Request) {
   const tierAssignment = em.create(TierAssignment, {
     organizationId: org.id,
     tier: initialTier,
-    effectiveDate: new Date(),
+    validFrom: new Date(),
     approvedBy: auth.sub,
     reason: 'Initial onboarding',
     tenantId,

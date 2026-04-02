@@ -1001,10 +1001,10 @@ async function seedPrmExamples(
 
   // --- TierAssignments ---
   const tierAssignments = [
-    { organizationId: acmeOrgId, tier: 'OM Agency', effectiveDate: new Date('2025-06-01'), approvedBy: pmUserId, reason: 'Initial onboarding', tenantId },
-    { organizationId: nordicOrgId, tier: 'OM AI-native Agency', effectiveDate: new Date('2025-10-01'), approvedBy: pmUserId, reason: 'Upgrade from OM Agency', tenantId },
-    { organizationId: nordicOrgId, tier: 'OM Agency', effectiveDate: new Date('2025-09-15'), approvedBy: pmUserId, reason: 'Initial onboarding', tenantId },
-    { organizationId: cloudbridgeOrgId, tier: 'OM Agency', effectiveDate: new Date('2026-01-15'), approvedBy: pmUserId, reason: 'Initial onboarding', tenantId },
+    { organizationId: acmeOrgId, tier: 'OM Agency', validFrom: new Date('2025-06-01'), validUntil: new Date('2026-06-30'), approvedBy: pmUserId, reason: 'Initial onboarding', tenantId },
+    { organizationId: nordicOrgId, tier: 'OM AI-native Agency', validFrom: new Date('2025-10-01'), validUntil: new Date('2026-04-15'), approvedBy: pmUserId, reason: 'Upgrade from OM Agency', tenantId },
+    { organizationId: nordicOrgId, tier: 'OM Agency', validFrom: new Date('2025-09-15'), validUntil: new Date('2026-03-15'), approvedBy: pmUserId, reason: 'Initial onboarding', tenantId },
+    { organizationId: cloudbridgeOrgId, tier: 'OM Agency', validFrom: new Date('2026-01-15'), validUntil: new Date('2026-07-31'), approvedBy: pmUserId, reason: 'Initial onboarding', tenantId },
   ]
   for (const ta of tierAssignments) {
     em.persist(em.create(TierAssignment, ta))

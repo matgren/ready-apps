@@ -200,12 +200,12 @@ export default async function handle(
   const eligibleTier = computeTierEligibility(wic, wip, min)
 
   // -----------------------------------------------------------------------
-  // 4. Load current tier assignment (latest by effectiveDate)
+  // 4. Load current tier assignment (latest by validFrom)
   // -----------------------------------------------------------------------
   const currentAssignment = await em.findOne(
     TierAssignment,
     { organizationId, tenantId },
-    { orderBy: { effectiveDate: 'DESC' } },
+    { orderBy: { validFrom: 'DESC' } },
   )
 
   const currentTierName = currentAssignment?.tier ?? 'OM Agency'

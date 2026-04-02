@@ -96,7 +96,7 @@ export class TierChangeProposal {
 @Entity({ tableName: 'tier_assignments' })
 @Index({ name: 'ta_org_tenant_idx', properties: ['organizationId', 'tenantId'] })
 export class TierAssignment {
-  [OptionalProps]?: 'createdAt' | 'reason'
+  [OptionalProps]?: 'createdAt' | 'reason' | 'validUntil'
 
   @PrimaryKey({ type: 'uuid', defaultRaw: 'gen_random_uuid()' })
   id!: string
@@ -107,8 +107,11 @@ export class TierAssignment {
   @Property({ type: 'text' })
   tier!: string
 
-  @Property({ name: 'effective_date', type: Date })
-  effectiveDate!: Date
+  @Property({ name: 'valid_from', type: Date })
+  validFrom!: Date
+
+  @Property({ name: 'valid_until', type: Date, nullable: true })
+  validUntil?: Date | null
 
   @Property({ name: 'approved_by', type: 'uuid' })
   approvedBy!: string

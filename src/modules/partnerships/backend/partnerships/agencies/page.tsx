@@ -35,6 +35,13 @@ function ChangeTierDialog({
   const t = useT()
   const [selectedTier, setSelectedTier] = React.useState(agency.currentTier ?? TIER_THRESHOLDS[0].tier)
   const [reason, setReason] = React.useState('')
+  const [validUntil, setValidUntil] = React.useState(() => {
+    const d = new Date()
+    d.setMonth(d.getMonth() + 12)
+    // Round to end of month
+    d.setMonth(d.getMonth() + 1, 0)
+    return d.toISOString().slice(0, 10)
+  })
   const [submitting, setSubmitting] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const { runMutation } = useGuardedMutation<{ organizationId: string; tier: string }>({
@@ -57,6 +64,7 @@ function ChangeTierDialog({
               organizationId: agency.organizationId,
               tier: selectedTier,
               reason: reason.trim(),
+              validUntil: new Date(validUntil).toISOString(),
             }),
           },
         ),
@@ -134,6 +142,24 @@ function ChangeTierDialog({
             />
           </div>
 
+          <div>
+            <label className="text-sm font-medium block mb-1" htmlFor="valid-until">
+              {t('partnerships.tierStatus.reviewDate', 'Review date')} *
+            </label>
+            <input
+              id="valid-until"
+              type="date"
+              className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              value={validUntil}
+              onChange={(e) => setValidUntil(e.target.value)}
+              min={new Date().toISOString().slice(0, 10)}
+              required
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t('partnerships.agencies.reviewDateHint', 'Scheduled date for re-evaluating this tier assignment')}
+            </p>
+          </div>
+
           {error && (
             <p className="text-sm text-destructive">{error}</p>
           )}
@@ -144,7 +170,7 @@ function ChangeTierDialog({
             </Button>
             <Button
               type="submit"
-              disabled={submitting || !reason.trim()}
+              disabled={submitting || !reason.trim() || !validUntil}
             >
               {submitting ? 'Saving...' : t('partnerships.agencies.changeTier', 'Change Tier')}
             </Button>

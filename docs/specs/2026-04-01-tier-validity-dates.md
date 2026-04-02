@@ -333,3 +333,18 @@ If a consumer is needed in the future, re-add with the correct payload at that t
 - **Partnership Suspension** — account blocking when tier review is overdue. GitHub issue matgren/prm-ready-app#27.
 - **Domain events for review approaching/overdue** — TierReviewApproaching, TierReviewOverdue events for async notifications (email/push). Add when notification channels are implemented.
 - **Per-tier EXPIRY_NOTICE_DAYS** — configurable per tier if different tiers need different notice periods.
+
+---
+
+## Implementation Status
+
+| Phase | Status | Date | Notes |
+|-------|--------|------|-------|
+| Phase A — Data Model + Assignment Flows | Done | 2026-04-02 | C1-C3, C7 implemented. Typecheck + 57 unit tests passing. |
+| Phase B — Visibility + Notifications | Not Started | — | C4 (tier-status API), C5 (expiry banner widget), C6 (PM agencies list indicators) |
+
+### Phase A — Detailed Progress
+- [x] C1: Entity rename (effectiveDate→validFrom), add validUntil, migration, EXPIRY_NOTICE_DAYS, remove AgencyTierChanged event
+- [x] C2: Tier assign API + form (validUntil in zod schema, date picker in ChangeTierDialog)
+- [x] C3: Tier proposal approval (validUntil required on approve, date picker in ActionDialog)
+- [x] C7: Seed data updated, i18n keys added, 11 new unit tests for expiry logic

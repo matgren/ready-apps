@@ -167,11 +167,11 @@ async function GET(req: Request) {
       readMin(em, organizationId, tenantId, year),
     ])
 
-    // Current tier assignment (latest by effectiveDate)
+    // Current tier assignment (latest by validFrom)
     const currentAssignment = await em.findOne(
       TierAssignment,
       { organizationId, tenantId },
-      { orderBy: { effectiveDate: 'DESC' } },
+      { orderBy: { validFrom: 'DESC' } },
     )
     const tier = currentAssignment?.tier ?? null
 
